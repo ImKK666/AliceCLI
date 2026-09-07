@@ -1,5 +1,4 @@
 import type { StdoutMessage } from 'src/entrypoints/sdk/controlTypes.js'
-import type WsWebSocket from 'ws'
 import { logEvent } from '../../services/analytics/index.js'
 import { CircularBuffer } from '../../utils/CircularBuffer.js'
 import { logForDebugging } from '../../utils/debug.js'
@@ -7,10 +6,7 @@ import { rcLog } from '../../bridge/rcDebugLog.js'
 import { logForDiagnosticsNoPII } from '../../utils/diagLogs.js'
 import { isEnvTruthy } from '../../utils/envUtils.js'
 import { getWebSocketTLSOptions } from '../../utils/mtls.js'
-import {
-  getWebSocketProxyAgent,
-  getWebSocketProxyUrl,
-} from '../../utils/proxy.js'
+import { getWebSocketProxyUrl } from '../../utils/proxy.js'
 import {
   registerSessionActivityCallback,
   unregisterSessionActivityCallback,
@@ -65,7 +61,7 @@ type WebSocketTransportState =
   | 'closing'
   | 'closed'
 
-// Common interface between globalThis.WebSocket and ws.WebSocket
+// Common interface for WebSocket instances
 type WebSocketLike = {
   close(): void
   send(data: string): void
@@ -105,9 +101,6 @@ export class WebSocketTransport implements Transport {
 
   // Message buffering for replay on reconnection
   private messageBuffer: CircularBuffer<StdoutMessage>
-  // Track which runtime's WS we're using so we can detach listeners
-  // with the matching API (removeEventListener vs. off).
-  private isBunWs = false
 
   // Captured at connect() time for handleOpenEvent timing. Stored as an
   // instance field so the onOpen handler can be a stable class-property
@@ -157,40 +150,22 @@ export class WebSocketTransport implements Transport {
       )
     }
 
-    if (typeof Bun !== 'undefined') {
-      // Bun's WebSocket supports headers/proxy options but the DOM typings don't
-      // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins
-      const ws = new globalThis.WebSocket(this.url.href, {
-        headers,
-        proxy: getWebSocketProxyUrl(this.url.href),
-        tls: getWebSocketTLSOptions() || undefined,
-      } as unknown as string[])
-      this.ws = ws
-      this.isBunWs = true
+    // Bun's WebSocket supports headers/proxy options but the DOM typings don't
+    // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins
+    const ws = new globalThis.WebSocket(this.url.href, {
+      headers,
+      proxy: getWebSocketProxyUrl(this.url.href),
+      tls: getWebSocketTLSOptions() || undefined,
+    } as unknown as string[])
+    this.ws = ws
 
-      ws.addEventListener('open', this.onBunOpen)
-      ws.addEventListener('message', this.onBunMessage)
-      ws.addEventListener('error', this.onBunError)
-      // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins
-      ws.addEventListener('close', this.onBunClose)
-      // 'pong' is Bun-specific — not in DOM typings.
-      ws.addEventListener('pong', this.onPong)
-    } else {
-      const { default: WS } = await import('ws')
-      const ws = new WS(this.url.href, {
-        headers,
-        agent: getWebSocketProxyAgent(this.url.href),
-        ...getWebSocketTLSOptions(),
-      })
-      this.ws = ws
-      this.isBunWs = false
-
-      ws.on('open', this.onNodeOpen)
-      ws.on('message', this.onNodeMessage)
-      ws.on('error', this.onNodeError)
-      ws.on('close', this.onNodeClose)
-      ws.on('pong', this.onPong)
-    }
+    ws.addEventListener('open', this.onBunOpen)
+    ws.addEventListener('message', this.onBunMessage)
+    ws.addEventListener('error', this.onBunError)
+    // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins
+    ws.addEventListener('close', this.onBunClose)
+    // 'pong' is Bun-specific — not in DOM typings.
+    ws.addEventListener('pong', this.onPong)
   }
 
   // --- Bun (native WebSocket) event handlers ---
@@ -237,55 +212,6 @@ export class WebSocketTransport implements Transport {
     )
     logForDiagnosticsNoPII('error', 'cli_websocket_connect_closed')
     this.handleConnectionError(event.code)
-  }
-
-  // --- Node (ws package) event handlers ---
-
-  private onNodeOpen = () => {
-    // Capture ws before handleOpenEvent() invokes onConnectCallback — if the
-    // callback synchronously closes the transport, this.ws becomes null.
-    // The old inline-closure code had this safety implicitly via closure capture.
-    const ws = this.ws
-    this.handleOpenEvent()
-    if (!ws) return
-    // Check for last-id in upgrade response headers (ws package only)
-    const nws = ws as unknown as WsWebSocket & {
-      upgradeReq?: { headers?: Record<string, string> }
-    }
-    const upgradeResponse = nws.upgradeReq
-    if (upgradeResponse?.headers?.['x-last-request-id']) {
-      const serverLastId = upgradeResponse.headers['x-last-request-id']
-      this.replayBufferedMessages(serverLastId)
-    }
-  }
-
-  private onNodeMessage = (data: Buffer) => {
-    const message = data.toString()
-    this.lastActivityTime = Date.now()
-    logForDiagnosticsNoPII('info', 'cli_websocket_message_received', {
-      length: message.length,
-    })
-    if (this.onData) {
-      this.onData(message)
-    }
-  }
-
-  private onNodeError = (err: Error) => {
-    logForDebugging(`WebSocketTransport: Error: ${err.message}`, {
-      level: 'error',
-    })
-    logForDiagnosticsNoPII('error', 'cli_websocket_connect_error')
-    // close event fires after error — let it call handleConnectionError
-  }
-
-  private onNodeClose = (code: number, _reason: Buffer) => {
-    const isClean = code === 1000 || code === 1001
-    logForDebugging(
-      `WebSocketTransport: Closed: ${code}`,
-      isClean ? undefined : { level: 'error' },
-    )
-    logForDiagnosticsNoPII('error', 'cli_websocket_connect_closed')
-    this.handleConnectionError(code)
   }
 
   // --- Shared handlers ---
@@ -359,23 +285,14 @@ export class WebSocketTransport implements Transport {
    * pattern in src/utils/mcpWebSocketTransport.ts.
    */
   private removeWsListeners(ws: WebSocketLike): void {
-    if (this.isBunWs) {
-      const nws = ws as unknown as globalThis.WebSocket
-      nws.removeEventListener('open', this.onBunOpen)
-      nws.removeEventListener('message', this.onBunMessage)
-      nws.removeEventListener('error', this.onBunError)
-      // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins
-      nws.removeEventListener('close', this.onBunClose)
-      // 'pong' is Bun-specific — not in DOM typings
-      nws.removeEventListener('pong' as 'message', this.onPong)
-    } else {
-      const nws = ws as unknown as WsWebSocket
-      nws.off('open', this.onNodeOpen)
-      nws.off('message', this.onNodeMessage)
-      nws.off('error', this.onNodeError)
-      nws.off('close', this.onNodeClose)
-      nws.off('pong', this.onPong)
-    }
+    const nws = ws as unknown as globalThis.WebSocket
+    nws.removeEventListener('open', this.onBunOpen)
+    nws.removeEventListener('message', this.onBunMessage)
+    nws.removeEventListener('error', this.onBunError)
+    // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins
+    nws.removeEventListener('close', this.onBunClose)
+    // 'pong' is Bun-specific — not in DOM typings
+    nws.removeEventListener('pong' as 'message', this.onPong)
   }
 
   protected doDisconnect(): void {

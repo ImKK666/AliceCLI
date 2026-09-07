@@ -3,8 +3,6 @@
  * Communicates with the Chrome extension via the office bridge server's /chrome path.
  */
 
-import WebSocket from 'ws'
-
 import { SocketConnectionError } from './mcpSocketClient.js'
 import {
   localPlatformLabel,
@@ -574,6 +572,7 @@ export class BridgeClient implements SocketClient {
     })
 
     try {
+      // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins
       this.ws = new WebSocket(wsUrl)
     } catch (error) {
       const durationMs = Date.now() - this.connectionStartTime
@@ -591,7 +590,13 @@ export class BridgeClient implements SocketClient {
       return
     }
 
-    this.ws.on('open', () => {
+    // Capture the current WebSocket instance. Handlers check this reference
+    // against this.ws to detect stale events from a previous connection
+    // (replaces ws package's removeAllListeners() in closeSocket).
+    const ws = this.ws
+
+    ws.addEventListener('open', () => {
+      if (this.ws !== ws) return
       logger.info(
         `[${serverName}] WebSocket connected, sending connect message`,
       )
@@ -611,9 +616,12 @@ export class BridgeClient implements SocketClient {
       this.ws?.send(JSON.stringify(connectMessage))
     })
 
-    this.ws.on('message', (data: WebSocket.Data) => {
+    ws.addEventListener('message', (event: MessageEvent) => {
+      if (this.ws !== ws) return
       try {
-        const message = JSON.parse(data.toString()) as Record<string, unknown>
+        const data =
+          typeof event.data === 'string' ? event.data : String(event.data)
+        const message = JSON.parse(data) as Record<string, unknown>
         logger.debug(
           `[${serverName}] Bridge received: ${JSON.stringify(message)}`,
         )
@@ -626,7 +634,10 @@ export class BridgeClient implements SocketClient {
       }
     })
 
-    this.ws.on('close', (code: number) => {
+    // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins
+    ws.addEventListener('close', (event: CloseEvent) => {
+      if (this.ws !== ws) return
+      const code = event.code
       const durationSinceConnect = this.connectionEstablishedTime
         ? Date.now() - this.connectionEstablishedTime
         : 0
@@ -645,12 +656,14 @@ export class BridgeClient implements SocketClient {
       this.scheduleReconnect()
     })
 
-    this.ws.on('error', (error: Error) => {
+    ws.addEventListener('error', () => {
+      if (this.ws !== ws) return
       const durationMs = this.connectionStartTime
         ? Date.now() - this.connectionStartTime
         : 0
+      // Browser WebSocket error events don't carry error details
       logger.error(
-        `[${serverName}] Bridge WebSocket error after ${durationMs}ms: ${error.message}`,
+        `[${serverName}] Bridge WebSocket error after ${durationMs}ms`,
       )
       trackEvent?.('chrome_bridge_connection_failed', {
         duration_ms: durationMs,
@@ -1071,7 +1084,9 @@ export class BridgeClient implements SocketClient {
 
   private closeSocket(): void {
     if (this.ws) {
-      this.ws.removeAllListeners()
+      // No removeAllListeners() in browser WebSocket API. Stale-handler
+      // guards in addEventListener callbacks (this.ws !== ws check) prevent
+      // old handlers from acting after the socket is replaced.
       this.ws.close()
       this.ws = null
     }

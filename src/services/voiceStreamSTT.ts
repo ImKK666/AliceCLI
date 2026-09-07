@@ -11,8 +11,6 @@
 // binary audio frames.  The server responds with TranscriptText and
 // TranscriptEndpoint JSON messages.
 
-import type { ClientRequest, IncomingMessage } from 'http'
-import WebSocket from 'ws'
 import { getOauthConfig } from '../constants/oauth.js'
 import {
   checkAndRefreshOAuthTokenIfNeeded,
@@ -23,7 +21,7 @@ import { logForDebugging } from '../utils/debug.js'
 import { getUserAgent } from '../utils/http.js'
 import { logError } from '../utils/log.js'
 import { getWebSocketTLSOptions } from '../utils/mtls.js'
-import { getWebSocketProxyAgent, getWebSocketProxyUrl } from '../utils/proxy.js'
+import { getWebSocketProxyUrl } from '../utils/proxy.js'
 import { jsonParse, jsonStringify } from '../utils/slowOperations.js'
 
 const KEEPALIVE_MSG = '{"type":"KeepAlive"}'
@@ -183,16 +181,14 @@ export async function connectVoiceStream(
   }
 
   const tlsOptions = getWebSocketTLSOptions()
-  const wsOptions =
-    typeof Bun !== 'undefined'
-      ? {
-          headers,
-          proxy: getWebSocketProxyUrl(url),
-          tls: tlsOptions || undefined,
-        }
-      : { headers, agent: getWebSocketProxyAgent(url), ...tlsOptions }
 
-  const ws = new WebSocket(url, wsOptions)
+  // Bun's WebSocket supports headers/proxy/tls options but the DOM typings don't
+  // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins
+  const ws = new WebSocket(url, {
+    headers,
+    proxy: getWebSocketProxyUrl(url),
+    tls: tlsOptions || undefined,
+  } as unknown as string[])
 
   let keepaliveTimer: ReturnType<typeof setInterval> | null = null
   let connected = false
@@ -201,10 +197,6 @@ export async function connectVoiceStream(
   let finalized = false
   // Set to true when finalize() is first called, to prevent double-fire.
   let finalizing = false
-  // Set when the HTTP upgrade was rejected (unexpected-response). The
-  // close event that follows (1006 from our req.destroy()) is just
-  // mechanical teardown; the upgrade handler already reported the error.
-  let upgradeRejected = false
   // Resolves finalize(). Four triggers: TranscriptEndpoint post-CloseStream
   // (~300ms); no-data timer (1.5s); WS close (~3-5s); safety timer (5s).
   let resolveFinalize: ((source: FinalizeSource) => void) | null = null
@@ -231,9 +223,9 @@ export async function connectVoiceStream(
       // Copy the buffer before sending: NAPI Buffer objects from native
       // modules may share a pooled ArrayBuffer.  Creating a view with
       // `new Uint8Array(buf.buffer, offset, len)` can reference stale or
-      // overlapping memory by the time the ws library reads it.
-      // `Buffer.from()` makes an owned copy that the ws library can safely
-      // consume as a binary WebSocket frame.
+      // overlapping memory by the time the WebSocket reads it.
+      // `Buffer.from()` makes an owned copy that can safely be consumed
+      // as a binary WebSocket frame.
       ws.send(Buffer.from(audioChunk))
     },
     finalize(): Promise<FinalizeSource> {
@@ -319,7 +311,7 @@ export async function connectVoiceStream(
     },
   }
 
-  ws.on('open', () => {
+  ws.addEventListener('open', () => {
     logForDebugging('[voice_stream] WebSocket connected')
     connected = true
 
@@ -354,8 +346,9 @@ export async function connectVoiceStream(
   // segments when it detects the text has changed non-cumulatively.
   let lastTranscriptText = ''
 
-  ws.on('message', (raw: Buffer | string) => {
-    const text = raw.toString()
+  ws.addEventListener('message', (event: MessageEvent) => {
+    const text =
+      typeof event.data === 'string' ? event.data : String(event.data)
     logForDebugging(
       `[voice_stream] Message received (${String(text.length)} chars): ${text.slice(0, 200)}`,
     )
@@ -460,8 +453,10 @@ export async function connectVoiceStream(
     }
   })
 
-  ws.on('close', (code, reason) => {
-    const reasonStr = reason?.toString() ?? ''
+  // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins
+  ws.addEventListener('close', (event: CloseEvent) => {
+    const code = event.code
+    const reasonStr = event.reason ?? ''
     logForDebugging(
       `[voice_stream] WebSocket closed: code=${String(code)} reason="${reasonStr}"`,
     )
@@ -487,7 +482,7 @@ export async function connectVoiceStream(
     // at finalize() entry, never cleared, so it stays accurate after the
     // fast path or a timer already resolved.
     resolveFinalize?.('ws_close')
-    if (!finalizing && !upgradeRejected && code !== 1000 && code !== 1005) {
+    if (!finalizing && code !== 1000 && code !== 1005) {
       callbacks.onError(
         `Connection closed: code ${String(code)}${reasonStr ? ` — ${reasonStr}` : ''}`,
       )
@@ -495,48 +490,16 @@ export async function connectVoiceStream(
     callbacks.onClose()
   })
 
-  // The ws library fires 'unexpected-response' when the HTTP upgrade
-  // returns a non-101 status. Listening lets us surface the actual status
-  // and flag 4xx as fatal (same token/TLS fingerprint won't change on
-  // retry). With a listener registered, ws does NOT abort on our behalf —
-  // we destroy the request; 'error' does not fire, 'close' does (suppressed
-  // via upgradeRejected above).
-  //
-  // Bun's ws shim historically didn't implement this event (a warning
-  // is logged once at registration). Under Bun a non-101 upgrade falls
-  // through to the generic 'error' + 'close' 1002 path with no recoverable
-  // status; the attemptGenRef guard in useVoice.ts still surfaces the
-  // retry-attempt failure, the user just sees "Expected 101 status code"
-  // instead of "HTTP 503". No harm — the gen fix is the load-bearing part.
-  ws.on('unexpected-response', (req: ClientRequest, res: IncomingMessage) => {
-    const status = res.statusCode ?? 0
-    // Bun's ws implementation on Windows can fire this event for a
-    // successful 101 Switching Protocols response (anthropics/claude-code#40510).
-    // 101 is never a rejection — bail before we destroy a working upgrade.
-    if (status === 101) {
-      logForDebugging(
-        '[voice_stream] unexpected-response fired with 101; ignoring',
-      )
-      return
-    }
-    logForDebugging(
-      `[voice_stream] Upgrade rejected: status=${String(status)} cf-mitigated=${String(res.headers['cf-mitigated'])} cf-ray=${String(res.headers['cf-ray'])}`,
-    )
-    upgradeRejected = true
-    res.resume()
-    req.destroy()
-    if (finalizing) return
-    callbacks.onError(
-      `WebSocket upgrade rejected with HTTP ${String(status)}`,
-      { fatal: status >= 400 && status < 500 },
-    )
-  })
+  // Note: Browser WebSocket API does not have 'unexpected-response'. Under
+  // Bun, a non-101 upgrade falls through to the generic 'error' + 'close'
+  // path. The close handler surfaces the error via onError callback.
 
-  ws.on('error', (err: Error) => {
-    logError(err)
-    logForDebugging(`[voice_stream] WebSocket error: ${err.message}`)
+  ws.addEventListener('error', () => {
+    // Browser WebSocket error events don't carry error details; the close
+    // event that follows will provide the close code for diagnostics.
+    logForDebugging('[voice_stream] WebSocket error')
     if (!finalizing) {
-      callbacks.onError(`Voice stream connection error: ${err.message}`)
+      callbacks.onError('Voice stream connection error')
     }
   })
 

@@ -11,7 +11,7 @@ import { logForDebugging } from '../utils/debug.js'
 import { errorMessage } from '../utils/errors.js'
 import { logError } from '../utils/log.js'
 import { getWebSocketTLSOptions } from '../utils/mtls.js'
-import { getWebSocketProxyAgent, getWebSocketProxyUrl } from '../utils/proxy.js'
+import { getWebSocketProxyUrl } from '../utils/proxy.js'
 import { jsonParse, jsonStringify } from '../utils/slowOperations.js'
 
 const RECONNECT_DELAY_MS = 2000
@@ -64,7 +64,7 @@ export type SessionsWebSocketCallbacks = {
   onReconnecting?: () => void
 }
 
-// Common interface between globalThis.WebSocket and ws.WebSocket
+// Common interface for WebSocket instances
 type WebSocketLike = {
   close(): void
   send(data: string): void
@@ -117,91 +117,49 @@ export class SessionsWebSocket {
       'anthropic-version': '2023-06-01',
     }
 
-    if (typeof Bun !== 'undefined') {
-      // Bun's WebSocket supports headers/proxy options but the DOM typings don't
-      // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins
-      const ws = new globalThis.WebSocket(url, {
-        headers,
-        proxy: getWebSocketProxyUrl(url),
-        tls: getWebSocketTLSOptions() || undefined,
-      } as unknown as string[])
-      this.ws = ws
+    // Bun's WebSocket supports headers/proxy options but the DOM typings don't
+    // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins
+    const ws = new globalThis.WebSocket(url, {
+      headers,
+      proxy: getWebSocketProxyUrl(url),
+      tls: getWebSocketTLSOptions() || undefined,
+    } as unknown as string[])
+    this.ws = ws
 
-      ws.addEventListener('open', () => {
-        logForDebugging(
-          '[SessionsWebSocket] Connection opened, authenticated via headers',
-        )
-        this.state = 'connected'
-        this.reconnectAttempts = 0
-        this.sessionNotFoundRetries = 0
-        this.startPingInterval()
-        this.callbacks.onConnected?.()
-      })
+    ws.addEventListener('open', () => {
+      logForDebugging(
+        '[SessionsWebSocket] Connection opened, authenticated via headers',
+      )
+      this.state = 'connected'
+      this.reconnectAttempts = 0
+      this.sessionNotFoundRetries = 0
+      this.startPingInterval()
+      this.callbacks.onConnected?.()
+    })
 
-      ws.addEventListener('message', (event: MessageEvent) => {
-        const data =
-          typeof event.data === 'string' ? event.data : String(event.data)
-        this.handleMessage(data)
-      })
+    ws.addEventListener('message', (event: MessageEvent) => {
+      const data =
+        typeof event.data === 'string' ? event.data : String(event.data)
+      this.handleMessage(data)
+    })
 
-      ws.addEventListener('error', () => {
-        const err = new Error('[SessionsWebSocket] WebSocket error')
-        logError(err)
-        this.callbacks.onError?.(err)
-      })
+    ws.addEventListener('error', () => {
+      const err = new Error('[SessionsWebSocket] WebSocket error')
+      logError(err)
+      this.callbacks.onError?.(err)
+    })
 
-      // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins
-      ws.addEventListener('close', (event: CloseEvent) => {
-        logForDebugging(
-          `[SessionsWebSocket] Closed: code=${event.code} reason=${event.reason}`,
-        )
-        this.handleClose(event.code)
-      })
+    // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins
+    ws.addEventListener('close', (event: CloseEvent) => {
+      logForDebugging(
+        `[SessionsWebSocket] Closed: code=${event.code} reason=${event.reason}`,
+      )
+      this.handleClose(event.code)
+    })
 
-      ws.addEventListener('pong', () => {
-        logForDebugging('[SessionsWebSocket] Pong received')
-      })
-    } else {
-      const { default: WS } = await import('ws')
-      const ws = new WS(url, {
-        headers,
-        agent: getWebSocketProxyAgent(url),
-        ...getWebSocketTLSOptions(),
-      })
-      this.ws = ws
-
-      ws.on('open', () => {
-        logForDebugging(
-          '[SessionsWebSocket] Connection opened, authenticated via headers',
-        )
-        // Auth is handled via headers, so we're immediately connected
-        this.state = 'connected'
-        this.reconnectAttempts = 0
-        this.sessionNotFoundRetries = 0
-        this.startPingInterval()
-        this.callbacks.onConnected?.()
-      })
-
-      ws.on('message', (data: Buffer) => {
-        this.handleMessage(data.toString())
-      })
-
-      ws.on('error', (err: Error) => {
-        logError(new Error(`[SessionsWebSocket] Error: ${err.message}`))
-        this.callbacks.onError?.(err)
-      })
-
-      ws.on('close', (code: number, reason: Buffer) => {
-        logForDebugging(
-          `[SessionsWebSocket] Closed: code=${code} reason=${reason.toString()}`,
-        )
-        this.handleClose(code)
-      })
-
-      ws.on('pong', () => {
-        logForDebugging('[SessionsWebSocket] Pong received')
-      })
-    }
+    ws.addEventListener('pong', () => {
+      logForDebugging('[SessionsWebSocket] Pong received')
+    })
   }
 
   /**

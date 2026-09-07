@@ -96,7 +96,6 @@ import { memoizeWithLRU } from '../../utils/memoize.js'
 import { getWebSocketTLSOptions } from '../../utils/mtls.js'
 import {
   getProxyFetchOptions,
-  getWebSocketProxyAgent,
   getWebSocketProxyUrl,
 } from '../../utils/proxy.js'
 import { getSessionIngressAuthToken } from '../../utils/sessionIngressAuth.js'
@@ -422,31 +421,6 @@ export function createClaudeAiProxyFetch(innerFetch: FetchLike): FetchLike {
   }
 }
 
-// Minimal interface for WebSocket instances passed to mcpWebSocketTransport
-type WsClientLike = {
-  readonly readyState: number
-  close(): void
-  send(data: string): void
-}
-
-/**
- * Create a ws.WebSocket client with the MCP protocol.
- * Bun's ws shim types lack the 3-arg constructor (url, protocols, options)
- * that the real ws package supports, so we cast the constructor here.
- */
-async function createNodeWsClient(
-  url: string,
-  options: Record<string, unknown>,
-): Promise<WsClientLike> {
-  const wsModule = await import('ws')
-  const WS = wsModule.default as unknown as new (
-    url: string,
-    protocols: string[],
-    options: Record<string, unknown>,
-  ) => WsClientLike
-  return new WS(url, ['mcp'], options)
-}
-
 const IMAGE_MIME_TYPES = new Set([
   'image/jpeg',
   'image/png',
@@ -715,23 +689,14 @@ export const connectToServer = memoize(
           }),
         }
 
-        let wsClient: WsClientLike
-        if (typeof Bun !== 'undefined') {
-          // Bun's WebSocket supports headers/proxy/tls options but the DOM typings don't
-          // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins
-          wsClient = new globalThis.WebSocket(serverRef.url, {
-            protocols: ['mcp'],
-            headers: wsHeaders,
-            proxy: getWebSocketProxyUrl(serverRef.url),
-            tls: tlsOptions || undefined,
-          } as unknown as string[])
-        } else {
-          wsClient = await createNodeWsClient(serverRef.url, {
-            headers: wsHeaders,
-            agent: getWebSocketProxyAgent(serverRef.url),
-            ...(tlsOptions || {}),
-          })
-        }
+        // Bun's WebSocket supports headers/proxy/tls options but the DOM typings don't
+        // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins
+        const wsClient = new globalThis.WebSocket(serverRef.url, {
+          protocols: ['mcp'],
+          headers: wsHeaders,
+          proxy: getWebSocketProxyUrl(serverRef.url),
+          tls: tlsOptions || undefined,
+        } as unknown as string[])
         transport = new WebSocketTransport(wsClient)
       } else if (serverRef.type === 'ws') {
         logMCPDebug(
@@ -764,23 +729,14 @@ export const connectToServer = memoize(
           })}`,
         )
 
-        let wsClient: WsClientLike
-        if (typeof Bun !== 'undefined') {
-          // Bun's WebSocket supports headers/proxy/tls options but the DOM typings don't
-          // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins
-          wsClient = new globalThis.WebSocket(serverRef.url, {
-            protocols: ['mcp'],
-            headers: wsHeaders,
-            proxy: getWebSocketProxyUrl(serverRef.url),
-            tls: tlsOptions || undefined,
-          } as unknown as string[])
-        } else {
-          wsClient = await createNodeWsClient(serverRef.url, {
-            headers: wsHeaders,
-            agent: getWebSocketProxyAgent(serverRef.url),
-            ...(tlsOptions || {}),
-          })
-        }
+        // Bun's WebSocket supports headers/proxy/tls options but the DOM typings don't
+        // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins
+        const wsClient = new globalThis.WebSocket(serverRef.url, {
+          protocols: ['mcp'],
+          headers: wsHeaders,
+          proxy: getWebSocketProxyUrl(serverRef.url),
+          tls: tlsOptions || undefined,
+        } as unknown as string[])
         transport = new WebSocketTransport(wsClient)
       } else if (serverRef.type === 'http') {
         logMCPDebug(name, `Initializing HTTP transport to ${serverRef.url}`)
