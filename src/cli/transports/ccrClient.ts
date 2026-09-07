@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto'
 import type {
   SDKPartialAssistantMessage,
   StdoutMessage,
@@ -769,7 +768,7 @@ export class CCRClient {
     return {
       payload: {
         ...msg,
-        uuid: typeof msg.uuid === 'string' ? msg.uuid : randomUUID(),
+        uuid: typeof msg.uuid === 'string' ? msg.uuid : crypto.randomUUID(),
       } as EventPayload,
     }
   }
@@ -818,7 +817,8 @@ export class CCRClient {
       payload: {
         type: eventType,
         ...payload,
-        uuid: typeof payload.uuid === 'string' ? payload.uuid : randomUUID(),
+        uuid:
+          typeof payload.uuid === 'string' ? payload.uuid : crypto.randomUUID(),
       } as EventPayload,
       ...(isCompaction && { is_compaction: true }),
       ...(agentId && { agent_id: agentId }),

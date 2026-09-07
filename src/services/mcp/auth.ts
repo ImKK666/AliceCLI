@@ -25,7 +25,7 @@ import {
 } from '@modelcontextprotocol/sdk/shared/auth.js'
 import type { FetchLike } from '@modelcontextprotocol/sdk/shared/transport.js'
 import { http, isHttpError } from 'src/utils/http.js'
-import { randomBytes, randomUUID } from 'crypto'
+import { randomBytes } from 'crypto'
 import { mkdir } from 'fs/promises'
 import { createServer, type Server } from 'http'
 import { join } from 'path'
@@ -930,7 +930,7 @@ export async function performMCPOAuthFlow(
     resourceMetadataUrl,
   }
 
-  const flowAttemptId = randomUUID()
+  const flowAttemptId = crypto.randomUUID()
 
   logEvent('tengu_mcp_oauth_flow_start', {
     flowAttemptId:

@@ -5,7 +5,6 @@ import type {
   ReadableLogRecord,
 } from '@opentelemetry/sdk-logs'
 import { http, isHttpError } from 'src/utils/http.js'
-import { randomUUID } from 'crypto'
 import { appendFile, mkdir, readdir, unlink } from 'fs/promises'
 import * as path from 'path'
 import type { CoreUserData } from 'src/utils/user.js'
@@ -35,7 +34,7 @@ import { stripProtoFields } from './index.js'
 import { type EventMetadata, to1PEventFormat } from './metadata.js'
 
 // Unique ID for this process run - used to isolate failed event files between runs
-const BATCH_UUID = randomUUID()
+const BATCH_UUID = crypto.randomUUID()
 
 // File prefix for failed event storage
 const FILE_PREFIX = '1p_failed_events.'

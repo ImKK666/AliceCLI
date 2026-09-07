@@ -3,7 +3,6 @@
  * Extracted from sessionLifecycle.ts to keep that module under the 500-line
  * budget. The barrel (./index.ts) imports this module for its side effect.
  */
-import { randomUUID } from 'node:crypto'
 import type {
   NewSessionRequest,
   NewSessionResponse,
@@ -70,7 +69,7 @@ async function createSession(
 ): Promise<NewSessionResponse> {
   enableConfigs()
 
-  const sessionId = opts.sessionId ?? randomUUID()
+  const sessionId = opts.sessionId ?? crypto.randomUUID()
   const cwd = params.cwd
 
   // Align the global session state so that transcript persistence,

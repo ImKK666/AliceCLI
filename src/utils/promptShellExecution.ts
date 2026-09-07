@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto'
 import type { Tool, ToolUseContext } from '../Tool.js'
 import { BashTool } from '@claude-code-best/builtin-tools/tools/BashTool/BashTool.js'
 import { logForDebugging } from './debug.js'
@@ -117,7 +116,7 @@ export async function executeShellCommandsInPrompt(
           const toolResultBlock = await processToolResultBlock(
             shellTool,
             data,
-            randomUUID(),
+            crypto.randomUUID(),
           )
           // Extract the string content from the block
           const output =

@@ -9,7 +9,6 @@
 // File format:
 //   { "tasks": [{ id, cron, prompt, createdAt, recurring?, permanent? }] }
 
-import { randomUUID } from 'crypto'
 import { readFileSync } from 'fs'
 import { mkdir } from 'fs/promises'
 import { join } from 'path'
@@ -196,7 +195,7 @@ export async function addCronTask(
 ): Promise<string> {
   // Short ID — 8 hex chars is plenty for MAX_JOBS=50, avoids slice/prefix
   // juggling between the tool layer (shows short IDs) and disk.
-  const id = randomUUID().slice(0, 8)
+  const id = crypto.randomUUID().slice(0, 8)
   const task = {
     id,
     cron,

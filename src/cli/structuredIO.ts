@@ -3,7 +3,6 @@ import type {
   ElicitResult,
   JSONRPCMessage,
 } from '@modelcontextprotocol/sdk/types.js'
-import { randomUUID } from 'crypto'
 import type { AssistantMessage } from 'src//types/message.js'
 import type {
   HookInput,
@@ -493,7 +492,7 @@ export class StructuredIO {
     request: SDKControlRequest['request'],
     schema: z.Schema,
     signal?: AbortSignal,
-    requestId: string = randomUUID(),
+    requestId: string = crypto.randomUUID(),
   ): Promise<Response> {
     const message: SDKControlRequest = {
       type: 'control_request',
@@ -609,7 +608,7 @@ export class StructuredIO {
         ).then(decision => ({ source: 'hook' as const, decision }))
 
         // Start the SDK permission prompt immediately (don't wait for hooks)
-        const requestId = randomUUID()
+        const requestId = crypto.randomUUID()
         onPermissionPrompt?.(
           buildRequiresActionDetails(tool, input, toolUseID, requestId),
         )
@@ -764,7 +763,7 @@ export class StructuredIO {
             subtype: 'can_use_tool',
             tool_name: SANDBOX_NETWORK_ACCESS_TOOL_NAME,
             input: { host: hostPattern.host },
-            tool_use_id: randomUUID(),
+            tool_use_id: crypto.randomUUID(),
             description: `Allow network connection to ${hostPattern.host}?`,
           },
           permissionToolOutputSchema(),

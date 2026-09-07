@@ -1,6 +1,5 @@
 import type { BetaContentBlock } from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
 import type { UUID } from 'crypto'
-import { randomUUID } from 'crypto'
 import { getSessionId } from 'src/bootstrap/state.js'
 import {
   LOCAL_COMMAND_STDERR_TAG,
@@ -46,7 +45,7 @@ export function toInternalMessages(
           {
             type: 'user',
             message: message.message,
-            uuid: message.uuid ?? randomUUID(),
+            uuid: message.uuid ?? crypto.randomUUID(),
             timestamp: message.timestamp ?? new Date().toISOString(),
             isMeta: message.isSynthetic,
           } as unknown as Message,

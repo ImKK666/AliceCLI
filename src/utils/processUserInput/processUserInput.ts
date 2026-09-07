@@ -4,7 +4,6 @@ import type {
   ContentBlockParam,
   ImageBlockParam,
 } from '@anthropic-ai/sdk/resources/messages.mjs'
-import { randomUUID } from 'crypto'
 import type { QuerySource } from 'src/constants/querySource.js'
 import { logEvent } from 'src/services/analytics/index.js'
 import { getContentText } from 'src/utils/messages.js'
@@ -241,7 +240,7 @@ export async function processUserInput({
           type: 'hook_additional_context',
           content: hookResult.additionalContexts.map(applyTruncation),
           hookName: 'UserPromptSubmit',
-          toolUseID: `hook-${randomUUID()}`,
+          toolUseID: `hook-${crypto.randomUUID()}`,
           hookEvent: 'UserPromptSubmit',
         }),
       )

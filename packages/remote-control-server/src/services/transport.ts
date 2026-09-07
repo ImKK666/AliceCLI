@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto'
 import { getEventBus } from '../transport/event-bus'
 
 /**
@@ -100,7 +99,7 @@ export function publishSessionEvent(
   direction: 'inbound' | 'outbound',
 ) {
   const bus = getEventBus(sessionId)
-  const eventId = randomUUID()
+  const eventId = crypto.randomUUID()
 
   const normalized = normalizePayload(type, payload)
 

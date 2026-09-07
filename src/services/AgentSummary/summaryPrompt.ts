@@ -1,4 +1,4 @@
-import { randomUUID, type UUID } from 'node:crypto'
+import type { UUID } from 'node:crypto'
 import type { UserMessage } from '../../types/message.js'
 
 export function buildSummaryPrompt(previousSummary: string | null): string {
@@ -26,7 +26,7 @@ export function createSummaryPromptMessage(content: string): UserMessage {
       role: 'user',
       content,
     },
-    uuid: randomUUID() as UUID,
+    uuid: crypto.randomUUID() as UUID,
     timestamp: new Date().toISOString(),
   }
 }

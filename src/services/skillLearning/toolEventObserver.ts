@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto'
 import {
   appendObservation,
   type StoredSkillObservation,
@@ -123,7 +122,7 @@ function baseObservation(
   | 'turn'
 > {
   return {
-    id: randomUUID(),
+    id: crypto.randomUUID(),
     sessionId: ctx.sessionId,
     projectId: ctx.projectId,
     projectName: ctx.projectName,

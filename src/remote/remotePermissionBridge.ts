@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto'
 import type { SDKControlPermissionRequest } from '../entrypoints/sdk/controlTypes.js'
 import type { Tool } from '../Tool.js'
 import type { AssistantMessage } from '../types/message.js'
@@ -15,7 +14,7 @@ export function createSyntheticAssistantMessage(
 ): AssistantMessage {
   return {
     type: 'assistant',
-    uuid: randomUUID(),
+    uuid: crypto.randomUUID(),
     message: {
       id: `remote-${requestId}`,
       type: 'message',

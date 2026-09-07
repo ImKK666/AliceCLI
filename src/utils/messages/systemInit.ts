@@ -1,5 +1,4 @@
 import { feature } from 'bun:bundle'
-import { randomUUID } from 'crypto'
 import { getSdkBetas, getSessionId } from 'src/bootstrap/state.js'
 import { DEFAULT_OUTPUT_STYLE_NAME } from 'src/constants/outputStyles.js'
 import type {
@@ -82,7 +81,7 @@ export function buildSystemInitMessage(inputs: SystemInitInputs): SDKMessage {
       path: plugin.path,
       source: plugin.source,
     })),
-    uuid: randomUUID(),
+    uuid: crypto.randomUUID(),
   }
   // Hidden from public SDK types — ant-only UDS messaging socket path
   if (feature('UDS_INBOX')) {

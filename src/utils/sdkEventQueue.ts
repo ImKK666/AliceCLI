@@ -1,5 +1,4 @@
 import type { UUID } from 'crypto'
-import { randomUUID } from 'crypto'
 import { getIsNonInteractiveSession, getSessionId } from '../bootstrap/state.js'
 import type { SdkWorkflowProgress } from '../types/tools.js'
 
@@ -95,7 +94,7 @@ export function drainSdkEvents(): Array<
   const events = queue.splice(0)
   return events.map(e => ({
     ...e,
-    uuid: randomUUID(),
+    uuid: crypto.randomUUID(),
     session_id: getSessionId(),
   }))
 }

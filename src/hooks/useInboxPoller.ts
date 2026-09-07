@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto'
 import { useCallback, useEffect, useRef } from 'react'
 import { useInterval } from 'usehooks-ts'
 import type { ToolUseConfirm } from '../components/permissions/PermissionRequest.js'
@@ -775,7 +774,7 @@ export function useInboxPoller({
                   messages: [
                     ...prev.inbox.messages,
                     {
-                      id: randomUUID(),
+                      id: crypto.randomUUID(),
                       from: 'system',
                       text: jsonStringify({
                         type: 'teammate_terminated',
@@ -827,7 +826,7 @@ export function useInboxPoller({
           messages: [
             ...prev.inbox.messages,
             ...regularMessages.map(m => ({
-              id: randomUUID(),
+              id: crypto.randomUUID(),
               from: m.from,
               text: m.text,
               timestamp: m.timestamp,

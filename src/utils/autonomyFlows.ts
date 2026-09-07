@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto'
 import { mkdir } from 'fs/promises'
 import { dirname, join, resolve } from 'path'
 import { getProjectRoot } from '../bootstrap/state.js'
@@ -327,7 +326,7 @@ function buildManagedState(
   return {
     currentStepIndex: 0,
     steps: steps.map(step => ({
-      stepId: randomUUID(),
+      stepId: crypto.randomUUID(),
       name: step.name,
       prompt: step.prompt,
       status: 'pending',
@@ -518,7 +517,7 @@ export async function startManagedAutonomyFlow(params: {
         : undefined
 
     const next: AutonomyFlowRecord = normalizeFlowRecord({
-      flowId: current?.flowId ?? randomUUID(),
+      flowId: current?.flowId ?? crypto.randomUUID(),
       flowKey,
       syncMode: 'managed',
       ownerKey:

@@ -3,7 +3,6 @@
  * and delegate to executeHooks (REPL) or executeHooksOutsideREPL.
  * This is the primary public API for firing hook events.
  */
-import { randomUUID } from 'crypto'
 import { getSessionId, getRegisteredHooks } from '../../bootstrap/state.js'
 import {
   getHooksConfigFromSnapshot,
@@ -515,7 +514,7 @@ export async function* executeStopHooks(
   // Trust check is now centralized in executeHooks()
   yield* executeHooks({
     hookInput,
-    toolUseID: randomUUID(),
+    toolUseID: crypto.randomUUID(),
     signal,
     timeoutMs,
     toolUseContext,
@@ -543,7 +542,7 @@ export async function* executeTeammateIdleHooks(
 
   yield* executeHooks({
     hookInput,
-    toolUseID: randomUUID(),
+    toolUseID: crypto.randomUUID(),
     signal,
     timeoutMs,
   })
@@ -575,7 +574,7 @@ export async function* executeTaskCreatedHooks(
 
   yield* executeHooks({
     hookInput,
-    toolUseID: randomUUID(),
+    toolUseID: crypto.randomUUID(),
     signal,
     timeoutMs,
     toolUseContext,
@@ -608,7 +607,7 @@ export async function* executeTaskCompletedHooks(
 
   yield* executeHooks({
     hookInput,
-    toolUseID: randomUUID(),
+    toolUseID: crypto.randomUUID(),
     signal,
     timeoutMs,
     toolUseContext,
@@ -641,7 +640,7 @@ export async function* executeUserPromptSubmitHooks(
 
   yield* executeHooks({
     hookInput,
-    toolUseID: randomUUID(),
+    toolUseID: crypto.randomUUID(),
     signal: toolUseContext.abortController.signal,
     timeoutMs: TOOL_HOOK_EXECUTION_TIMEOUT_MS,
     toolUseContext,
@@ -671,7 +670,7 @@ export async function* executeSessionStartHooks(
 
   yield* executeHooks({
     hookInput,
-    toolUseID: randomUUID(),
+    toolUseID: crypto.randomUUID(),
     matchQuery: source,
     signal,
     timeoutMs,
@@ -696,7 +695,7 @@ export async function* executeSetupHooks(
 
   yield* executeHooks({
     hookInput,
-    toolUseID: randomUUID(),
+    toolUseID: crypto.randomUUID(),
     matchQuery: trigger,
     signal,
     timeoutMs,
@@ -722,7 +721,7 @@ export async function* executeSubagentStartHooks(
 
   yield* executeHooks({
     hookInput,
-    toolUseID: randomUUID(),
+    toolUseID: crypto.randomUUID(),
     matchQuery: agentType,
     signal,
     timeoutMs,
@@ -1220,7 +1219,7 @@ export async function executeStatusLineCommand(
       'statusLine',
       jsonInput,
       abortSignal,
-      randomUUID(),
+      crypto.randomUUID(),
     )
 
     if (result.aborted) {
@@ -1307,7 +1306,7 @@ export async function executeFileSuggestionCommand(
       'FileSuggestion',
       jsonInput,
       abortSignal,
-      randomUUID(),
+      crypto.randomUUID(),
     )
 
     if (result.aborted || result.status !== 0) {

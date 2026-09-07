@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto'
 import { mkdir, readdir } from 'fs/promises'
 import { join } from 'path'
 import {
@@ -214,7 +213,7 @@ export async function extractPDFPages(
       }
     }
 
-    const uuid = randomUUID()
+    const uuid = crypto.randomUUID()
     const outputDir = join(getToolResultsDir(), `pdf-${uuid}`)
     await mkdir(outputDir, { recursive: true })
 

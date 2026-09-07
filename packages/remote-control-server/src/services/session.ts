@@ -10,7 +10,6 @@ import {
   storeListSessionsByEnvironment,
   storeListSessionsByOwnerUuid,
 } from '../store'
-import { randomUUID } from 'node:crypto'
 import { getAllEventBuses, removeEventBus } from '../transport/event-bus'
 import type {
   CreateSessionRequest,
@@ -179,7 +178,7 @@ export function updateSessionStatus(sessionId: string, status: string) {
   if (!bus) return
 
   bus.publish({
-    id: randomUUID(),
+    id: crypto.randomUUID(),
     sessionId,
     type: 'session_status',
     payload: { status },

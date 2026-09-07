@@ -10,7 +10,6 @@
  * as params.
  */
 
-import { randomUUID } from 'crypto'
 import type { SDKMessage } from '../entrypoints/agentSdkTypes.js'
 import type {
   SDKControlRequest,
@@ -515,7 +514,7 @@ export function makeResultMessage(sessionId: string): SDKResultSuccess {
     modelUsage: {},
     permission_denials: [],
     session_id: sessionId,
-    uuid: randomUUID(),
+    uuid: crypto.randomUUID(),
   }
 }
 

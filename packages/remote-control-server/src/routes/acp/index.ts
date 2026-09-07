@@ -1,5 +1,4 @@
 import { Hono } from 'hono'
-import { randomUUID } from 'node:crypto'
 import type { Context } from 'hono'
 import type { WSContext, WSMessageReceive } from 'hono/ws'
 import { upgradeWebSocket } from '../../transport/ws-shared'
@@ -160,7 +159,7 @@ app.get(
     }
 
     // Generate unique wsId for this connection
-    const wsId = `acp_ws_${randomUUID().replace(/-/g, '')}`
+    const wsId = `acp_ws_${crypto.randomUUID().replace(/-/g, '')}`
 
     log(`[ACP-WS] Upgrade accepted: wsId=${wsId}`)
     return {
@@ -197,7 +196,7 @@ app.get(
     }
 
     const agentId = c.req.param('agentId')!
-    const relayWsId = `relay_${randomUUID().replace(/-/g, '')}`
+    const relayWsId = `relay_${crypto.randomUUID().replace(/-/g, '')}`
 
     log(
       `[ACP-Relay] Upgrade accepted: relayWsId=${relayWsId} agentId=${agentId}`,

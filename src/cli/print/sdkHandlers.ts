@@ -1,6 +1,5 @@
 // biome-ignore-all assist/source/organizeImports: extracted from cli/print.ts
 import { feature } from 'bun:bundle'
-import { randomUUID } from 'crypto'
 import type { AppState } from 'src/state/AppStateStore.js'
 import type { StructuredIO } from 'src/cli/structuredIO.js'
 import type { Stream } from 'src/utils/stream.js'
@@ -241,7 +240,7 @@ export async function handleInitializeRequest(
         isAuthenticating: status.isAuthenticating,
         output: status.output,
         error: status.error,
-        uuid: randomUUID(),
+        uuid: crypto.randomUUID(),
         session_id: getSessionId(),
       })
     }

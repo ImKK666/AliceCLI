@@ -9,7 +9,6 @@
  * handed in; useDirectConnect creates its WebSocket inside the effect.
  */
 
-import { randomUUID } from 'crypto'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import type { ToolUseConfirm } from '../components/permissions/PermissionRequest.js'
 import {
@@ -176,7 +175,7 @@ export function useSSHSession({
           subtype: 'informational',
           content: `SSH connection dropped — reconnecting (attempt ${attempt}/${max})...`,
           timestamp: new Date().toISOString(),
-          uuid: randomUUID(),
+          uuid: crypto.randomUUID(),
           level: 'warning',
         }
         setMessages(prev => [...prev, msg])

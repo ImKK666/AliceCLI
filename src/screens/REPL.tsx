@@ -275,7 +275,8 @@ import { useTasksV2WithCollapseEffect } from '../hooks/useTasksV2.js';
 import { maybeMarkProjectOnboardingComplete } from '../projectOnboardingState.js';
 import type { MCPServerConnection } from '../services/mcp/types.js';
 import type { ScopedMcpServerConfig } from '../services/mcp/types.js';
-import { randomUUID, type UUID } from 'crypto';
+import type { UUID } from 'crypto';
+
 import { processSessionStartHooks } from '../utils/sessionStart.js';
 import { executeSessionEndHooks, getSessionEndHookTimeoutMs } from '../utils/hooks.js';
 import { type IDESelection, useIdeSelection } from '../hooks/useIdeSelection.js';
@@ -1847,7 +1848,7 @@ export function REPL({
   const [spinnerShimmerColor, setSpinnerShimmerColor] = useState<keyof Theme | null>(null);
   const [isMessageSelectorVisible, setIsMessageSelectorVisible] = useState(false);
   const [messageSelectorPreselect, setMessageSelectorPreselect] = useState<UserMessage | undefined>(undefined);
-  const [conversationId, setConversationId] = useState(randomUUID());
+  const [conversationId, setConversationId] = useState(crypto.randomUUID());
 
   // Keep lastQueryCompletionTimeRef in sync with lastQueryCompletionTime
   lastQueryCompletionTimeRef.current = lastQueryCompletionTime;
@@ -2763,12 +2764,12 @@ export function REPL({
         if (feature('BRIDGE_MODE')) {
           const bridgeCallbacks = store.getState().replBridgePermissionCallbacks;
           if (bridgeCallbacks) {
-            const bridgeRequestId = randomUUID();
+            const bridgeRequestId = crypto.randomUUID();
             bridgeCallbacks.sendRequest(
               bridgeRequestId,
               SANDBOX_NETWORK_ACCESS_TOOL_NAME,
               { host: hostPattern.host },
-              randomUUID(),
+              crypto.randomUUID(),
               `Allow network connection to ${hostPattern.host}?`,
             );
 
@@ -3191,7 +3192,7 @@ export function REPL({
             }
             // Bump conversationId so Messages.tsx row keys change and
             // stale memoized rows remount with post-compact content.
-            setConversationId(randomUUID());
+            setConversationId(crypto.randomUUID());
             // Compaction succeeded — clear the context-blocked flag so ticks resume
             if (feature('PROACTIVE') || feature('KAIROS')) {
               proactiveModule?.setContextBlocked(false);
@@ -3438,7 +3439,7 @@ export function REPL({
         if (newMessages.some(isCompactBoundaryMessage)) {
           // Bump conversationId so Messages.tsx row keys change and
           // stale memoized rows remount with post-compact content.
-          setConversationId(randomUUID());
+          setConversationId(crypto.randomUUID());
           if (feature('PROACTIVE') || feature('KAIROS')) {
             proactiveModule?.setContextBlocked(false);
           }
@@ -4552,7 +4553,7 @@ export function REPL({
       });
       setMessages(prev.slice(0, messageIndex));
       // Careful, this has to happen after setMessages
-      setConversationId(randomUUID());
+      setConversationId(crypto.randomUUID());
       // Reset cached microcompact state so stale pinned cache edits
       // don't reference tool_use_ids from truncated messages
       resetMicrocompactState();
@@ -6380,7 +6381,7 @@ export function REPL({
                       if (feature('PROACTIVE') || feature('KAIROS')) {
                         proactiveModule?.setContextBlocked(false);
                       }
-                      setConversationId(randomUUID());
+                      setConversationId(crypto.randomUUID());
                       runPostCompactCleanup(context.options.querySource);
 
                       if (direction === 'from') {

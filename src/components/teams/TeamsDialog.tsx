@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto';
 import figures from 'figures';
 import * as React from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -503,7 +502,7 @@ async function killTeammate(
         messages: [
           ...prev.inbox.messages,
           {
-            id: randomUUID(),
+            id: crypto.randomUUID(),
             from: 'system',
             text: jsonStringify({
               type: 'teammate_terminated',

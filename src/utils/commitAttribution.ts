@@ -1,4 +1,4 @@
-import { randomUUID, type UUID } from 'crypto'
+import type { UUID } from 'crypto'
 import { stat } from 'fs/promises'
 import { isAbsolute, join, relative, sep } from 'path'
 import { getOriginalCwd, getSessionId } from '../bootstrap/state.js'
@@ -956,7 +956,7 @@ export function incrementPromptCount(
     ...attribution,
     promptCount: attribution.promptCount + 1,
   }
-  const snapshot = stateToSnapshotMessage(newAttribution, randomUUID())
+  const snapshot = stateToSnapshotMessage(newAttribution, crypto.randomUUID())
   saveSnapshot(snapshot)
   return newAttribution
 }

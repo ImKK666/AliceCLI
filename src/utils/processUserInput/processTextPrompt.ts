@@ -1,5 +1,4 @@
 import type { ContentBlockParam } from '@anthropic-ai/sdk/resources'
-import { randomUUID } from 'crypto'
 import { setPromptId } from 'src/bootstrap/state.js'
 import type {
   AttachmentMessage,
@@ -28,7 +27,7 @@ export function processTextPrompt(
   messages: (UserMessage | AttachmentMessage | SystemMessage)[]
   shouldQuery: boolean
 } {
-  const promptId = randomUUID()
+  const promptId = crypto.randomUUID()
   setPromptId(promptId)
 
   const userPromptText =

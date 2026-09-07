@@ -1,6 +1,5 @@
 import { feature } from 'bun:bundle'
 import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages.mjs'
-import { randomUUID } from 'crypto'
 import last from 'lodash-es/last.js'
 import {
   getSessionId,
@@ -645,7 +644,7 @@ export class QueryEngine {
           mainLoopModel,
           initialAppState.fastMode,
         ),
-        uuid: randomUUID(),
+        uuid: crypto.randomUUID(),
       }
       return
     }
@@ -853,7 +852,7 @@ export class QueryEngine {
               event,
               session_id: getSessionId(),
               parent_tool_use_id: null,
-              uuid: randomUUID(),
+              uuid: crypto.randomUUID(),
             }
           }
 
@@ -909,7 +908,7 @@ export class QueryEngine {
                 mainLoopModel,
                 initialAppState.fastMode,
               ),
-              uuid: randomUUID(),
+              uuid: crypto.randomUUID(),
               errors: [
                 `Reached maximum number of turns (${attachment.maxTurns})`,
               ],
@@ -1046,7 +1045,7 @@ export class QueryEngine {
             mainLoopModel,
             initialAppState.fastMode,
           ),
-          uuid: randomUUID(),
+          uuid: crypto.randomUUID(),
           errors: [
             `Reached maximum budget ($${maxBudgetUsd}). Increase the limit with --max-budget-usd or start a new session.`,
           ],
@@ -1091,7 +1090,7 @@ export class QueryEngine {
               mainLoopModel,
               initialAppState.fastMode,
             ),
-            uuid: randomUUID(),
+            uuid: crypto.randomUUID(),
             errors: [
               `Failed to provide valid structured output after ${maxRetries} attempts`,
             ],
@@ -1153,7 +1152,7 @@ export class QueryEngine {
           mainLoopModel,
           initialAppState.fastMode,
         ),
-        uuid: randomUUID(),
+        uuid: crypto.randomUUID(),
         // Diagnostic prefix: these are what isResultSuccessful() checks — if
         // the result type isn't assistant-with-text/thinking or user-with-
         // tool_result, and stop_reason isn't end_turn, that's why this fired.
@@ -1210,7 +1209,7 @@ export class QueryEngine {
         mainLoopModel,
         initialAppState.fastMode,
       ),
-      uuid: randomUUID(),
+      uuid: crypto.randomUUID(),
     }
   }
 

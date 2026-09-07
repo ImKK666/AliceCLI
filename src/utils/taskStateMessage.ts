@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto'
 import type { SDKMessage } from 'src/entrypoints/agentSdkTypes.js'
 import type { Task } from './tasks.js'
 
@@ -67,7 +66,7 @@ export function buildTaskStateMessage(
   const snapshot = buildTaskStateSnapshot(taskListId, tasks)
   return {
     type: 'task_state',
-    uuid: randomUUID(),
+    uuid: crypto.randomUUID(),
     ...snapshot,
   }
 }

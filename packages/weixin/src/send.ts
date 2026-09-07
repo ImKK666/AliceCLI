@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto'
 import type { CDNMedia, MessageItem } from './types.js'
 import { sendMessage } from './api.js'
 import { guessMediaType, uploadFile } from './media.js'
@@ -69,7 +68,7 @@ export async function sendText(params: {
   token: string
   contextToken: string
 }): Promise<{ messageId: string }> {
-  const clientId = randomUUID()
+  const clientId = crypto.randomUUID()
   await sendMessage(params.baseUrl, params.token, {
     to_user_id: params.to,
     from_user_id: '',
@@ -97,7 +96,7 @@ async function sendItems(params: {
 }): Promise<string> {
   let lastClientId = ''
   for (const item of params.items) {
-    lastClientId = randomUUID()
+    lastClientId = crypto.randomUUID()
     await sendMessage(params.baseUrl, params.token, {
       to_user_id: params.to,
       from_user_id: '',

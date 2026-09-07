@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto'
 import { copyFile } from 'fs/promises'
 import memoize from 'lodash-es/memoize.js'
 import { join, resolve, sep } from 'path'
@@ -389,7 +388,7 @@ export async function persistFileSnapshotIfRemote(): Promise<void> {
       level: 'info',
       isMeta: true,
       timestamp: new Date().toISOString(),
-      uuid: randomUUID(),
+      uuid: crypto.randomUUID(),
       snapshotFiles,
     }
 

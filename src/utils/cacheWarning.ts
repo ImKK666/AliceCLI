@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto'
 import { getInitialSettings } from './settings/settings.js'
 import type { Message } from '../types/message.js'
 
@@ -149,7 +148,7 @@ export function createCacheWarningMessage(info: CacheHitRateInfo): Message {
     level: 'warning' as const,
     content,
     timestamp: new Date().toISOString(),
-    uuid: randomUUID(),
+    uuid: crypto.randomUUID(),
     isMeta: false,
   } as Message
 }

@@ -1,5 +1,3 @@
-// eslint-disable-next-line custom-rules/bootstrap-isolation
-import { randomUUID } from 'src/utils/crypto.js'
 import type { SessionId } from 'src/types/ids.js'
 import { STATE, sessionSwitched } from './_state.js'
 
@@ -19,7 +17,7 @@ export function regenerateSessionId(
   STATE.planSlugCache.delete(STATE.sessionId)
   // Regenerated sessions live in the current project: reset projectDir to
   // null so getTranscriptPath() derives from originalCwd.
-  STATE.sessionId = randomUUID() as SessionId
+  STATE.sessionId = crypto.randomUUID() as SessionId
   STATE.sessionProjectDir = null
   return STATE.sessionId
 }

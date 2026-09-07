@@ -1,4 +1,4 @@
-import { randomUUID, type UUID } from 'crypto'
+import type { UUID } from 'crypto'
 import { mkdir, writeFile } from 'fs/promises'
 import { getOriginalCwd, getSessionId } from '../../bootstrap/state.js'
 import type { LocalJSXCommandContext } from '../../commands.js'
@@ -67,7 +67,7 @@ async function createFork(customTitle?: string): Promise<{
   serializedMessages: SerializedMessage[]
   contentReplacementRecords: ContentReplacementEntry['replacements']
 }> {
-  const forkSessionId = randomUUID() as UUID
+  const forkSessionId = crypto.randomUUID() as UUID
   const originalSessionId = getSessionId()
   const projectDir = getProjectDir(getOriginalCwd())
   const forkSessionPath = getTranscriptPathForSession(forkSessionId)

@@ -37,7 +37,6 @@ import {
   convertToolsToLangfuse,
 } from '../../../services/langfuse/convert.js'
 import type { Options } from '../claude.js'
-import { randomUUID } from 'crypto'
 import {
   createAssistantAPIErrorMessage,
   normalizeContentFromAPI,
@@ -203,7 +202,7 @@ export async function* queryModelGrok(
             } as AssistantMessage['message'],
             requestId: undefined,
             type: 'assistant',
-            uuid: randomUUID(),
+            uuid: crypto.randomUUID(),
             timestamp: new Date().toISOString(),
           }
           collectedMessages.push(m)

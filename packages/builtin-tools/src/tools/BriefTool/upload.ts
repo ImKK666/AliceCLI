@@ -13,7 +13,6 @@
  */
 
 import { feature } from 'bun:bundle'
-import { randomUUID } from 'crypto'
 import { readFile } from 'fs/promises'
 import { basename, extname } from 'path'
 import { z } from 'zod/v4'
@@ -122,7 +121,7 @@ export async function uploadBriefAttachment(
     const url = `${baseUrl}/api/oauth/file_upload`
     const filename = basename(fullPath)
     const mimeType = guessMimeType(filename)
-    const boundary = `----FormBoundary${randomUUID()}`
+    const boundary = `----FormBoundary${crypto.randomUUID()}`
 
     // Manual multipart — same pattern as filesApi.ts. The oauth endpoint takes
     // a single "file" part (no "purpose" field like the public Files API).

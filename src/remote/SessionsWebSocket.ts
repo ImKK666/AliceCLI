@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto'
 import { getOauthConfig } from '../constants/oauth.js'
 import type { SDKMessage } from '../entrypoints/agentSdkTypes.js'
 import type {
@@ -304,7 +303,7 @@ export class SessionsWebSocket {
 
     const controlRequest: SDKControlRequest = {
       type: 'control_request',
-      request_id: randomUUID(),
+      request_id: crypto.randomUUID(),
       request,
     }
 

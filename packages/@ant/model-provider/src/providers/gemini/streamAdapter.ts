@@ -1,12 +1,11 @@
 import type { BetaRawMessageStreamEvent } from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
-import { randomUUID } from 'crypto'
 import type { GeminiPart, GeminiStreamChunk } from './types.js'
 
 export async function* adaptGeminiStreamToAnthropic(
   stream: AsyncIterable<GeminiStreamChunk>,
   model: string,
 ): AsyncGenerator<BetaRawMessageStreamEvent, void> {
-  const messageId = `msg_${randomUUID().replace(/-/g, '').slice(0, 24)}`
+  const messageId = `msg_${crypto.randomUUID().replace(/-/g, '').slice(0, 24)}`
   let started = false
   let stopped = false
   let nextContentIndex = 0
@@ -63,7 +62,7 @@ export async function* adaptGeminiStreamToAnthropic(
 
         sawToolUse = true
         const toolIndex = nextContentIndex++
-        const toolId = `toolu_${randomUUID().replace(/-/g, '').slice(0, 24)}`
+        const toolId = `toolu_${crypto.randomUUID().replace(/-/g, '').slice(0, 24)}`
         yield {
           type: 'content_block_start',
           index: toolIndex,

@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto'
 import { mkdir } from 'fs/promises'
 import { dirname, join, resolve } from 'path'
 import { getProjectRoot, getSessionId } from '../bootstrap/state.js'
@@ -367,7 +366,7 @@ function buildAutonomyRunRecord(
 ): AutonomyRunRecord {
   const createdAt = params.nowMs ?? Date.now()
   return {
-    runId: randomUUID(),
+    runId: crypto.randomUUID(),
     runtime: params.runtime ?? (params.flow ? 'flow_step' : 'automatic'),
     trigger: params.trigger,
     status: 'queued',

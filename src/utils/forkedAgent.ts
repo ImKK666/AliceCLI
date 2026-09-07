@@ -9,7 +9,6 @@
  */
 
 import type { UUID } from 'crypto'
-import { randomUUID } from 'crypto'
 import type { PromptCommand } from '../commands.js'
 import type { QuerySource } from '../constants/querySource.js'
 import type { CanUseToolFn } from '../hooks/useCanUseTool.js'
@@ -451,7 +450,7 @@ export function createSubagentContext(
 
     // Create new query tracking chain for subagent with incremented depth
     queryTracking: {
-      chainId: randomUUID(),
+      chainId: crypto.randomUUID(),
       depth: (parentContext.queryTracking?.depth ?? -1) + 1,
     },
     fileReadingLimits: parentContext.fileReadingLimits,

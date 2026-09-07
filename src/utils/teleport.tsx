@@ -1,5 +1,4 @@
 import chalk from 'chalk';
-import { randomUUID } from 'crypto';
 import React from 'react';
 import { getOriginalCwd, getSessionId } from 'src/bootstrap/state.js';
 import { checkGate_CACHED_OR_BLOCKING } from 'src/services/analytics/growthbook.js';
@@ -1253,7 +1252,7 @@ export async function teleportToRemote(options: {
         type: 'event',
         data: {
           type: 'control_request',
-          request_id: `set-mode-${randomUUID()}`,
+          request_id: `set-mode-${crypto.randomUUID()}`,
           request: {
             subtype: 'set_permission_mode',
             mode: options.permissionMode,
@@ -1266,7 +1265,7 @@ export async function teleportToRemote(options: {
       events.push({
         type: 'event',
         data: {
-          uuid: randomUUID(),
+          uuid: crypto.randomUUID(),
           session_id: '',
           type: 'user',
           parent_tool_use_id: null,

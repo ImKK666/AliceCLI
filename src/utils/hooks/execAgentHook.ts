@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto'
 import type { HookEvent } from 'src/entrypoints/agentSdkTypes.js'
 import { query } from '../../query.js'
 import { logEvent } from '../../services/analytics/index.js'
@@ -71,7 +70,7 @@ export async function execAgentHook(
   _messages: Message[],
   agentName?: string,
 ): Promise<HookResult> {
-  const effectiveToolUseID = toolUseID || `hook-${randomUUID()}`
+  const effectiveToolUseID = toolUseID || `hook-${crypto.randomUUID()}`
 
   // Get transcript path from context
   const transcriptPath = toolUseContext.agentId
@@ -142,7 +141,7 @@ When done, return your result using the ${SYNTHETIC_OUTPUT_TOOL_NAME} tool with:
       const MAX_AGENT_TURNS = 50
 
       // Create unique agentId for this hook agent
-      const hookAgentId = asAgentId(`hook-agent-${randomUUID()}`)
+      const hookAgentId = asAgentId(`hook-agent-${crypto.randomUUID()}`)
 
       // Create a modified toolUseContext for the agent
       const agentToolUseContext: ToolUseContext = {

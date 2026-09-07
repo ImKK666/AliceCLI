@@ -5,7 +5,6 @@
 // the notification converters, accumulating usage and mapping stop reasons.
 // `replayHistoryMessages` replays stored user/assistant history through
 // `toAcpNotifications`.
-import { randomUUID } from 'node:crypto'
 import type {
   AgentSideConnection,
   ClientCapabilities,
@@ -213,7 +212,7 @@ export async function forwardSessionUpdates(
           // null) don't get a tracked ID — they're nested inside a tool call.
           const streamParent = msg.parent_tool_use_id
           if (streamParent === null && currentAgentMessageId === null) {
-            currentAgentMessageId = randomUUID()
+            currentAgentMessageId = crypto.randomUUID()
           }
           // After the lazy-generate above, currentAgentMessageId is a string
           // when streamParent === null. Capture it locally so TS narrows.
@@ -277,7 +276,7 @@ export async function forwardSessionUpdates(
           let assistantMessageId: string | undefined
           if (parentToolUseId === null) {
             if (currentAgentMessageId === null) {
-              currentAgentMessageId = randomUUID()
+              currentAgentMessageId = crypto.randomUUID()
             }
             assistantMessageId = currentAgentMessageId
           }
@@ -431,7 +430,7 @@ export async function replayHistoryMessages(
       // Per message-id.mdx RFD: each replayed message gets its own UUID
       // (JSONL doesn't preserve the original ACP messageId). All chunks of
       // the same message share the ID.
-      const replayMessageId = randomUUID()
+      const replayMessageId = crypto.randomUUID()
       await conn.sessionUpdate({
         sessionId,
         update: {
@@ -446,7 +445,7 @@ export async function replayHistoryMessages(
 
     if (Array.isArray(content)) {
       // Each replayed message gets a fresh UUID independent of other messages.
-      const replayMessageId = randomUUID()
+      const replayMessageId = crypto.randomUUID()
       const notifications = toAcpNotifications(
         content as Array<Record<string, unknown>>,
         role,

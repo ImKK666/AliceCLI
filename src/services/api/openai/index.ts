@@ -61,7 +61,6 @@ export {
 }
 import { getModelMaxOutputTokens } from '../../../utils/context.js'
 import type { Options } from '../claude.js'
-import { randomUUID } from 'crypto'
 import {
   createAssistantAPIErrorMessage,
   createUserMessage,
@@ -191,7 +190,7 @@ function assembleFinalAssistantOutputs(params: {
       } as AssistantMessage['message'],
       requestId: undefined,
       type: 'assistant',
-      uuid: randomUUID(),
+      uuid: crypto.randomUUID(),
       timestamp: new Date().toISOString(),
     } as AssistantMessage)
   }

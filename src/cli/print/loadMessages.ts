@@ -1,7 +1,6 @@
 // biome-ignore-all assist/source/organizeImports: extracted from cli/print.ts
 import { feature } from 'bun:bundle'
 import { dirname } from 'path'
-import { randomUUID } from 'crypto'
 import type { AppState } from 'src/state/AppStateStore.js'
 import { StructuredIO } from 'src/cli/structuredIO.js'
 import { RemoteIO } from 'src/cli/remoteIO.js'
@@ -67,7 +66,7 @@ export function emitLoadError(
       usage: EMPTY_USAGE,
       modelUsage: {},
       permission_denials: [],
-      uuid: randomUUID(),
+      uuid: crypto.randomUUID(),
       errors: [message],
     }
     process.stdout.write(jsonStringify(errorResult) + '\n')

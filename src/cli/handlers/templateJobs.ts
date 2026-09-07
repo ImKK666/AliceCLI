@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto'
 import { listTemplates, loadTemplate } from '../../jobs/templates.js'
 import {
   createJob,
@@ -108,7 +107,7 @@ function handleNew(args: string[]): void {
     return
   }
 
-  const jobId = randomUUID().slice(0, 8)
+  const jobId = crypto.randomUUID().slice(0, 8)
   const inputText = args.slice(1).join(' ')
   const rawContent = `---\n${Object.entries(template.frontmatter)
     .map(([k, v]) => `${k}: ${v}`)

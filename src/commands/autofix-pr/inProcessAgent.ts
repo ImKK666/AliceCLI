@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto'
 import { getSessionId } from '../../bootstrap/state.js'
 import type { SessionId } from '../../types/ids.js'
 
@@ -18,13 +17,13 @@ export function createAutofixTeammate(
   _target: string,
 ): AutofixTeammate {
   return {
-    agentId: randomUUID(),
+    agentId: crypto.randomUUID(),
     agentName: 'autofix-pr',
     teamName: '_autofix',
     color: undefined,
     planModeRequired: false,
     parentSessionId: getSessionId(),
     abortController: new AbortController(),
-    taskId: randomUUID(),
+    taskId: crypto.randomUUID(),
   }
 }

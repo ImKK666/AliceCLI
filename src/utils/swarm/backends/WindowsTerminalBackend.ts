@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto'
 import { unlink } from 'fs/promises'
 import { join } from 'path'
 import { tmpdir } from 'os'
@@ -156,7 +155,7 @@ export class WindowsTerminalBackend implements PaneBackend {
     name: string,
     _color: AgentColorName,
   ): Promise<CreatePaneResult> {
-    const paneId = `wt-${randomUUID()}`
+    const paneId = `wt-${crypto.randomUUID()}`
     const isFirstTeammate = this.panes.size === 0
     this.panes.set(paneId, {
       title: name,
@@ -171,7 +170,7 @@ export class WindowsTerminalBackend implements PaneBackend {
     name: string,
     _color: AgentColorName,
   ): Promise<CreatePaneResult & { windowName: string }> {
-    const paneId = `wt-${randomUUID()}`
+    const paneId = `wt-${crypto.randomUUID()}`
     const windowName = `teammate-${name.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`
     this.panes.set(paneId, {
       title: name,

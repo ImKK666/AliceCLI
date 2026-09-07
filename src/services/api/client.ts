@@ -1,5 +1,4 @@
 import Anthropic, { type ClientOptions } from '@anthropic-ai/sdk'
-import { randomUUID } from 'crypto'
 import type { GoogleAuth } from 'google-auth-library'
 import {
   checkAndRefreshOAuthTokenIfNeeded,
@@ -372,7 +371,7 @@ function buildFetch(
     // request ID) can still be correlated with server logs by the API team.
     // Callers that want to track the ID themselves can pre-set the header.
     if (injectClientRequestId && !headers.has(CLIENT_REQUEST_ID_HEADER)) {
-      headers.set(CLIENT_REQUEST_ID_HEADER, randomUUID())
+      headers.set(CLIENT_REQUEST_ID_HEADER, crypto.randomUUID())
     }
     try {
       // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins

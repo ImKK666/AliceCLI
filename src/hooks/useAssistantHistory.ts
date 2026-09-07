@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto'
 import {
   type RefObject,
   useCallback,
@@ -96,7 +95,7 @@ export function useAssistantHistory({
 
   // Stable sentinel UUID — reused across swaps so virtual-scroll treats it
   // as one item (text-only mutation, not remove+insert).
-  const sentinelUuidRef = useRef(randomUUID())
+  const sentinelUuidRef = useRef(crypto.randomUUID())
 
   function mkSentinel(text: string): SystemInformationalMessage {
     return {

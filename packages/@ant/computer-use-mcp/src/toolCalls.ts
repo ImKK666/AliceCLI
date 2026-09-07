@@ -35,7 +35,6 @@
  */
 
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
-import { randomUUID } from 'node:crypto'
 
 /** Detect actual image MIME type from base64 data by decoding the magic bytes. */
 function detectMimeFromBase64(b64: string): string {
@@ -920,7 +919,7 @@ async function handleRequestAccess(
   // gets the app list on the next call.
   if (tccState) {
     const req: CuPermissionRequest = {
-      requestId: randomUUID(),
+      requestId: crypto.randomUUID(),
       reason,
       apps: [],
       requestedFlags: {},
@@ -1001,7 +1000,7 @@ async function handleRequestAccess(
 
   if (needDialog.length > 0 || Object.keys(requestedFlags).length > 0) {
     const req: CuPermissionRequest = {
-      requestId: randomUUID(),
+      requestId: crypto.randomUUID(),
       reason,
       apps: needDialog,
       requestedFlags,
@@ -1446,7 +1445,7 @@ async function handleRequestTeachAccess(
   // shows the same TCC toggle panel regardless of which request tool got here.
   if (tccState) {
     const req: CuTeachPermissionRequest = {
-      requestId: randomUUID(),
+      requestId: crypto.randomUUID(),
       reason,
       apps: [],
       screenshotFiltering: adapter.executor.capabilities.screenshotFiltering,
@@ -1534,7 +1533,7 @@ async function handleRequestTeachAccess(
   }
 
   const req: CuTeachPermissionRequest = {
-    requestId: randomUUID(),
+    requestId: crypto.randomUUID(),
     reason,
     apps: needDialog,
     screenshotFiltering: adapter.executor.capabilities.screenshotFiltering,

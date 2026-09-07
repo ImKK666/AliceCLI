@@ -323,7 +323,6 @@ import {
 } from 'src/bootstrap/state.js'
 import { runWithWorkload, WORKLOAD_CRON } from 'src/utils/workloadContext.js'
 import type { UUID } from 'crypto'
-import { randomUUID } from 'crypto'
 import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages.mjs'
 import type { AppState } from 'src/state/AppStateStore.js'
 import {
@@ -677,7 +676,7 @@ export async function runHeadless(
               hook_id: event.hookId,
               hook_name: event.hookName,
               hook_event: event.hookEvent,
-              uuid: randomUUID(),
+              uuid: crypto.randomUUID(),
               session_id: getSessionId(),
             }
           case 'progress':
@@ -690,7 +689,7 @@ export async function runHeadless(
               stdout: event.stdout,
               stderr: event.stderr,
               output: event.output,
-              uuid: randomUUID(),
+              uuid: crypto.randomUUID(),
               session_id: getSessionId(),
             }
           case 'response':
@@ -705,7 +704,7 @@ export async function runHeadless(
               stderr: event.stderr,
               exit_code: event.exitCode,
               outcome: event.outcome,
-              uuid: randomUUID(),
+              uuid: crypto.randomUUID(),
               session_id: getSessionId(),
             }
         }
@@ -1124,7 +1123,7 @@ function runHeadlessStreaming(
         subtype: 'status',
         status: null,
         permissionMode: newMode as PermissionMode,
-        uuid: randomUUID(),
+        uuid: crypto.randomUUID(),
         session_id: getSessionId(),
       })
     }
@@ -1169,7 +1168,7 @@ function runHeadlessStreaming(
         isAuthenticating: status.isAuthenticating,
         output: status.output,
         error: status.error,
-        uuid: randomUUID(),
+        uuid: crypto.randomUUID(),
         session_id: getSessionId(),
       })
     })
@@ -1184,7 +1183,7 @@ function runHeadlessStreaming(
       output.enqueue({
         type: 'rate_limit_event',
         rate_limit_info: rateLimitInfo,
-        uuid: randomUUID(),
+        uuid: crypto.randomUUID(),
         session_id: getSessionId(),
       } as unknown as Parameters<typeof output.enqueue>[0])
     }
@@ -1241,7 +1240,7 @@ function runHeadlessStreaming(
       value: turnInterruptionState.message.message!.content as
         | string
         | ContentBlockParam[],
-      uuid: randomUUID(),
+      uuid: crypto.randomUUID(),
     })
   }
 
@@ -1428,7 +1427,7 @@ function runHeadlessStreaming(
               subtype: 'elicitation_complete',
               mcp_server_name: serverName,
               elicitation_id: elicitationId,
-              uuid: randomUUID(),
+              uuid: crypto.randomUUID(),
               session_id: getSessionId(),
             })
           },
@@ -1916,7 +1915,7 @@ function runHeadlessStreaming(
               for (const command of commands) {
                 enqueue({
                   ...command,
-                  uuid: randomUUID(),
+                  uuid: crypto.randomUUID(),
                 })
               }
               void run()
@@ -2173,7 +2172,7 @@ function runHeadlessStreaming(
                       }
                     : undefined,
                 session_id: getSessionId(),
-                uuid: randomUUID(),
+                uuid: crypto.randomUUID(),
               })
             }
             // No continue -- fall through to ask() so the model processes the result
@@ -2297,7 +2296,7 @@ function runHeadlessStreaming(
                       subtype: 'status',
                       status: status as 'compacting' | null,
                       session_id: getSessionId(),
-                      uuid: randomUUID(),
+                      uuid: crypto.randomUUID(),
                     })
                   },
                 })) {
@@ -2362,7 +2361,7 @@ function runHeadlessStreaming(
               for (const nextCommand of nextCommands) {
                 enqueue({
                   ...nextCommand,
-                  uuid: randomUUID(),
+                  uuid: crypto.randomUUID(),
                 })
               }
             }
@@ -2402,7 +2401,7 @@ function runHeadlessStreaming(
                   files: filesResult.persistedFiles,
                   failed: filesResult.failedFiles,
                   processed_at: new Date().toISOString(),
-                  uuid: randomUUID(),
+                  uuid: crypto.randomUUID(),
                   session_id: getSessionId(),
                 })
               },
@@ -2446,7 +2445,7 @@ function runHeadlessStreaming(
                   const suggestionMsg = {
                     type: 'prompt_suggestion' as const,
                     suggestion: result.suggestion,
-                    uuid: randomUUID(),
+                    uuid: crypto.randomUUID(),
                     session_id: getSessionId(),
                   }
                   const lastEmittedEntry = {
@@ -2576,7 +2575,7 @@ function runHeadlessStreaming(
           usage: EMPTY_USAGE,
           modelUsage: {},
           permission_denials: [],
-          uuid: randomUUID(),
+          uuid: crypto.randomUUID(),
           errors: [
             errorMessage(error),
             ...getInMemoryErrors().map(_ => _.error),
@@ -2744,7 +2743,7 @@ function runHeadlessStreaming(
             enqueue({
               mode: 'prompt',
               value: formatted,
-              uuid: randomUUID(),
+              uuid: crypto.randomUUID(),
             })
             void run()
             return // run() will come back here after processing
@@ -2760,7 +2759,7 @@ function runHeadlessStreaming(
             enqueue({
               mode: 'prompt',
               value: SHUTDOWN_TEAM_PROMPT,
-              uuid: randomUUID(),
+              uuid: crypto.randomUUID(),
             })
             void run()
             return // run() will come back here after processing
@@ -2799,7 +2798,7 @@ function runHeadlessStreaming(
         enqueue({
           mode: 'prompt',
           value: SHUTDOWN_TEAM_PROMPT,
-          uuid: randomUUID(),
+          uuid: crypto.randomUUID(),
         })
         void run()
       } else {
@@ -2836,7 +2835,7 @@ function runHeadlessStreaming(
         enqueue({
           mode: 'prompt',
           value,
-          uuid: randomUUID(),
+          uuid: crypto.randomUUID(),
         })
       }
       return entries.length > 0
@@ -2906,7 +2905,7 @@ function runHeadlessStreaming(
     const enqueueAndRun = (command: QueuedCommand): void => {
       enqueue({
         ...command,
-        uuid: randomUUID(),
+        uuid: crypto.randomUUID(),
       })
       void run()
     }
@@ -4209,7 +4208,7 @@ function runHeadlessStreaming(
                       subtype: 'bridge_state' as string,
                       state,
                       detail,
-                      uuid: randomUUID(),
+                      uuid: crypto.randomUUID(),
                       session_id: getSessionId(),
                     } as StdoutMessage)
                   },

@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto'
 import { LRUCache } from 'lru-cache'
 import { logForDebugging } from '../../utils/debug.js'
 import { toError } from '../../utils/errors.js'
@@ -70,7 +69,7 @@ export function registerPendingLSPDiagnostic({
   files: DiagnosticFile[]
 }): void {
   // Use UUID for guaranteed uniqueness (handles rapid registrations)
-  const diagnosticId = randomUUID()
+  const diagnosticId = crypto.randomUUID()
 
   logForDebugging(
     `LSP Diagnostics: Registering ${files.length} diagnostic file(s) from ${serverName} (ID: ${diagnosticId})`,

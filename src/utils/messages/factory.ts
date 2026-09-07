@@ -1,3 +1,4 @@
+import type { UUID } from 'crypto'
 import type { APIError } from '@anthropic-ai/sdk'
 import type {
   BetaContentBlock,
@@ -8,7 +9,7 @@ import type {
   ContentBlockParam,
   ToolResultBlockParam,
 } from '@anthropic-ai/sdk/resources/index.mjs'
-import { randomUUID, type UUID } from 'crypto'
+
 import type { SDKAssistantMessageError } from 'src/entrypoints/agentSdkTypes.js'
 import { NO_CONTENT_MESSAGE } from '../../constants/messages.js'
 import {
@@ -87,10 +88,10 @@ function baseCreateAssistantMessage({
 }): AssistantMessage {
   return {
     type: 'assistant',
-    uuid: randomUUID(),
+    uuid: crypto.randomUUID(),
     timestamp: new Date().toISOString(),
     message: {
-      id: randomUUID(),
+      id: crypto.randomUUID(),
       container: null,
       model: SYNTHETIC_MODEL,
       role: 'assistant',
@@ -212,7 +213,7 @@ export function createUserMessage({
     isVirtual,
     isCompactSummary,
     summarizeMetadata,
-    uuid: (uuid as UUID | undefined) || randomUUID(),
+    uuid: (uuid as UUID | undefined) || crypto.randomUUID(),
     timestamp: timestamp ?? new Date().toISOString(),
     toolUseResult,
     mcpMeta,
@@ -316,7 +317,7 @@ export function createProgressMessage<P extends Progress>({
     data,
     toolUseID,
     parentToolUseID,
-    uuid: randomUUID(),
+    uuid: crypto.randomUUID(),
     timestamp: new Date().toISOString(),
   }
 }
@@ -344,7 +345,7 @@ export function createSystemMessage(
     content,
     isMeta: false,
     timestamp: new Date().toISOString(),
-    uuid: randomUUID(),
+    uuid: crypto.randomUUID(),
     toolUseID,
     level,
     ...(preventContinuation && { preventContinuation }),
@@ -362,7 +363,7 @@ export function createPermissionRetryMessage(
     level: 'info',
     isMeta: false,
     timestamp: new Date().toISOString(),
-    uuid: randomUUID(),
+    uuid: crypto.randomUUID(),
   }
 }
 
@@ -378,7 +379,7 @@ export function createBridgeStatusMessage(
     upgradeNudge,
     isMeta: false,
     timestamp: new Date().toISOString(),
-    uuid: randomUUID(),
+    uuid: crypto.randomUUID(),
   }
 }
 
@@ -391,7 +392,7 @@ export function createScheduledTaskFireMessage(
     content,
     isMeta: false,
     timestamp: new Date().toISOString(),
-    uuid: randomUUID(),
+    uuid: crypto.randomUUID(),
   }
 }
 
@@ -418,7 +419,7 @@ export function createStopHookSummaryMessage(
     hasOutput,
     level,
     timestamp: new Date().toISOString(),
-    uuid: randomUUID(),
+    uuid: crypto.randomUUID(),
     toolUseID,
     hookLabel: hookLabel ?? '',
     totalDurationMs,
@@ -439,7 +440,7 @@ export function createTurnDurationMessage(
     budgetNudges: budget?.nudges,
     messageCount,
     timestamp: new Date().toISOString(),
-    uuid: randomUUID(),
+    uuid: crypto.randomUUID(),
     isMeta: false,
   }
 }
@@ -452,7 +453,7 @@ export function createAwaySummaryMessage(
     subtype: 'away_summary',
     content,
     timestamp: new Date().toISOString(),
-    uuid: randomUUID(),
+    uuid: crypto.randomUUID(),
     isMeta: false,
   }
 }
@@ -465,7 +466,7 @@ export function createMemorySavedMessage(
     subtype: 'memory_saved',
     writtenPaths,
     timestamp: new Date().toISOString(),
-    uuid: randomUUID(),
+    uuid: crypto.randomUUID(),
     isMeta: false,
   }
 }
@@ -475,7 +476,7 @@ export function createAgentsKilledMessage(): SystemAgentsKilledMessage {
     type: 'system',
     subtype: 'agents_killed',
     timestamp: new Date().toISOString(),
-    uuid: randomUUID(),
+    uuid: crypto.randomUUID(),
     isMeta: false,
   }
 }
@@ -508,7 +509,7 @@ export function createApiMetricsMessage(metrics: {
     classifierCount: metrics.classifierCount,
     configWriteCount: metrics.configWriteCount,
     timestamp: new Date().toISOString(),
-    uuid: randomUUID(),
+    uuid: crypto.randomUUID(),
     isMeta: false,
   }
 }
@@ -522,7 +523,7 @@ export function createCommandInputMessage(
     content,
     level: 'info',
     timestamp: new Date().toISOString(),
-    uuid: randomUUID(),
+    uuid: crypto.randomUUID(),
     isMeta: false,
   }
 }
@@ -540,7 +541,7 @@ export function createCompactBoundaryMessage(
     content: `Conversation compacted`,
     isMeta: false,
     timestamp: new Date().toISOString(),
-    uuid: randomUUID(),
+    uuid: crypto.randomUUID(),
     level: 'info',
     compactMetadata: {
       trigger,
@@ -570,7 +571,7 @@ export function createMicrocompactBoundaryMessage(
     content: 'Context microcompacted',
     isMeta: false,
     timestamp: new Date().toISOString(),
-    uuid: randomUUID(),
+    uuid: crypto.randomUUID(),
     level: 'info',
     microcompactMetadata: {
       trigger,
@@ -598,7 +599,7 @@ export function createSystemAPIErrorMessage(
     retryAttempt,
     maxRetries,
     timestamp: new Date().toISOString(),
-    uuid: randomUUID(),
+    uuid: crypto.randomUUID(),
   }
 }
 
@@ -614,7 +615,7 @@ export function createToolUseSummaryMessage(
     type: 'tool_use_summary' as MessageType,
     summary,
     precedingToolUseIds,
-    uuid: randomUUID(),
+    uuid: crypto.randomUUID(),
     timestamp: new Date().toISOString(),
   }
 }

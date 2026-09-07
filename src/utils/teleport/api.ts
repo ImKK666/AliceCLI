@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto'
 import { getOauthConfig } from 'src/constants/oauth.js'
 import { getOrganizationUUID } from 'src/services/oauth/client.js'
 import z from 'zod/v4'
@@ -455,7 +454,7 @@ export async function sendEventToRemoteSession(
     }
 
     const userEvent = {
-      uuid: opts?.uuid ?? randomUUID(),
+      uuid: opts?.uuid ?? crypto.randomUUID(),
       session_id: sessionId,
       type: 'user',
       parent_tool_use_id: null,

@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto'
 import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages.mjs'
 import type { ToolUseConfirm } from '../components/permissions/PermissionRequest.js'
 import type {
@@ -53,7 +52,7 @@ export function tryRelayPipePermissionRequest(
   const send = getPipeSender()
   if (!send) return null
 
-  const requestId = randomUUID()
+  const requestId = crypto.randomUUID()
   const payload: PipePermissionRequestPayload = {
     requestId,
     toolName: toolUseConfirm.tool.name,

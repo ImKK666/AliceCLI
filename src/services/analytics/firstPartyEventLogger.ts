@@ -8,7 +8,6 @@ import {
   ATTR_SERVICE_NAME,
   ATTR_SERVICE_VERSION,
 } from '@opentelemetry/semantic-conventions'
-import { randomUUID } from 'crypto'
 import { isEqual } from 'lodash-es'
 import { getOrCreateUserID } from '../../utils/config.js'
 import { logForDebugging } from '../../utils/debug.js'
@@ -170,7 +169,7 @@ async function logEventTo1PAsync(
     // with AnyValue but TS doesn't recognize it due to missing index signatures
     const attributes = {
       event_name: eventName,
-      event_id: randomUUID(),
+      event_id: crypto.randomUUID(),
       // Pass objects directly - no JSON serialization needed
       core_metadata: coreMetadata,
       user_metadata: getCoreUserData(true),
@@ -269,7 +268,7 @@ export function logGrowthBookExperimentTo1P(
   // Build attributes for GrowthbookExperimentEvent
   const attributes = {
     event_type: 'GrowthbookExperimentEvent',
-    event_id: randomUUID(),
+    event_id: crypto.randomUUID(),
     experiment_id: data.experimentId,
     variation_id: data.variationId,
     ...(userId && { device_id: userId }),

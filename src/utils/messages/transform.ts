@@ -1,4 +1,5 @@
 import { feature } from 'bun:bundle'
+import type { UUID } from 'crypto'
 import type {
   ContentBlock,
   ContentBlockParam,
@@ -11,7 +12,7 @@ import type {
   ToolUseBlock,
   ToolUseBlockParam,
 } from '@anthropic-ai/sdk/resources/index.mjs'
-import { randomUUID, type UUID } from 'crypto'
+
 import isObject from 'lodash-es/isObject.js'
 import last from 'lodash-es/last.js'
 import {

@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto'
 import type { Command, LocalCommandCall } from '../types/command.js'
 import type { Message } from '../types/message.js'
 
@@ -33,7 +32,7 @@ const call: LocalCommandCall = async (_args, context) => {
     content: '[snip] Conversation history before this point has been snipped.',
     isMeta: true,
     timestamp: new Date().toISOString(),
-    uuid: randomUUID(),
+    uuid: crypto.randomUUID(),
     snipMetadata: {
       removedUuids,
     },

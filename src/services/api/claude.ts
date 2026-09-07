@@ -19,7 +19,6 @@ import type {
 } from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
 import type { TextBlockParam } from '@anthropic-ai/sdk/resources/index.mjs'
 import type { Stream } from '@anthropic-ai/sdk/streaming.mjs'
-import { randomUUID } from 'crypto'
 import { existsSync, unlinkSync } from 'node:fs'
 import {
   getAPIProvider,
@@ -1452,7 +1451,7 @@ async function* queryModel(
     const alwaysFlag = getBreakCacheAlwaysPath()
     const shouldBreak = existsSync(onceMarker) || existsSync(alwaysFlag)
     if (shouldBreak) {
-      const nonce = randomUUID()
+      const nonce = crypto.randomUUID()
       systemPrompt = asSystemPrompt([
         ...systemPrompt,
         `<!-- cache-break nonce: ${nonce} -->`,
@@ -1908,7 +1907,7 @@ async function* queryModel(
         // First-party only — 3P providers don't log it (inc-4029 class).
         clientRequestId =
           getAPIProvider() === 'firstParty' && isFirstPartyAnthropicBaseUrl()
-            ? randomUUID()
+            ? crypto.randomUUID()
             : undefined
 
         // Use raw stream instead of BetaMessageStream to avoid O(n²) partial JSON parsing
@@ -2306,7 +2305,7 @@ async function* queryModel(
               },
               requestId: streamRequestId ?? undefined,
               type: 'assistant',
-              uuid: randomUUID(),
+              uuid: crypto.randomUUID(),
               timestamp: new Date().toISOString(),
               ...(process.env.USER_TYPE === 'ant' &&
                 research !== undefined && { research }),
@@ -2704,7 +2703,7 @@ async function* queryModel(
         },
         requestId: streamRequestId ?? undefined,
         type: 'assistant',
-        uuid: randomUUID(),
+        uuid: crypto.randomUUID(),
         timestamp: new Date().toISOString(),
         ...(process.env.USER_TYPE === 'ant' &&
           research !== undefined && {
@@ -2804,7 +2803,7 @@ async function* queryModel(
           },
           requestId: streamRequestId ?? undefined,
           type: 'assistant',
-          uuid: randomUUID(),
+          uuid: crypto.randomUUID(),
           timestamp: new Date().toISOString(),
           ...(process.env.USER_TYPE === 'ant' &&
             research !== undefined && { research }),

@@ -6,7 +6,6 @@
  *
  * Methods attached: prompt, setSessionConfigOption.
  */
-import { randomUUID } from 'node:crypto'
 import type {
   PromptRequest,
   PromptResponse,
@@ -63,7 +62,7 @@ async function prompt(
 
   // Handle prompt queuing — if a prompt is already running, queue this one
   if (session.promptRunning) {
-    const promptUuid = randomUUID()
+    const promptUuid = crypto.randomUUID()
     const cancelled = await new Promise<boolean>(resolve => {
       session.pendingQueue.push(promptUuid)
       session.pendingMessages.set(promptUuid, { resolve })

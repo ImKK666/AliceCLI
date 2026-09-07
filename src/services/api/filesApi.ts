@@ -8,7 +8,6 @@
  */
 
 import { http, isHttpError, isHttpAbortError } from 'src/utils/http.js'
-import { randomUUID } from 'crypto'
 import * as fs from 'fs/promises'
 import * as path from 'path'
 import { count } from '../../utils/array.js'
@@ -424,7 +423,7 @@ export async function uploadFile(
   }
 
   // Use crypto.randomUUID for boundary to avoid collisions when uploads start same millisecond
-  const boundary = `----FormBoundary${randomUUID()}`
+  const boundary = `----FormBoundary${crypto.randomUUID()}`
   const filename = path.basename(relativePath)
 
   // Build the multipart body

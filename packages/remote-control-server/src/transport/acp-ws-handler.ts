@@ -1,5 +1,4 @@
 import type { WSContext } from 'hono/ws'
-import { randomUUID } from 'node:crypto'
 import { getAcpEventBus } from './event-bus'
 import type { SessionEvent } from './event-bus'
 import {
@@ -90,7 +89,7 @@ function handleRegister(wsId: string, msg: Record<string, unknown>): void {
   const capabilities = msg.capabilities as Record<string, unknown> | undefined
   const channelGroupId =
     (msg.channel_group_id as string) ||
-    `group_${randomUUID().replace(/-/g, '').slice(0, 12)}`
+    `group_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`
   const acpLinkVersion = (msg.acp_link_version as string) || null
   const maxSessions =
     typeof msg.max_sessions === 'number' ? msg.max_sessions : 1
@@ -162,7 +161,8 @@ function handleIdentify(wsId: string, msg: Record<string, unknown>): void {
   storeMarkAcpAgentOnline(agentId)
 
   const channelGroupId =
-    record.bridgeId || `group_${randomUUID().replace(/-/g, '').slice(0, 12)}`
+    record.bridgeId ||
+    `group_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`
 
   entry.agentId = record.id
   entry.channelGroupId = channelGroupId
@@ -248,7 +248,7 @@ export function handleAcpWsMessage(
     // Pass-through: publish to channel group EventBus as inbound
     const bus = getAcpEventBus(entry.channelGroupId)
     bus.publish({
-      id: randomUUID(),
+      id: crypto.randomUUID(),
       sessionId: entry.channelGroupId,
       type: (msg.type as string) || 'acp_message',
       payload: msg,
@@ -287,7 +287,7 @@ export function handleAcpWsClose(
     if (entry.channelGroupId) {
       const bus = getAcpEventBus(entry.channelGroupId)
       bus.publish({
-        id: randomUUID(),
+        id: crypto.randomUUID(),
         sessionId: entry.channelGroupId,
         type: 'agent_disconnect',
         payload: { agentId: entry.agentId },

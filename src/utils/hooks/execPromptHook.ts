@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto'
 import type { HookEvent } from 'src/entrypoints/agentSdkTypes.js'
 import { queryModelWithoutStreaming } from '../../services/api/claude.js'
 import type { ToolUseContext } from '../../Tool.js'
@@ -29,7 +28,7 @@ export async function execPromptHook(
   toolUseID?: string,
 ): Promise<HookResult> {
   // Use provided toolUseID or generate a new one
-  const effectiveToolUseID = toolUseID || `hook-${randomUUID()}`
+  const effectiveToolUseID = toolUseID || `hook-${crypto.randomUUID()}`
   try {
     // Replace $ARGUMENTS with the JSON input
     const processedPrompt = addArgumentsToPrompt(hook.prompt, jsonInput)

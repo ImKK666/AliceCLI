@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto';
 import { useCallback, useRef, useState } from 'react';
 import type { TranscriptShareResponse } from './TranscriptSharePrompt.js';
 import type { FeedbackSurveyResponse } from './utils.js';
@@ -34,7 +33,7 @@ export function useSurveyState({
 } {
   const [state, setState] = useState<SurveyState>('closed');
   const [lastResponse, setLastResponse] = useState<FeedbackSurveyResponse | null>(null);
-  const appearanceId = useRef(randomUUID());
+  const appearanceId = useRef(crypto.randomUUID());
   const lastResponseRef = useRef<FeedbackSurveyResponse | null>(null);
 
   const showThanksThenClose = useCallback(() => {
@@ -60,7 +59,7 @@ export function useSurveyState({
       return;
     }
     setState('open');
-    appearanceId.current = randomUUID();
+    appearanceId.current = crypto.randomUUID();
     void onOpen(appearanceId.current);
   }, [state, onOpen]);
 

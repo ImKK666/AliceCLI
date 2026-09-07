@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto'
 import { rm } from 'fs'
 import { appendFile, copyFile, mkdir } from 'fs/promises'
 import { dirname, isAbsolute, join, relative } from 'path'
@@ -414,7 +413,7 @@ export async function startSpeculation(
   // Abort any existing speculation before starting a new one
   abortSpeculation(setAppState)
 
-  const id = randomUUID().slice(0, 8)
+  const id = crypto.randomUUID().slice(0, 8)
 
   const abortController = createChildAbortController(
     context.toolUseContext.abortController,

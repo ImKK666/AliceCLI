@@ -1,5 +1,4 @@
 // biome-ignore-all assist/source/organizeImports: ANT-ONLY import markers must not be reordered
-import { randomUUID } from 'crypto'
 import {
   createBridgeApiClient,
   BridgeFatalError,
@@ -353,9 +352,9 @@ export async function initBridgeCore(
     spawnMode: 'single-session',
     verbose: false,
     sandbox: false,
-    bridgeId: randomUUID(),
+    bridgeId: crypto.randomUUID(),
     workerType,
-    environmentId: randomUUID(),
+    environmentId: crypto.randomUUID(),
     reuseEnvironmentId: prior?.environmentId,
     apiBaseUrl: baseUrl,
     sessionIngressUrl,

@@ -1,6 +1,5 @@
 import { feature } from 'bun:bundle';
 import type { ContentBlockParam, TextBlockParam } from '@anthropic-ai/sdk/resources';
-import { randomUUID } from 'crypto';
 import { setPromptId } from 'src/bootstrap/state.js';
 import {
   builtInCommandNames,
@@ -314,7 +313,7 @@ async function executeForkedSlashCommand(
       parentToolUseID,
       toolUseID: `${parentToolUseID}-${toolUseCounter}`,
       timestamp: new Date().toISOString(),
-      uuid: randomUUID(),
+      uuid: crypto.randomUUID(),
     };
   };
 
@@ -496,7 +495,7 @@ export async function processSlashCommand(
       };
     }
 
-    const promptId = randomUUID();
+    const promptId = crypto.randomUUID();
     setPromptId(promptId);
     logEvent('tengu_input_prompt', {});
     // Log user prompt event for OTLP

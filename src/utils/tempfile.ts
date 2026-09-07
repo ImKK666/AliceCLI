@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto'
 import { tmpdir } from 'os'
 import { join } from 'path'
 
@@ -26,6 +25,6 @@ export function generateTempFilePath(
         .update(options.contentHash)
         .digest('hex')
         .slice(0, 16)
-    : randomUUID()
+    : crypto.randomUUID()
   return join(tmpdir(), `${prefix}-${id}${extension}`)
 }

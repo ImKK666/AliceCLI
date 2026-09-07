@@ -1,6 +1,5 @@
 import { readdir, unlink } from 'fs/promises'
 import { join } from 'path'
-import { randomUUID } from 'crypto'
 import { getClaudeConfigHomeDir } from '../utils/envUtils.js'
 import { isProcessRunning } from '../utils/genericProcessUtils.js'
 import { jsonParse } from '../utils/slowOperations.js'
@@ -305,7 +304,7 @@ export async function handleBgStart(args: string[]): Promise<void> {
     return
   }
 
-  const sessionName = `claude-bg-${randomUUID().slice(0, 8)}`
+  const sessionName = `claude-bg-${crypto.randomUUID().slice(0, 8)}`
   const logPath = join(
     getClaudeConfigHomeDir(),
     'sessions',

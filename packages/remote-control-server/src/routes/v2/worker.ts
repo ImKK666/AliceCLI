@@ -1,5 +1,4 @@
 import { Hono } from 'hono'
-import { randomUUID } from 'node:crypto'
 import {
   getSession,
   incrementEpoch,
@@ -77,7 +76,7 @@ app.put('/:id/worker', acceptCliHeaders, sessionIngressAuth, async c => {
 
   if (!automationStatesEqual(prevAutomationState, nextAutomationState)) {
     getEventBus(sessionId).publish({
-      id: randomUUID(),
+      id: crypto.randomUUID(),
       sessionId,
       type: 'automation_state',
       payload: nextAutomationState,

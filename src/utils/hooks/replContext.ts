@@ -3,7 +3,6 @@
  * runs hooks within the interactive REPL, yielding progress and results.
  * Depends on ./types.js, ./engine.js, and ./matching.js.
  */
-import { randomUUID } from 'crypto'
 import {
   getSessionId,
   getStatsStore,
@@ -243,7 +242,7 @@ export async function* executeHooks({
         parentToolUseID: toolUseID,
         toolUseID,
         timestamp: new Date().toISOString(),
-        uuid: randomUUID(),
+        uuid: crypto.randomUUID(),
       },
     }
   }
@@ -329,7 +328,7 @@ export async function* executeHooks({
     const { signal: abortSignal, cleanup } = createCombinedAbortSignal(signal, {
       timeoutMs: commandTimeoutMs,
     })
-    const hookId = randomUUID()
+    const hookId = crypto.randomUUID()
     const hookStartMs = Date.now()
     const hookCommand = getHookDisplayText(hook)
 

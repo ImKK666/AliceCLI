@@ -1,6 +1,5 @@
 import type { BetaRawMessageStreamEvent } from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
 import type { ChatCompletionChunk } from 'openai/resources/chat/completions/completions.mjs'
-import { randomUUID } from 'crypto'
 import { normalizeOpenAIUsage } from './openaiUsage.js'
 
 /**
@@ -38,7 +37,7 @@ export async function* adaptOpenAIStreamToAnthropic(
   model: string,
   options?: { includeCacheWriteTokens?: boolean },
 ): AsyncGenerator<BetaRawMessageStreamEvent, void> {
-  const messageId = `msg_${randomUUID().replace(/-/g, '').slice(0, 24)}`
+  const messageId = `msg_${crypto.randomUUID().replace(/-/g, '').slice(0, 24)}`
 
   let started = false
   let currentContentIndex = -1
@@ -231,7 +230,8 @@ export async function* adaptOpenAIStreamToAnthropic(
           // Start new tool_use block
           currentContentIndex++
           const toolId =
-            tc.id || `toolu_${randomUUID().replace(/-/g, '').slice(0, 24)}`
+            tc.id ||
+            `toolu_${crypto.randomUUID().replace(/-/g, '').slice(0, 24)}`
           const toolName = tc.function?.name || ''
 
           toolBlocks.set(tcIndex, {

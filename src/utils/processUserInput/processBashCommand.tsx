@@ -1,5 +1,4 @@
 import type { ContentBlockParam } from '@anthropic-ai/sdk/resources';
-import { randomUUID } from 'crypto';
 import * as React from 'react';
 import { BashModeProgress } from 'src/components/BashModeProgress.js';
 import type { SetToolJSXFn } from 'src/Tool.js';
@@ -123,7 +122,7 @@ export async function processBashCommand(
     // and model-initiated Bash. When BashTool.call() persists large output to disk,
     // data.persistedOutputPath is set and the formatter wraps in <persisted-output>.
     // Pass stderr:'' to keep it separate for the <bash-stderr> UI tag.
-    const mapped = await processToolResultBlock(shellTool, { ...data, stderr: '' }, randomUUID());
+    const mapped = await processToolResultBlock(shellTool, { ...data, stderr: '' }, crypto.randomUUID());
     // mapped.content may contain our own <persisted-output> wrapper (trusted
     // XML from buildLargeToolResultMessage). Escaping it would turn structural
     // tags into &lt;persisted-output&gt;, breaking the model's parse and

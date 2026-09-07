@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto'
 import type { BetaRawMessageStreamEvent } from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
 import { normalizeOpenAIUsage, type AnthropicUsage } from '@ant/model-provider'
 import { getValidChatGPTAuth } from './chatgptAuth.js'
@@ -276,7 +275,7 @@ export async function* adaptResponsesStreamToAnthropic(
   stream: AsyncIterable<Record<string, unknown>>,
   model: string,
 ): AsyncGenerator<BetaRawMessageStreamEvent, void> {
-  const messageId = `msg_${randomUUID().replace(/-/g, '').slice(0, 24)}`
+  const messageId = `msg_${crypto.randomUUID().replace(/-/g, '').slice(0, 24)}`
   const toolBlocks = new Map<
     number,
     { contentIndex: number; open: boolean; name: string; id: string }

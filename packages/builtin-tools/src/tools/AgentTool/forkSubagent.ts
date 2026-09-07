@@ -1,6 +1,5 @@
 import { feature } from 'bun:bundle'
 import type { BetaToolUseBlock } from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
-import { randomUUID } from 'crypto'
 import { getIsNonInteractiveSession } from 'src/bootstrap/state.js'
 import {
   FORK_BOILERPLATE_TAG,
@@ -112,7 +111,7 @@ export function buildForkedMessages(
   // content blocks (thinking, text, and every tool_use)
   const fullAssistantMessage: AssistantMessage = {
     ...assistantMessage,
-    uuid: randomUUID(),
+    uuid: crypto.randomUUID(),
     message: {
       ...assistantMessage.message,
       content: [

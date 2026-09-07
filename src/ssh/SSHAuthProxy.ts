@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto'
 import { unlinkSync } from 'fs'
 import { getClaudeAIOAuthTokens } from 'src/utils/auth.js'
 import { getOauthConfig } from 'src/constants/oauth.js'
@@ -98,7 +97,7 @@ async function proxyFetch(
 }
 
 export async function createAuthProxy(): Promise<AuthProxyInfo> {
-  const id = randomUUID()
+  const id = crypto.randomUUID()
 
   if (isWindows) {
     return createTcpAuthProxy(id)
@@ -135,7 +134,7 @@ async function createUnixSocketAuthProxy(id: string): Promise<AuthProxyInfo> {
 }
 
 async function createTcpAuthProxy(id: string): Promise<AuthProxyInfo> {
-  const nonce = randomUUID()
+  const nonce = crypto.randomUUID()
 
   const server = Bun.serve({
     port: 0,

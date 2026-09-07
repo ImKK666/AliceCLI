@@ -1,6 +1,5 @@
 import { feature } from 'bun:bundle'
 import type { UUID } from 'crypto'
-import { randomUUID } from 'crypto'
 import uniqBy from 'lodash-es/uniqBy.js'
 import { logForDebugging } from 'src/utils/debug.js'
 import { getProjectRoot, getSessionId } from 'src/bootstrap/state.js'
@@ -557,7 +556,7 @@ export async function* runAgent({
       type: 'hook_additional_context',
       content: additionalContexts,
       hookName: 'SubagentStart',
-      toolUseID: randomUUID(),
+      toolUseID: crypto.randomUUID(),
       hookEvent: 'SubagentStart',
     })
     initialMessages.push(contextMessage)

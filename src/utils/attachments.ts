@@ -61,7 +61,8 @@ import {
   getImagePasteIds,
   isValidImagePaste,
 } from 'src/types/textInputTypes.js'
-import { randomUUID, type UUID } from 'crypto'
+
+import type { UUID } from 'crypto'
 import { getSnippetForTwoFileDiff } from '@claude-code-best/builtin-tools/tools/FileEditTool/utils.js'
 import type {
   ContentBlockParam,
@@ -3286,7 +3287,7 @@ export function createAttachmentMessage(
   return {
     attachment,
     type: 'attachment',
-    uuid: randomUUID(),
+    uuid: crypto.randomUUID(),
     timestamp: new Date().toISOString(),
   } as unknown as AttachmentMessage<Attachment>
 }

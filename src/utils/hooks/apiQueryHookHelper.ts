@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto'
 import type { QuerySource } from '../../constants/querySource.js'
 import { queryModelWithoutStreaming } from '../../services/api/claude.js'
 import type { Message } from '../../types/message.js'
@@ -63,7 +62,7 @@ export function createApiQueryHook<TResult>(
         return
       }
 
-      const uuid = randomUUID()
+      const uuid = crypto.randomUUID()
 
       // Build messages using the config's buildMessages function
       const messages = config.buildMessages(context)

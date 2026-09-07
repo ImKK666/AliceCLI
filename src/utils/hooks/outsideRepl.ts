@@ -3,7 +3,6 @@
  * (e.g., notifications, session end, worktree operations).
  * Depends on ./types.js, ./engine.js, and ./matching.js.
  */
-import { randomUUID } from 'crypto'
 import { getSessionId } from '../../bootstrap/state.js'
 import { shouldDisableAllHooksIncludingManaged } from './hooksConfigSnapshot.js'
 import {
@@ -161,7 +160,7 @@ export async function executeHooksOutsideREPL({
         )
 
         try {
-          const toolUseID = randomUUID()
+          const toolUseID = crypto.randomUUID()
           const json = await hook.callback(
             hookInput,
             toolUseID,
@@ -360,7 +359,7 @@ export async function executeHooksOutsideREPL({
           hookName,
           jsonInput,
           abortSignal,
-          randomUUID(),
+          crypto.randomUUID(),
           hookIndex,
           pluginRoot,
           pluginId,

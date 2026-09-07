@@ -1,5 +1,5 @@
 import type { ContentBlockParam, TextBlockParam } from '@anthropic-ai/sdk/resources/index.mjs';
-import { randomUUID, type UUID } from 'crypto';
+import type { UUID } from 'crypto';
 import figures from 'figures';
 import * as React from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -84,7 +84,7 @@ export function MessageSelector({
   const isFileHistoryEnabled = fileHistoryEnabled();
 
   // Add current prompt as a virtual message
-  const currentUUID = useMemo(randomUUID, []);
+  const currentUUID = useMemo(() => crypto.randomUUID(), []);
   const messageOptions = useMemo(
     () => [
       ...messages.filter(selectableUserMessagesFilter),

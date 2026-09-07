@@ -11,7 +11,6 @@
  */
 
 import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages.mjs'
-import { randomUUID } from 'crypto'
 import { mkdir } from 'fs/promises'
 import { basename, join } from 'path'
 import { z } from 'zod/v4'
@@ -99,7 +98,7 @@ async function resolveOne(att: InboundAttachment): Promise<string | undefined> {
   // (same filename, different files). 8 chars is enough — this isn't security.
   const safeName = sanitizeFileName(att.file_name)
   const prefix = (
-    att.file_uuid.slice(0, 8) || randomUUID().slice(0, 8)
+    att.file_uuid.slice(0, 8) || crypto.randomUUID().slice(0, 8)
   ).replace(/[^a-zA-Z0-9_-]/g, '_')
   const dir = uploadsDir()
   const outPath = join(dir, `${prefix}-${safeName}`)

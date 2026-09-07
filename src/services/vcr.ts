@@ -2,7 +2,8 @@ import type {
   BetaContentBlock,
   BetaUsage,
 } from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
-import { randomUUID, type UUID } from 'crypto'
+import type { UUID } from 'crypto'
+
 import { mkdir } from 'fs/promises'
 import isPlainObject from 'lodash-es/isPlainObject.js'
 import mapValues from 'lodash-es/mapValues.js'
@@ -120,7 +121,7 @@ export async function withVCR(
     }
     cached.output.forEach(addCachedCostToTotalSessionCost)
     return cached.output.map((message, index) =>
-      mapMessage(message, hydrateValue, index, randomUUID()),
+      mapMessage(message, hydrateValue, index, crypto.randomUUID()),
     )
   } catch (e: unknown) {
     const code = getErrnoCode(e)

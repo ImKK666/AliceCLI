@@ -3,7 +3,8 @@
  * This module has heavier dependencies and should be lazy-loaded when possible.
  */
 import { feature } from 'bun:bundle'
-import { randomUUID, type UUID } from 'crypto'
+import type { UUID } from 'crypto'
+
 import { getReplBridgeHandle } from '../../bridge/replBridgeHandle.js'
 import {
   getLastMainRequestId,
@@ -63,7 +64,7 @@ function notifyRemoteConversationCleared(): void {
     subtype: 'status',
     status: 'conversation_cleared',
     message: 'conversation_cleared',
-    uuid: randomUUID(),
+    uuid: crypto.randomUUID(),
   }
   handle.writeSdkMessages([message])
 }
@@ -141,7 +142,7 @@ export async function clearConversation({
 
   // Force logo re-render by updating conversationId
   if (setConversationId) {
-    setConversationId(randomUUID())
+    setConversationId(crypto.randomUUID())
   }
 
   // Clear all session-related caches. Per-agent state for preserved background

@@ -12,7 +12,6 @@ import { deployBinary } from './SSHDeploy.js'
 import { buildCliLaunch } from '../utils/cliLaunch.js'
 import { logForDebugging } from '../utils/debug.js'
 import { jsonParse } from '../utils/slowOperations.js'
-import { randomUUID } from 'crypto'
 
 const INIT_TIMEOUT_MS = 30_000
 const STDERR_TAIL_LINES = 20
@@ -101,7 +100,7 @@ export async function createSSHSession(
   logForDebugging(`[SSH] auth proxy listening on ${localAddress}`)
 
   // 4. Build SSH command with -R reverse forward and remote CLI
-  const remoteSocketId = randomUUID().slice(0, 8)
+  const remoteSocketId = crypto.randomUUID().slice(0, 8)
   const isWindows = process.platform === 'win32'
 
   const remoteCli: string[] = []

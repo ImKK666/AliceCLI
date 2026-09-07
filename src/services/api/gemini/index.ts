@@ -2,7 +2,6 @@ import type {
   BetaToolUnion,
   BetaMessage,
 } from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
-import { randomUUID } from 'crypto'
 import type {
   AssistantMessage,
   Message,
@@ -180,7 +179,7 @@ export async function* queryModelGemini(
             } as AssistantMessage['message'],
             requestId: undefined,
             type: 'assistant',
-            uuid: randomUUID(),
+            uuid: crypto.randomUUID(),
             timestamp: new Date().toISOString(),
           }
           collectedMessages.push(message)

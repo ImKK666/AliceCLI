@@ -1,5 +1,4 @@
 import { feature } from 'bun:bundle'
-import { randomUUID } from 'crypto'
 import { hostname, tmpdir } from 'os'
 import { basename, join, resolve } from 'path'
 import { getRemoteSessionUrl } from '../constants/product.js'
@@ -2346,7 +2345,7 @@ export async function bridgeMain(args: string[]): Promise<void> {
   const branch = await getBranch()
   const gitRepoUrl = await getRemoteUrl()
   const machineName = hostname()
-  const bridgeId = randomUUID()
+  const bridgeId = crypto.randomUUID()
 
   const { handleOAuth401Error } = await import('../utils/auth.js')
   const api = createBridgeApiClient({
@@ -2429,7 +2428,7 @@ export async function bridgeMain(args: string[]): Promise<void> {
     sandbox,
     bridgeId,
     workerType: 'claude_code',
-    environmentId: randomUUID(),
+    environmentId: crypto.randomUUID(),
     reuseEnvironmentId,
     apiBaseUrl: baseUrl,
     sessionIngressUrl,
@@ -2871,7 +2870,7 @@ export async function runBridgeHeadless(
   const branch = await getBranch()
   const gitRepoUrl = await getRemoteUrl()
   const machineName = hostname()
-  const bridgeId = randomUUID()
+  const bridgeId = crypto.randomUUID()
 
   const config: BridgeConfig = {
     dir,
@@ -2884,7 +2883,7 @@ export async function runBridgeHeadless(
     sandbox: opts.sandbox,
     bridgeId,
     workerType: 'claude_code',
-    environmentId: randomUUID(),
+    environmentId: crypto.randomUUID(),
     apiBaseUrl: baseUrl,
     sessionIngressUrl,
     sessionTimeoutMs: opts.sessionTimeoutMs,

@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto'
 import { mkdir, appendFile } from 'fs/promises'
 import { dirname, join } from 'path'
 import { getProjectRoot } from '../bootstrap/state.js'
@@ -30,7 +29,7 @@ export async function appendRemoteTriggerAuditRecord(
   rootDir: string = getProjectRoot(),
 ): Promise<RemoteTriggerAuditRecord> {
   const fullRecord: RemoteTriggerAuditRecord = {
-    auditId: record.auditId ?? randomUUID(),
+    auditId: record.auditId ?? crypto.randomUUID(),
     action: record.action,
     ...(record.triggerId ? { triggerId: record.triggerId } : {}),
     ok: record.ok,

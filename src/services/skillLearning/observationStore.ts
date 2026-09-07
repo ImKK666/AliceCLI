@@ -1,6 +1,5 @@
 import { mkdir, rename, stat, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
-import { randomUUID } from 'node:crypto'
 import type {
   SkillLearningProjectContext as BaseSkillLearningProjectContext,
   SkillObservation as BaseSkillObservation,
@@ -439,10 +438,7 @@ export function stringifyField(value: unknown): string | undefined {
 }
 
 function createObservationId(): string {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-    return crypto.randomUUID()
-  }
-  return randomUUID()
+  return crypto.randomUUID()
 }
 
 function hashText(value: string): string {
