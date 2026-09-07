@@ -24,7 +24,7 @@
  *   This avoids module-level mutable state and gives tests natural isolation.
  */
 
-import axios from 'axios'
+import { http, isHttpError } from 'src/utils/http.js'
 import { createHash } from 'crypto'
 import { mkdir, readdir, readFile, stat, writeFile } from 'fs/promises'
 import { join, relative, sep } from 'path'
@@ -209,7 +209,7 @@ async function fetchTeamMemoryOnce(
     }
 
     const endpoint = getTeamMemorySyncEndpoint(repoSlug)
-    const response = await axios.get(endpoint, {
+    const response = await http.get(endpoint, {
       headers,
       timeout: TEAM_MEMORY_SYNC_TIMEOUT_MS,
       validateStatus: status =>
@@ -247,7 +247,7 @@ async function fetchTeamMemoryOnce(
     // Extract checksum from response data or ETag header
     const responseChecksum =
       parsed.data.checksum ||
-      response.headers['etag']?.replace(/^"|"$/g, '') ||
+      response.headers.get('etag')?.replace(/^"|"$/g, '') ||
       undefined
     if (responseChecksum) {
       state.lastKnownChecksum = responseChecksum
@@ -265,9 +265,7 @@ async function fetchTeamMemoryOnce(
     }
   } catch (error) {
     const { kind, status, message } = classifyAxiosError(error)
-    const body = axios.isAxiosError(error)
-      ? JSON.stringify(error.response?.data ?? '')
-      : ''
+    const body = isHttpError(error) ? JSON.stringify(error.data ?? '') : ''
     if (kind !== 'other') {
       logForDebugging(`team-memory-sync: fetch error ${status}: ${body}`, {
         level: 'warn',
@@ -324,7 +322,7 @@ async function fetchTeamMemoryHashes(
     }
 
     const endpoint = getTeamMemorySyncEndpoint(repoSlug) + '&view=hashes'
-    const response = await axios.get(endpoint, {
+    const response = await http.get(endpoint, {
       headers: auth.headers,
       timeout: TEAM_MEMORY_SYNC_TIMEOUT_MS,
       validateStatus: status => status === 200 || status === 404,
@@ -335,9 +333,10 @@ async function fetchTeamMemoryHashes(
       return { success: true, entryChecksums: {} }
     }
 
+    const data = response.data as Record<string, unknown>
     const checksum =
-      response.data?.checksum || response.headers['etag']?.replace(/^"|"$/g, '')
-    const entryChecksums = response.data?.entryChecksums
+      data?.checksum || response.headers.get('etag')?.replace(/^"|"$/g, '')
+    const entryChecksums = data?.entryChecksums
 
     // Requires anthropic/anthropic#283027. If entryChecksums is missing,
     // treat as a probe failure — caller fails the push; watcher retries.
@@ -351,13 +350,13 @@ async function fetchTeamMemoryHashes(
     }
 
     if (checksum) {
-      state.lastKnownChecksum = checksum
+      state.lastKnownChecksum = checksum as string
     }
     return {
       success: true,
-      version: response.data?.version,
-      checksum,
-      entryChecksums,
+      version: data?.version as number | undefined,
+      checksum: checksum as string | undefined,
+      entryChecksums: entryChecksums as Record<string, string>,
     }
   } catch (error) {
     const { kind, status, message } = classifyAxiosError(error)
@@ -482,7 +481,7 @@ async function uploadTeamMemory(
     }
 
     const endpoint = getTeamMemorySyncEndpoint(repoSlug)
-    const response = await axios.put(
+    const response = await http.put(
       endpoint,
       { entries },
       {
@@ -499,9 +498,10 @@ async function uploadTeamMemory(
       return { success: false, conflict: true, error: 'ETag mismatch' }
     }
 
-    const responseChecksum = response.data?.checksum
+    const responseChecksum = (response.data as Record<string, unknown>)
+      ?.checksum
     if (responseChecksum) {
-      state.lastKnownChecksum = responseChecksum
+      state.lastKnownChecksum = responseChecksum as string
     }
 
     logForDebugging(
@@ -510,13 +510,13 @@ async function uploadTeamMemory(
     )
     return {
       success: true,
-      checksum: responseChecksum,
-      lastModified: response.data?.lastModified,
+      checksum: responseChecksum as string | undefined,
+      lastModified: (response.data as Record<string, unknown>)?.lastModified as
+        | string
+        | undefined,
     }
   } catch (error) {
-    const body = axios.isAxiosError(error)
-      ? JSON.stringify(error.response?.data ?? '')
-      : ''
+    const body = isHttpError(error) ? JSON.stringify(error.data ?? '') : ''
     logForDebugging(
       `team-memory-sync: upload failed: ${error instanceof Error ? error.message : ''} ${body}`,
       { level: 'warn' },
@@ -530,10 +530,8 @@ async function uploadTeamMemory(
     // RequestTooLargeException includes error_code + extra_details with
     // the effective max_entries (may be GB-tuned per-org). Cache it so
     // the next push trims to the right value.
-    if (httpStatus === 413 && axios.isAxiosError(error)) {
-      const parsed = TeamMemoryTooManyEntriesSchema().safeParse(
-        error.response?.data,
-      )
+    if (httpStatus === 413 && isHttpError(error)) {
+      const parsed = TeamMemoryTooManyEntriesSchema().safeParse(error.data)
       if (parsed.success) {
         serverErrorCode = parsed.data.error.details.error_code
         serverMaxEntries = parsed.data.error.details.max_entries

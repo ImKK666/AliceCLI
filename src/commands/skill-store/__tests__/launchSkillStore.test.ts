@@ -3,7 +3,7 @@
  *
  * Strategy per feedback_mock_dependency_not_subject:
  * - DO NOT mock skillsApi.ts itself (would pollute api.test.ts)
- * - Mock axios (the underlying HTTP layer) to control API responses
+ * - Mock http (the underlying HTTP layer) to control API responses
  * - Mock fs/promises for install filesystem operations
  * - Let real skillsApi functions run real code paths
  */
@@ -20,7 +20,7 @@ import {
 } from 'bun:test'
 import { debugMock } from '../../../../tests/mocks/debug.js'
 import { logMock } from '../../../../tests/mocks/log.js'
-import { setupAxiosMock } from '../../../../tests/mocks/axios.js'
+import { setupHttpMock } from '../../../../tests/mocks/httpClient.js'
 
 mock.module('src/utils/log.ts', logMock)
 mock.module('src/utils/debug.ts', debugMock)
@@ -64,24 +64,15 @@ mock.module('src/utils/teleport/api.js', () => ({
 // cache around each test so the real getClaudeConfigHomeDir reads our value.
 const mockConfigDir = '/tmp/test-claude-config'
 
-// ── Axios mock ──────────────────────────────────────────────────────────────
-const axiosGetMock = mock(async () => ({}))
-const axiosPostMock = mock(async () => ({}))
-const axiosDeleteMock = mock(async () => ({}))
-const axiosIsAxiosError = mock((err: unknown) => {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'isAxiosError' in err &&
-    (err as { isAxiosError: boolean }).isAxiosError === true
-  )
-})
+// ── HTTP mock ───────────────────────────────────────────────────────────────
+const httpGetMock = mock(async () => ({}))
+const httpPostMock = mock(async () => ({}))
+const httpDeleteMock = mock(async () => ({}))
 
-const axiosHandle = setupAxiosMock()
-axiosHandle.stubs.get = axiosGetMock
-axiosHandle.stubs.post = axiosPostMock
-axiosHandle.stubs.delete = axiosDeleteMock
-axiosHandle.stubs.isAxiosError = axiosIsAxiosError
+const httpHandle = setupHttpMock()
+httpHandle.stubs.get = httpGetMock
+httpHandle.stubs.post = httpPostMock
+httpHandle.stubs.delete = httpDeleteMock
 
 // ── fs/promises mock ─────────────────────────────────────────────────────────
 // Bun's mock.module is global per-process and last-write-wins. Replacing
@@ -119,7 +110,7 @@ let getClaudeConfigHomeDir: typeof import('../../../utils/envUtils.js').getClaud
 let origConfigDir: string | undefined
 
 beforeAll(async () => {
-  axiosHandle.useStubs = true
+  httpHandle.useStubs = true
   const mod = await import('../launchSkillStore.js')
   callSkillStore = mod.callSkillStore
   const envMod = await import('../../../utils/envUtils.js')
@@ -131,14 +122,14 @@ beforeAll(async () => {
 // Flip the stub flag off after this suite so localVault/store and other
 // fs-dependent tests in the same process see real readFile/readdir/etc.
 afterAll(() => {
-  axiosHandle.useStubs = false
+  httpHandle.useStubs = false
   useSkillStoreFsStubs = false
 })
 
 beforeEach(() => {
-  axiosGetMock.mockClear()
-  axiosPostMock.mockClear()
-  axiosDeleteMock.mockClear()
+  httpGetMock.mockClear()
+  httpPostMock.mockClear()
+  httpDeleteMock.mockClear()
   mkdirMock.mockClear()
   writeFileMock.mockClear()
   logEventMock.mockClear()
@@ -171,26 +162,29 @@ describe('list action', () => {
     const skills = [
       { skill_id: 'sk_1', name: 'skill-a', owner: 'alice', deprecated: false },
     ]
-    axiosGetMock.mockResolvedValueOnce({ data: { data: skills }, status: 200 })
+    httpGetMock.mockResolvedValueOnce({ data: { data: skills }, status: 200 })
     const { onDone } = makeOnDone()
     const result = await callSkillStore(onDone, {} as never, 'list')
     expect(result).not.toBeNull()
-    expect(axiosGetMock).toHaveBeenCalledTimes(1)
+    expect(httpGetMock).toHaveBeenCalledTimes(1)
   })
 
   test('empty list returns element', async () => {
-    axiosGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
+    httpGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
     const { onDone, calls } = makeOnDone()
     await callSkillStore(onDone, {} as never, 'list')
     expect(calls[0]?.[0]).toContain('No skills')
   })
 
   test('API error reports failure', async () => {
-    axiosGetMock.mockRejectedValueOnce({
-      isAxiosError: true,
-      response: { status: 401 },
-      message: 'Unauthorized',
-    })
+    httpGetMock.mockRejectedValueOnce(
+      Object.assign(new Error('Unauthorized'), {
+        status: 401,
+        data: {},
+        statusText: 'Unauthorized',
+        response: new Response(null, { status: 401 }),
+      }),
+    )
     const { onDone, calls } = makeOnDone()
     await callSkillStore(onDone, {} as never, 'list')
     expect(calls[0]?.[0]).toContain('Failed')
@@ -206,19 +200,22 @@ describe('get action', () => {
       owner: 'user',
       deprecated: false,
     }
-    axiosGetMock.mockResolvedValueOnce({ data: skill, status: 200 })
+    httpGetMock.mockResolvedValueOnce({ data: skill, status: 200 })
     const { onDone } = makeOnDone()
     const result = await callSkillStore(onDone, {} as never, 'get sk_1')
     expect(result).not.toBeNull()
-    expect(axiosGetMock).toHaveBeenCalledTimes(1)
+    expect(httpGetMock).toHaveBeenCalledTimes(1)
   })
 
   test('API 404 reports failure', async () => {
-    axiosGetMock.mockRejectedValueOnce({
-      isAxiosError: true,
-      response: { status: 404 },
-      message: 'Not found',
-    })
+    httpGetMock.mockRejectedValueOnce(
+      Object.assign(new Error('Not found'), {
+        status: 404,
+        data: {},
+        statusText: 'Not Found',
+        response: new Response(null, { status: 404 }),
+      }),
+    )
     const { onDone, calls } = makeOnDone()
     await callSkillStore(onDone, {} as never, 'get missing_id')
     expect(calls[0]?.[0]).toContain('Failed')
@@ -236,7 +233,7 @@ describe('versions action', () => {
         created_at: '2024-01-01',
       },
     ]
-    axiosGetMock.mockResolvedValueOnce({
+    httpGetMock.mockResolvedValueOnce({
       data: { data: versions },
       status: 200,
     })
@@ -255,11 +252,11 @@ describe('version action', () => {
       body: '# v2',
       created_at: '2024-02-01',
     }
-    axiosGetMock.mockResolvedValueOnce({ data: ver, status: 200 })
+    httpGetMock.mockResolvedValueOnce({ data: ver, status: 200 })
     const { onDone } = makeOnDone()
     const result = await callSkillStore(onDone, {} as never, 'version sk_1 v2')
     expect(result).not.toBeNull()
-    expect(axiosGetMock).toHaveBeenCalledTimes(1)
+    expect(httpGetMock).toHaveBeenCalledTimes(1)
   })
 })
 
@@ -272,7 +269,7 @@ describe('create action', () => {
       owner: 'user',
       deprecated: false,
     }
-    axiosPostMock.mockResolvedValueOnce({ data: skill, status: 201 })
+    httpPostMock.mockResolvedValueOnce({ data: skill, status: 201 })
     const { onDone } = makeOnDone()
     const result = await callSkillStore(
       onDone,
@@ -280,14 +277,14 @@ describe('create action', () => {
       'create new-skill # Skill Content',
     )
     expect(result).not.toBeNull()
-    expect(axiosPostMock).toHaveBeenCalledTimes(1)
+    expect(httpPostMock).toHaveBeenCalledTimes(1)
   })
 })
 
 // ── delete ────────────────────────────────────────────────────────────────────
 describe('delete action', () => {
   test('deletes skill and confirms', async () => {
-    axiosDeleteMock.mockResolvedValueOnce({ data: {}, status: 204 })
+    httpDeleteMock.mockResolvedValueOnce({ data: {}, status: 204 })
     const { onDone, calls } = makeOnDone()
     const result = await callSkillStore(onDone, {} as never, 'delete sk_del')
     expect(result).not.toBeNull()
@@ -313,7 +310,7 @@ describe('install action', () => {
       },
     ]
     // First call: getSkill, Second call: getSkillVersions
-    axiosGetMock
+    httpGetMock
       .mockResolvedValueOnce({ data: skill, status: 200 })
       .mockResolvedValueOnce({ data: { data: versions }, status: 200 })
 
@@ -340,7 +337,7 @@ describe('install action', () => {
       body: '# v2 Content',
       created_at: '2024-02-01',
     }
-    axiosGetMock.mockResolvedValueOnce({ data: ver, status: 200 })
+    httpGetMock.mockResolvedValueOnce({ data: ver, status: 200 })
 
     const { onDone, calls } = makeOnDone()
     const result = await callSkillStore(onDone, {} as never, 'install sk_1@v2')
@@ -362,7 +359,7 @@ describe('install action', () => {
       owner: 'user',
       deprecated: false,
     }
-    axiosGetMock
+    httpGetMock
       .mockResolvedValueOnce({ data: skill, status: 200 })
       .mockResolvedValueOnce({ data: { data: [] }, status: 200 })
 
@@ -388,7 +385,7 @@ describe('install action', () => {
         created_at: '2024-01-01',
       },
     ]
-    axiosGetMock
+    httpGetMock
       .mockResolvedValueOnce({ data: skill, status: 200 })
       .mockResolvedValueOnce({ data: { data: versions }, status: 200 })
 

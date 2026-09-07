@@ -8,31 +8,19 @@ import {
   test,
 } from 'bun:test'
 import { logMock } from '../../../../../../tests/mocks/log'
-import { setupAxiosMock } from '../../../../../../tests/mocks/axios'
+import { setupHttpMock } from '../../../../../../tests/mocks/httpClient'
 
-type MockAxiosResponse = {
+type MockHttpResponse = {
   data: ArrayBuffer
-  headers: Record<string, unknown>
+  headers: Headers
   status: number
   statusText: string
 }
 
-type MockAxiosError = Error & {
-  isAxiosError: true
-  response?: {
-    headers: Record<string, unknown>
-    status: number
-  }
-}
+let getMock: (url: string, opts?: unknown) => Promise<MockHttpResponse>
 
-let getMock: (url: string) => Promise<MockAxiosResponse>
-
-const axiosHandle = setupAxiosMock()
-axiosHandle.stubs.get = (url: string) => getMock(url)
-axiosHandle.stubs.isAxiosError = (error: unknown): boolean =>
-  typeof error === 'object' &&
-  error !== null &&
-  (error as { isAxiosError?: unknown }).isAxiosError === true
+const httpHandle = setupHttpMock()
+httpHandle.stubs.get = (url: string, opts?: unknown) => getMock(url, opts)
 
 mock.module('src/services/analytics/index.js', () => ({
   logEvent: () => {},
@@ -40,10 +28,6 @@ mock.module('src/services/analytics/index.js', () => ({
 
 mock.module('src/services/api/claude.js', () => ({
   queryHaiku: async () => ({ message: { content: [] } }),
-}))
-
-mock.module('src/utils/http.js', () => ({
-  getWebFetchUserAgent: () => 'TestAgent/1.0',
 }))
 
 mock.module('src/utils/log.ts', logMock)
@@ -64,35 +48,33 @@ mock.module('src/utils/settings/settings.js', () => ({
 
 beforeEach(() => {
   getMock = async () => ({
-    data: new TextEncoder().encode('hello').buffer,
-    headers: { 'content-type': 'text/plain' },
+    data: new TextEncoder().encode('hello').buffer as ArrayBuffer,
+    headers: new Headers({ 'content-type': 'text/plain' }),
     status: 200,
     statusText: 'OK',
   })
 })
 
 beforeAll(() => {
-  axiosHandle.useStubs = true
+  httpHandle.useStubs = true
 })
 
 afterAll(() => {
-  axiosHandle.useStubs = false
+  httpHandle.useStubs = false
 })
 
 describe('WebFetch response headers', () => {
-  test('reads redirect Location from AxiosHeaders-style get()', async () => {
-    getMock = async () => {
-      const error = new Error('redirect') as MockAxiosError
-      error.isAxiosError = true
-      error.response = {
-        headers: {
-          get: (name: string) =>
-            name.toLowerCase() === 'location' ? '/next' : undefined,
-        },
-        status: 302,
-      }
-      throw error
-    }
+  test('reads redirect Location from Headers', async () => {
+    // With http wrapper + validateStatus: () => true, redirects are returned
+    // as successful responses (not thrown as errors). The production code
+    // checks response.status for redirect codes and reads Location from
+    // the Headers object.
+    getMock = async () => ({
+      data: new ArrayBuffer(0),
+      headers: new Headers({ location: '/next' }),
+      status: 302,
+      statusText: 'Found',
+    })
 
     const { getWithPermittedRedirects } = await import('../utils')
     const result = await getWithPermittedRedirects(
@@ -110,15 +92,15 @@ describe('WebFetch response headers', () => {
   })
 
   test('reads proxy block markers from normalized headers', async () => {
-    getMock = async () => {
-      const error = new Error('blocked') as MockAxiosError
-      error.isAxiosError = true
-      error.response = {
-        headers: { 'x-proxy-error': 'blocked-by-allowlist' },
-        status: 403,
-      }
-      throw error
-    }
+    // With http wrapper + validateStatus: () => true, 403 responses are
+    // returned as successful responses. The production code checks for
+    // the x-proxy-error header on 403 status.
+    getMock = async () => ({
+      data: new ArrayBuffer(0),
+      headers: new Headers({ 'x-proxy-error': 'blocked-by-allowlist' }),
+      status: 403,
+      statusText: 'Forbidden',
+    })
 
     const { getWithPermittedRedirects } = await import('../utils')
 
@@ -132,9 +114,14 @@ describe('WebFetch response headers', () => {
   })
 
   test('normalizes array content-type before cache and parsing', async () => {
+    // Headers combine multiple values with commas when using append.
+    const h = new Headers()
+    h.append('content-type', 'text/plain')
+    h.append('content-type', 'charset=utf-8')
+
     getMock = async () => ({
-      data: new TextEncoder().encode('plain body').buffer,
-      headers: { 'content-type': ['text/plain', 'charset=utf-8'] },
+      data: new TextEncoder().encode('plain body').buffer as ArrayBuffer,
+      headers: h,
       status: 200,
       statusText: 'OK',
     })

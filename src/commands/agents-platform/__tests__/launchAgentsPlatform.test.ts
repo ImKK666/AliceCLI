@@ -3,7 +3,7 @@
  *
  * Strategy per feedback_mock_dependency_not_subject:
  * - DO NOT mock agentsApi.ts itself (would pollute api.test.ts)
- * - Mock axios (the underlying HTTP layer) to control API responses
+ * - Mock http (the underlying HTTP layer) to control API responses
  * - Let real agentsApi functions run real code paths
  */
 
@@ -18,7 +18,7 @@ import {
 } from 'bun:test'
 import { debugMock } from '../../../../tests/mocks/debug.js'
 import { logMock } from '../../../../tests/mocks/log.js'
-import { setupAxiosMock } from '../../../../tests/mocks/axios.js'
+import { setupHttpMock } from '../../../../tests/mocks/httpClient.js'
 
 mock.module('src/utils/log.ts', logMock)
 mock.module('src/utils/debug.ts', debugMock)
@@ -73,42 +73,33 @@ mock.module('src/utils/cron.js', () => ({
   computeNextCronRun: () => null,
 }))
 
-// ── Axios mock ──────────────────────────────────────────────────────────────
-const axiosGetMock = mock(async () => ({}))
-const axiosPostMock = mock(async () => ({}))
-const axiosDeleteMock = mock(async () => ({}))
-const axiosIsAxiosError = mock((err: unknown) => {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'isAxiosError' in err &&
-    (err as { isAxiosError: boolean }).isAxiosError === true
-  )
-})
+// ── HTTP mock ───────────────────────────────────────────────────────────────
+const httpGetMock = mock(async () => ({}))
+const httpPostMock = mock(async () => ({}))
+const httpDeleteMock = mock(async () => ({}))
 
-const axiosHandle = setupAxiosMock()
-axiosHandle.stubs.get = axiosGetMock
-axiosHandle.stubs.post = axiosPostMock
-axiosHandle.stubs.delete = axiosDeleteMock
-axiosHandle.stubs.isAxiosError = axiosIsAxiosError
+const httpHandle = setupHttpMock()
+httpHandle.stubs.get = httpGetMock
+httpHandle.stubs.post = httpPostMock
+httpHandle.stubs.delete = httpDeleteMock
 
 let callAgentsPlatform: typeof import('../launchAgentsPlatform.js').callAgentsPlatform
 
 beforeAll(async () => {
-  axiosHandle.useStubs = true
+  httpHandle.useStubs = true
   const mod = await import('../launchAgentsPlatform.js')
   callAgentsPlatform = mod.callAgentsPlatform
 })
 
 afterAll(() => {
-  axiosHandle.useStubs = false
+  httpHandle.useStubs = false
 })
 
 beforeEach(() => {
   logEventMock.mockClear()
-  axiosGetMock.mockClear()
-  axiosPostMock.mockClear()
-  axiosDeleteMock.mockClear()
+  httpGetMock.mockClear()
+  httpPostMock.mockClear()
+  httpDeleteMock.mockClear()
 })
 
 function makeContext() {
@@ -118,7 +109,7 @@ function makeContext() {
 describe('callAgentsPlatform', () => {
   test('list (empty args) calls listAgents and returns element', async () => {
     const onDone = mock(() => {})
-    axiosGetMock.mockResolvedValueOnce({
+    httpGetMock.mockResolvedValueOnce({
       data: {
         data: [
           {
@@ -134,7 +125,7 @@ describe('callAgentsPlatform', () => {
       status: 200,
     })
     const result = await callAgentsPlatform(onDone, makeContext(), '')
-    expect(axiosGetMock).toHaveBeenCalledTimes(1)
+    expect(httpGetMock).toHaveBeenCalledTimes(1)
     expect(onDone).toHaveBeenCalledTimes(1)
     expect(result).not.toBeNull()
     expect(logEventMock).toHaveBeenCalledWith(
@@ -145,17 +136,17 @@ describe('callAgentsPlatform', () => {
 
   test('list sub-command calls listAgents', async () => {
     const onDone = mock(() => {})
-    axiosGetMock.mockResolvedValueOnce({
+    httpGetMock.mockResolvedValueOnce({
       data: { data: [] },
       status: 200,
     })
     await callAgentsPlatform(onDone, makeContext(), 'list')
-    expect(axiosGetMock).toHaveBeenCalledTimes(1)
+    expect(httpGetMock).toHaveBeenCalledTimes(1)
   })
 
   test('create with valid cron calls createAgent', async () => {
     const onDone = mock(() => {})
-    axiosPostMock.mockResolvedValueOnce({
+    httpPostMock.mockResolvedValueOnce({
       data: {
         id: 'agt_new',
         cron_expr: '0 9 * * 1',
@@ -171,8 +162,8 @@ describe('callAgentsPlatform', () => {
       makeContext(),
       'create 0 9 * * 1 Run standup',
     )
-    expect(axiosPostMock).toHaveBeenCalledTimes(1)
-    const callArgs = axiosPostMock.mock.calls[0] as unknown as [
+    expect(httpPostMock).toHaveBeenCalledTimes(1)
+    const callArgs = httpPostMock.mock.calls[0] as unknown as [
       string,
       unknown,
       unknown,
@@ -198,7 +189,7 @@ describe('callAgentsPlatform', () => {
       'create INVALID INVALID * * * my prompt',
     )
     // cron = 'INVALID INVALID * * *', mock returns null → no API call
-    expect(axiosPostMock).not.toHaveBeenCalled()
+    expect(httpPostMock).not.toHaveBeenCalled()
     expect(logEventMock).toHaveBeenCalledWith(
       'tengu_agents_platform_failed',
       expect.anything(),
@@ -207,14 +198,14 @@ describe('callAgentsPlatform', () => {
 
   test('delete with id calls deleteAgent', async () => {
     const onDone = mock(() => {})
-    axiosDeleteMock.mockResolvedValueOnce({ data: {}, status: 204 })
+    httpDeleteMock.mockResolvedValueOnce({ data: {}, status: 204 })
     const result = await callAgentsPlatform(
       onDone,
       makeContext(),
       'delete agt_abc',
     )
-    expect(axiosDeleteMock).toHaveBeenCalledTimes(1)
-    const callArgs = axiosDeleteMock.mock.calls[0] as unknown as [
+    expect(httpDeleteMock).toHaveBeenCalledTimes(1)
+    const callArgs = httpDeleteMock.mock.calls[0] as unknown as [
       string,
       unknown,
     ]
@@ -228,7 +219,7 @@ describe('callAgentsPlatform', () => {
 
   test('run with id calls runAgent', async () => {
     const onDone = mock(() => {})
-    axiosPostMock.mockResolvedValueOnce({
+    httpPostMock.mockResolvedValueOnce({
       data: { run_id: 'run_123' },
       status: 200,
     })
@@ -237,8 +228,8 @@ describe('callAgentsPlatform', () => {
       makeContext(),
       'run agt_xyz',
     )
-    expect(axiosPostMock).toHaveBeenCalledTimes(1)
-    const callArgs = axiosPostMock.mock.calls[0] as unknown as [
+    expect(httpPostMock).toHaveBeenCalledTimes(1)
+    const callArgs = httpPostMock.mock.calls[0] as unknown as [
       string,
       unknown,
       unknown,
@@ -260,11 +251,11 @@ describe('callAgentsPlatform', () => {
       'tengu_agents_platform_failed',
       expect.anything(),
     )
-    expect(axiosGetMock).not.toHaveBeenCalled()
+    expect(httpGetMock).not.toHaveBeenCalled()
   })
 
   test('listAgents API error → error view returned', async () => {
-    axiosGetMock.mockRejectedValueOnce(new Error('network error'))
+    httpGetMock.mockRejectedValueOnce(new Error('network error'))
     const onDone = mock(() => {})
     const result = await callAgentsPlatform(onDone, makeContext(), 'list')
     expect(result).not.toBeNull()
@@ -276,7 +267,7 @@ describe('callAgentsPlatform', () => {
 
   test('started event fires on every call', async () => {
     const onDone = mock(() => {})
-    axiosGetMock.mockResolvedValueOnce({
+    httpGetMock.mockResolvedValueOnce({
       data: { data: [] },
       status: 200,
     })
@@ -290,7 +281,7 @@ describe('callAgentsPlatform', () => {
   // ── Error-path branches ──────────────────────────────────────────────────
 
   test('createAgent API error → error view returned', async () => {
-    axiosPostMock.mockRejectedValueOnce(new Error('subscription required'))
+    httpPostMock.mockRejectedValueOnce(new Error('subscription required'))
     const onDone = mock(() => {})
     const result = await callAgentsPlatform(
       onDone,
@@ -309,7 +300,7 @@ describe('callAgentsPlatform', () => {
   })
 
   test('deleteAgent API error → error view returned', async () => {
-    axiosDeleteMock.mockRejectedValueOnce(new Error('not found'))
+    httpDeleteMock.mockRejectedValueOnce(new Error('not found'))
     const onDone = mock(() => {})
     const result = await callAgentsPlatform(
       onDone,
@@ -328,7 +319,7 @@ describe('callAgentsPlatform', () => {
   })
 
   test('runAgent API error → error view returned', async () => {
-    axiosPostMock.mockRejectedValueOnce(new Error('run failed'))
+    httpPostMock.mockRejectedValueOnce(new Error('run failed'))
     const onDone = mock(() => {})
     const result = await callAgentsPlatform(
       onDone,
@@ -350,7 +341,7 @@ describe('callAgentsPlatform', () => {
     const onDone = mock(() => {})
     // Only 4 cron fields — parseArgs returns invalid
     await callAgentsPlatform(onDone, makeContext(), 'create 0 9 * *')
-    expect(axiosPostMock).not.toHaveBeenCalled()
+    expect(httpPostMock).not.toHaveBeenCalled()
     expect(logEventMock).toHaveBeenCalledWith(
       'tengu_agents_platform_failed',
       expect.anything(),

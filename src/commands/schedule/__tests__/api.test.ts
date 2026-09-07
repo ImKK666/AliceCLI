@@ -20,7 +20,7 @@ import {
 } from 'bun:test'
 import { debugMock } from '../../../../tests/mocks/debug.js'
 import { logMock } from '../../../../tests/mocks/log.js'
-import { setupAxiosMock } from '../../../../tests/mocks/axios.js'
+import { setupHttpMock } from '../../../../tests/mocks/httpClient.js'
 
 mock.module('src/utils/log.ts', logMock)
 mock.module('src/utils/debug.ts', debugMock)
@@ -57,25 +57,15 @@ mock.module('src/services/auth/hostGuard.ts', () => ({
   assertNoAnthropicEnvForOpenAI: () => {},
 }))
 
-// ── Axios mock ──────────────────────────────────────────────────────────────
-const axiosGetMock = mock(async () => ({}))
-const axiosPostMock = mock(async () => ({}))
-const axiosDeleteMock = mock(async () => ({}))
+// ── HTTP mock ───────────────────────────────────────────────────────────────
+const httpGetMock = mock(async () => ({}))
+const httpPostMock = mock(async () => ({}))
+const httpDeleteMock = mock(async () => ({}))
 
-const axiosIsAxiosError = mock((err: unknown) => {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'isAxiosError' in err &&
-    (err as { isAxiosError: boolean }).isAxiosError === true
-  )
-})
-
-const axiosHandle = setupAxiosMock()
-axiosHandle.stubs.get = axiosGetMock
-axiosHandle.stubs.post = axiosPostMock
-axiosHandle.stubs.delete = axiosDeleteMock
-axiosHandle.stubs.isAxiosError = axiosIsAxiosError
+const httpHandle = setupHttpMock()
+httpHandle.stubs.get = httpGetMock
+httpHandle.stubs.post = httpPostMock
+httpHandle.stubs.delete = httpDeleteMock
 
 // ── Lazy import after mocks ─────────────────────────────────────────────────
 let listTriggers: typeof import('../triggersApi.js').listTriggers
@@ -86,7 +76,7 @@ let deleteTrigger: typeof import('../triggersApi.js').deleteTrigger
 let runTrigger: typeof import('../triggersApi.js').runTrigger
 
 beforeAll(async () => {
-  axiosHandle.useStubs = true
+  httpHandle.useStubs = true
   const mod = await import('../triggersApi.js')
   listTriggers = mod.listTriggers
   getTrigger = mod.getTrigger
@@ -97,13 +87,13 @@ beforeAll(async () => {
 })
 
 afterAll(() => {
-  axiosHandle.useStubs = false
+  httpHandle.useStubs = false
 })
 
 beforeEach(() => {
-  axiosGetMock.mockClear()
-  axiosPostMock.mockClear()
-  axiosDeleteMock.mockClear()
+  httpGetMock.mockClear()
+  httpPostMock.mockClear()
+  httpDeleteMock.mockClear()
 })
 
 afterEach(() => {})
@@ -117,15 +107,15 @@ describe('updateTrigger regression: must use POST not PATCH', () => {
       enabled: true,
       prompt: 'Updated prompt',
     }
-    axiosPostMock.mockResolvedValueOnce({ data: updated, status: 200 })
+    httpPostMock.mockResolvedValueOnce({ data: updated, status: 200 })
 
     await updateTrigger('trg_upd', { enabled: false })
 
     // POST must have been called
-    expect(axiosPostMock).toHaveBeenCalledTimes(1)
-    // axiosPatchMock must NOT have been called (no patch mock registered)
+    expect(httpPostMock).toHaveBeenCalledTimes(1)
+    // httpPatchMock must NOT have been called (no patch mock registered)
     // The URL must contain the trigger id
-    const calls = axiosPostMock.mock.calls as unknown as [
+    const calls = httpPostMock.mock.calls as unknown as [
       string,
       unknown,
       unknown,
@@ -151,7 +141,7 @@ describe('listTriggers', () => {
         next_run: '2026-05-05T09:00:00Z',
       },
     ]
-    axiosGetMock.mockResolvedValueOnce({
+    httpGetMock.mockResolvedValueOnce({
       data: { data: triggers },
       status: 200,
     })
@@ -159,88 +149,71 @@ describe('listTriggers', () => {
     const result = await listTriggers()
     expect(result).toHaveLength(1)
     expect(result[0]!.trigger_id).toBe('trg_1')
-    expect(axiosGetMock).toHaveBeenCalledTimes(1)
-    const calls = axiosGetMock.mock.calls as unknown as [string, unknown][]
+    expect(httpGetMock).toHaveBeenCalledTimes(1)
+    const calls = httpGetMock.mock.calls as unknown as [string, unknown][]
     expect(calls[0]?.[0]).toContain('/v1/code/triggers')
   })
 
   test('returns empty array on empty response', async () => {
-    axiosGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
+    httpGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
     const result = await listTriggers()
     expect(result).toHaveLength(0)
   })
 
   test('throws 401 with friendly message', async () => {
     const err = Object.assign(new Error('Unauthorized'), {
-      isAxiosError: true,
-      response: { status: 401, data: {} },
+      status: 401,
+      data: {},
+      statusText: 'Unauthorized',
+      response: new Response(null, { status: 401 }),
     })
-    axiosGetMock.mockRejectedValueOnce(err)
-    axiosIsAxiosError.mockImplementation(
-      (e: unknown) =>
-        typeof e === 'object' &&
-        e !== null &&
-        'isAxiosError' in e &&
-        (e as { isAxiosError: boolean }).isAxiosError === true,
-    )
+    httpGetMock.mockRejectedValueOnce(err)
     await expect(listTriggers()).rejects.toThrow(/login|authenticate/i)
   })
 
   test('throws 403 with subscription message', async () => {
     const err = Object.assign(new Error('Forbidden'), {
-      isAxiosError: true,
-      response: { status: 403, data: {} },
+      status: 403,
+      data: {},
+      statusText: 'Forbidden',
+      response: new Response(null, { status: 403 }),
     })
-    axiosGetMock.mockRejectedValueOnce(err)
-    axiosIsAxiosError.mockImplementation(
-      (e: unknown) =>
-        typeof e === 'object' &&
-        e !== null &&
-        'isAxiosError' in e &&
-        (e as { isAxiosError: boolean }).isAxiosError === true,
-    )
+    httpGetMock.mockRejectedValueOnce(err)
     await expect(listTriggers()).rejects.toThrow(/subscription|pro|max|team/i)
   })
 
   test('retries on 5xx and eventually throws', async () => {
     const make5xx = () =>
       Object.assign(new Error('Server Error'), {
-        isAxiosError: true,
-        response: { status: 500, data: {} },
+        status: 500,
+        data: {},
+        statusText: 'Internal Server Error',
+        response: new Response(null, { status: 500 }),
       })
-    axiosGetMock
+    httpGetMock
       .mockRejectedValueOnce(make5xx())
       .mockRejectedValueOnce(make5xx())
       .mockRejectedValueOnce(make5xx())
-    axiosIsAxiosError.mockImplementation(
-      (e: unknown) =>
-        typeof e === 'object' &&
-        e !== null &&
-        'isAxiosError' in e &&
-        (e as { isAxiosError: boolean }).isAxiosError === true,
-    )
     await expect(listTriggers()).rejects.toThrow()
-    expect(axiosGetMock).toHaveBeenCalledTimes(3)
+    expect(httpGetMock).toHaveBeenCalledTimes(3)
   }, 15000)
 
   test('honors Retry-After header on 5xx', async () => {
     const serverErr = Object.assign(new Error('Service Unavailable'), {
-      isAxiosError: true,
-      response: { status: 503, data: {}, headers: { 'retry-after': '0' } },
+      status: 503,
+      data: {},
+      statusText: 'Service Unavailable',
+      response: new Response(null, {
+        status: 503,
+        headers: { 'retry-after': '0' },
+      }),
     })
-    axiosGetMock
+    httpGetMock
       .mockRejectedValueOnce(serverErr)
       .mockResolvedValueOnce({ data: { data: [] }, status: 200 })
-    axiosIsAxiosError.mockImplementation(
-      (e: unknown) =>
-        typeof e === 'object' &&
-        e !== null &&
-        'isAxiosError' in e &&
-        (e as { isAxiosError: boolean }).isAxiosError === true,
-    )
     const result = await listTriggers()
     expect(result).toHaveLength(0)
-    expect(axiosGetMock).toHaveBeenCalledTimes(2)
+    expect(httpGetMock).toHaveBeenCalledTimes(2)
   })
 })
 
@@ -253,27 +226,22 @@ describe('getTrigger', () => {
       enabled: true,
       prompt: 'Daily report',
     }
-    axiosGetMock.mockResolvedValueOnce({ data: trigger, status: 200 })
+    httpGetMock.mockResolvedValueOnce({ data: trigger, status: 200 })
 
     const result = await getTrigger('trg_get')
     expect(result.trigger_id).toBe('trg_get')
-    const calls = axiosGetMock.mock.calls as unknown as [string, unknown][]
+    const calls = httpGetMock.mock.calls as unknown as [string, unknown][]
     expect(calls[0]?.[0]).toContain('trg_get')
   })
 
   test('throws 404 with not found message', async () => {
     const err = Object.assign(new Error('Not Found'), {
-      isAxiosError: true,
-      response: { status: 404, data: {} },
+      status: 404,
+      data: {},
+      statusText: 'Not Found',
+      response: new Response(null, { status: 404 }),
     })
-    axiosGetMock.mockRejectedValueOnce(err)
-    axiosIsAxiosError.mockImplementation(
-      (e: unknown) =>
-        typeof e === 'object' &&
-        e !== null &&
-        'isAxiosError' in e &&
-        (e as { isAxiosError: boolean }).isAxiosError === true,
-    )
+    httpGetMock.mockRejectedValueOnce(err)
     await expect(getTrigger('nonexistent')).rejects.toThrow(/not found/i)
   })
 })
@@ -287,14 +255,14 @@ describe('createTrigger', () => {
       enabled: true,
       prompt: 'Create daily report',
     }
-    axiosPostMock.mockResolvedValueOnce({ data: trigger, status: 201 })
+    httpPostMock.mockResolvedValueOnce({ data: trigger, status: 201 })
 
     const result = await createTrigger({
       cron_expression: '0 9 * * *',
       prompt: 'Create daily report',
     })
     expect(result.trigger_id).toBe('trg_new')
-    const calls = axiosPostMock.mock.calls as unknown as [
+    const calls = httpPostMock.mock.calls as unknown as [
       string,
       unknown,
       unknown,
@@ -311,10 +279,10 @@ describe('createTrigger', () => {
 // ── deleteTrigger ─────────────────────────────────────────────────────────
 describe('deleteTrigger', () => {
   test('calls DELETE /v1/code/triggers/{id}', async () => {
-    axiosDeleteMock.mockResolvedValueOnce({ status: 204 })
+    httpDeleteMock.mockResolvedValueOnce({ status: 204 })
 
     await deleteTrigger('trg_del')
-    const calls = axiosDeleteMock.mock.calls as unknown as [string, unknown][]
+    const calls = httpDeleteMock.mock.calls as unknown as [string, unknown][]
     const url = calls[0]?.[0] as string
     expect(url).toContain('trg_del')
     expect(url).toContain('/v1/code/triggers/')
@@ -324,14 +292,14 @@ describe('deleteTrigger', () => {
 // ── runTrigger ───────────────────────────────────────────────────────────
 describe('runTrigger', () => {
   test('calls POST /v1/code/triggers/{id}/run', async () => {
-    axiosPostMock.mockResolvedValueOnce({
+    httpPostMock.mockResolvedValueOnce({
       data: { run_id: 'run_trg_1' },
       status: 200,
     })
 
     const result = await runTrigger('trg_run')
     expect(result.run_id).toBe('run_trg_1')
-    const calls = axiosPostMock.mock.calls as unknown as [
+    const calls = httpPostMock.mock.calls as unknown as [
       string,
       unknown,
       unknown,
@@ -345,19 +313,17 @@ describe('runTrigger', () => {
 describe('429 rate-limit: not retried (non-5xx)', () => {
   test('throws immediately on 429 without retry', async () => {
     const err = Object.assign(new Error('Too Many Requests'), {
-      isAxiosError: true,
-      response: { status: 429, data: {}, headers: { 'retry-after': '60' } },
+      status: 429,
+      data: {},
+      statusText: 'Too Many Requests',
+      response: new Response(null, {
+        status: 429,
+        headers: { 'retry-after': '60' },
+      }),
     })
-    axiosGetMock.mockRejectedValueOnce(err)
-    axiosIsAxiosError.mockImplementation(
-      (e: unknown) =>
-        typeof e === 'object' &&
-        e !== null &&
-        'isAxiosError' in e &&
-        (e as { isAxiosError: boolean }).isAxiosError === true,
-    )
+    httpGetMock.mockRejectedValueOnce(err)
     await expect(listTriggers()).rejects.toThrow()
     // Must NOT have retried — 429 is not a 5xx
-    expect(axiosGetMock).toHaveBeenCalledTimes(1)
+    expect(httpGetMock).toHaveBeenCalledTimes(1)
   })
 })

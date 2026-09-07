@@ -1,4 +1,3 @@
-import axios from 'axios'
 import { getOauthConfig, OAUTH_BETA_HEADER } from 'src/constants/oauth.js'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from 'src/services/analytics/growthbook.js'
 import {
@@ -20,6 +19,7 @@ import { isInBundledMode } from './bundledMode.js'
 import { getGlobalConfig, saveGlobalConfig } from './config.js'
 import { logForDebugging } from './debug.js'
 import { isEnvTruthy } from './envUtils.js'
+import { http, isHttpError } from './http.js'
 import {
   getDefaultMainLoopModelSetting,
   isOpus1mMergeEnabled,
@@ -379,7 +379,7 @@ async function fetchFastModeStatus(
         }
       : { 'x-api-key': auth.apiKey }
 
-  const response = await axios.get<FastModeResponse>(endpoint, { headers })
+  const response = await http.get<FastModeResponse>(endpoint, { headers })
   return response.data
 }
 
@@ -468,11 +468,11 @@ export async function prefetchFastModeStatus(): Promise<void> {
         status = await fetchWithCurrentAuth()
       } catch (err) {
         const isAuthError =
-          axios.isAxiosError(err) &&
-          (err.response?.status === 401 ||
-            (err.response?.status === 403 &&
-              typeof err.response?.data === 'string' &&
-              err.response.data.includes('OAuth token has been revoked')))
+          isHttpError(err) &&
+          (err.status === 401 ||
+            (err.status === 403 &&
+              typeof err.data === 'string' &&
+              err.data.includes('OAuth token has been revoked')))
         if (isAuthError) {
           const failedAccessToken = getClaudeAIOAuthTokens()?.accessToken
           if (failedAccessToken) {

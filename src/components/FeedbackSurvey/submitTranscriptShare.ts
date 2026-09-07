@@ -1,10 +1,9 @@
-import axios from 'axios'
 import { readFile, stat } from 'fs/promises'
 import type { Message } from '../../types/message.js'
 import { checkAndRefreshOAuthTokenIfNeeded } from '../../utils/auth.js'
 import { logForDebugging } from '../../utils/debug.js'
 import { errorMessage } from '../../utils/errors.js'
-import { getAuthHeaders, getUserAgent } from '../../utils/http.js'
+import { getAuthHeaders, getUserAgent, http } from '../../utils/http.js'
 import { normalizeMessagesForAPI } from '../../utils/messages.js'
 import {
   extractAgentIdsFromMessages,
@@ -84,7 +83,7 @@ export async function submitTranscriptShare(
       ...authResult.headers,
     }
 
-    const response = await axios.post(
+    const response = await http.post(
       'https://api.anthropic.com/api/claude_code_shared_session_transcripts',
       { content, appearance_id: appearanceId },
       {
@@ -94,11 +93,11 @@ export async function submitTranscriptShare(
     )
 
     if (response.status === 200 || response.status === 201) {
-      const result = response.data
+      const result = response.data as Record<string, unknown> | null
       logForDebugging('Transcript shared successfully', { level: 'info' })
       return {
         success: true,
-        transcriptId: result?.transcript_id,
+        transcriptId: result?.transcript_id as string | undefined,
       }
     }
 

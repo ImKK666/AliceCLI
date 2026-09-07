@@ -4,8 +4,8 @@
  * the unified SearchResult format.
  */
 
-import axios from 'axios'
 import { AbortError } from 'src/utils/errors.js'
+import { http, isHttpAbortError } from 'src/utils/http.js'
 import { getSettings_DEPRECATED } from 'src/utils/settings/settings.js'
 import type { SearchResult, SearchOptions, WebSearchAdapter } from './types.js'
 
@@ -50,7 +50,7 @@ export class TavilySearchAdapter implements WebSearchAdapter {
       : `${baseUrl.replace(/\/$/, '')}/search`
 
     try {
-      const response = await axios.post<{
+      const response = await http.post<{
         query: string
         results: TavilySearchHit[]
       }>(
@@ -65,7 +65,6 @@ export class TavilySearchAdapter implements WebSearchAdapter {
         {
           signal: abortController.signal,
           timeout: FETCH_TIMEOUT_MS,
-          headers: { 'Content-Type': 'application/json' },
         },
       )
 
@@ -89,7 +88,7 @@ export class TavilySearchAdapter implements WebSearchAdapter {
 
       return results
     } catch (e) {
-      if (axios.isCancel(e) || abortController.signal.aborted) {
+      if (isHttpAbortError(e) || abortController.signal.aborted) {
         throw new AbortError()
       }
       throw e

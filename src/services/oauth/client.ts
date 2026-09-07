@@ -1,9 +1,9 @@
 // OAuth client for handling authentication flows with Claude services
-import axios from 'axios'
 import {
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
   logEvent,
 } from 'src/services/analytics/index.js'
+import { http, isHttpError } from 'src/utils/http.js'
 import {
   ALL_OAUTH_SCOPES,
   CLAUDE_AI_INFERENCE_SCOPE,
@@ -127,10 +127,14 @@ export async function exchangeCodeForTokens(
     requestBody.expires_in = expiresIn
   }
 
-  const response = await axios.post(getOauthConfig().TOKEN_URL, requestBody, {
-    headers: { 'Content-Type': 'application/json' },
-    timeout: 15000,
-  })
+  const response = await http.post<OAuthTokenExchangeResponse>(
+    getOauthConfig().TOKEN_URL,
+    requestBody,
+    {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 15000,
+    },
+  )
 
   if (response.status !== 200) {
     throw new Error(
@@ -163,16 +167,20 @@ export async function refreshOAuthToken(
   }
 
   try {
-    const response = await axios.post(getOauthConfig().TOKEN_URL, requestBody, {
-      headers: { 'Content-Type': 'application/json' },
-      timeout: 15000,
-    })
+    const response = await http.post<OAuthTokenExchangeResponse>(
+      getOauthConfig().TOKEN_URL,
+      requestBody,
+      {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 15000,
+      },
+    )
 
     if (response.status !== 200) {
       throw new Error(`Token refresh failed: ${response.statusText}`)
     }
 
-    const data = response.data as OAuthTokenExchangeResponse
+    const data = response.data
     const {
       access_token: accessToken,
       refresh_token: newRefreshToken = refreshToken,
@@ -258,9 +266,7 @@ export async function refreshOAuthToken(
     }
   } catch (error) {
     const responseBody =
-      axios.isAxiosError(error) && error.response?.data
-        ? JSON.stringify(error.response.data)
-        : undefined
+      isHttpError(error) && error.data ? JSON.stringify(error.data) : undefined
     logEvent('tengu_oauth_token_refresh_failure', {
       error: (error as Error)
         .message as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -276,14 +282,17 @@ export async function refreshOAuthToken(
 export async function fetchAndStoreUserRoles(
   accessToken: string,
 ): Promise<void> {
-  const response = await axios.get(getOauthConfig().ROLES_URL, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  })
+  const response = await http.get<UserRolesResponse>(
+    getOauthConfig().ROLES_URL,
+    {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    },
+  )
 
   if (response.status !== 200) {
     throw new Error(`Failed to fetch user roles: ${response.statusText}`)
   }
-  const data = response.data as UserRolesResponse
+  const data = response.data
   const config = getGlobalConfig()
 
   if (!config.oauthAccount) {
@@ -312,9 +321,13 @@ export async function createAndStoreApiKey(
   accessToken: string,
 ): Promise<string | null> {
   try {
-    const response = await axios.post(getOauthConfig().API_KEY_URL, null, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    const response = await http.post<{ raw_key?: string }>(
+      getOauthConfig().API_KEY_URL,
+      null,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      },
+    )
 
     const apiKey = response.data?.raw_key
     if (apiKey) {

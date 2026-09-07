@@ -3,8 +3,8 @@
  * grounding payload into SearchResult objects.
  */
 
-import axios from 'axios'
 import { AbortError } from 'src/utils/errors.js'
+import { http, isHttpAbortError } from 'src/utils/http.js'
 import { getSettings_DEPRECATED } from 'src/utils/settings/settings.js'
 import type { SearchResult, SearchOptions, WebSearchAdapter } from './types.js'
 
@@ -48,12 +48,11 @@ export class BraveSearchAdapter implements WebSearchAdapter {
 
     let payload: BraveSearchResponse
     try {
-      const response = await axios.get<BraveSearchResponse>(
+      const response = await http.get<BraveSearchResponse>(
         BRAVE_LLM_CONTEXT_URL,
         {
           signal: abortController.signal,
           timeout: FETCH_TIMEOUT_MS,
-          responseType: 'json',
           headers: {
             Accept: 'application/json',
             'X-Subscription-Token': getBraveApiKey(),
@@ -63,7 +62,7 @@ export class BraveSearchAdapter implements WebSearchAdapter {
       )
       payload = response.data
     } catch (e) {
-      if (axios.isCancel(e) || abortController.signal.aborted) {
+      if (isHttpAbortError(e) || abortController.signal.aborted) {
         throw new AbortError()
       }
       throw e

@@ -7,7 +7,7 @@
  * API Reference: https://docs.anthropic.com/en/api/files-content
  */
 
-import axios from 'axios'
+import { http, isHttpError, isHttpAbortError } from 'src/utils/http.js'
 import { randomUUID } from 'crypto'
 import * as fs from 'fs/promises'
 import * as path from 'path'
@@ -146,7 +146,7 @@ export async function downloadFile(
 
   return retryWithBackoff(`Download file ${fileId}`, async () => {
     try {
-      const response = await axios.get(url, {
+      const response = await http.get<ArrayBuffer>(url, {
         headers,
         responseType: 'arraybuffer',
         timeout: 60000, // 60 second timeout for large files
@@ -154,8 +154,9 @@ export async function downloadFile(
       })
 
       if (response.status === 200) {
-        logDebug(`Downloaded file ${fileId} (${response.data.length} bytes)`)
-        return { done: true, value: Buffer.from(response.data) }
+        const data = response.data as ArrayBuffer
+        logDebug(`Downloaded file ${fileId} (${data.byteLength} bytes)`)
+        return { done: true, value: Buffer.from(data) }
       }
 
       // Non-retriable errors - throw immediately
@@ -171,7 +172,7 @@ export async function downloadFile(
 
       return { done: false, error: `status ${response.status}` }
     } catch (error) {
-      if (!axios.isAxiosError(error)) {
+      if (!isHttpError(error)) {
         throw error
       }
       return { done: false, error: error.message }
@@ -457,7 +458,7 @@ export async function uploadFile(
   try {
     return await retryWithBackoff(`Upload file ${relativePath}`, async () => {
       try {
-        const response = await axios.post(url, body, {
+        const response = await http.post(url, body, {
           headers: {
             ...headers,
             'Content-Type': `multipart/form-data; boundary=${boundary}`,
@@ -469,7 +470,9 @@ export async function uploadFile(
         })
 
         if (response.status === 200 || response.status === 201) {
-          const fileId = response.data?.id
+          const fileId = (response.data as Record<string, unknown>)?.id as
+            | string
+            | undefined
           if (!fileId) {
             return {
               done: false,
@@ -521,11 +524,11 @@ export async function uploadFile(
         if (error instanceof UploadNonRetriableError) {
           throw error
         }
-        if (axios.isCancel(error)) {
+        if (isHttpAbortError(error)) {
           throw new UploadNonRetriableError('Upload canceled')
         }
         // Network errors are retriable
-        if (axios.isAxiosError(error)) {
+        if (isHttpError(error)) {
           return { done: false, error: error.message }
         }
         throw error
@@ -643,7 +646,7 @@ export async function listFilesCreatedAfter(
       `List files after ${afterCreatedAt}`,
       async () => {
         try {
-          const response = await axios.get(`${baseUrl}/v1/files`, {
+          const response = await http.get(`${baseUrl}/v1/files`, {
             headers,
             params,
             timeout: 60000,
@@ -651,7 +654,17 @@ export async function listFilesCreatedAfter(
           })
 
           if (response.status === 200) {
-            return { done: true, value: response.data }
+            return {
+              done: true,
+              value: response.data as {
+                data?: Array<{
+                  filename: string
+                  id: string
+                  size_bytes: number
+                }>
+                has_more?: boolean
+              },
+            }
           }
 
           if (response.status === 401) {
@@ -671,7 +684,7 @@ export async function listFilesCreatedAfter(
 
           return { done: false, error: `status ${response.status}` }
         } catch (error) {
-          if (!axios.isAxiosError(error)) {
+          if (!isHttpError(error)) {
             throw error
           }
           logEvent('tengu_file_list_failed', {
@@ -683,7 +696,7 @@ export async function listFilesCreatedAfter(
       },
     )
 
-    const files = page.data || []
+    const files = page.data ?? []
     for (const f of files) {
       allFiles.push({
         filename: f.filename,

@@ -1,11 +1,12 @@
 import { afterAll, describe, expect, mock, test } from 'bun:test'
-import { setupAxiosMock } from '../../../../../../tests/mocks/axios'
+import { setupHttpMock } from '../../../../../../tests/mocks/httpClient'
 
-// Each test below calls `mock.module('axios', ...)` per-test. Re-register a
-// spread-real axios mock at end-of-file so the per-test stubs do not leak
-// into subsequent test files (mock.module is process-global, last-write-wins).
+// Each test below calls `mock.module('src/utils/http.ts', ...)` per-test.
+// Re-register a spread-real http mock at end-of-file so the per-test stubs
+// do not leak into subsequent test files (mock.module is process-global,
+// last-write-wins).
 afterAll(() => {
-  setupAxiosMock()
+  setupHttpMock()
 })
 
 const _abortMock = () => ({
@@ -41,7 +42,7 @@ describe('decodeHtmlEntities', () => {
   })
 
   test('decodes &nbsp; to non-breaking space (\\u00A0)', () => {
-    expect(decodeHtmlEntities('a&nbsp;b')).toBe('a\u00A0b')
+    expect(decodeHtmlEntities('a&nbsp;b')).toBe('a b')
   })
 
   test('returns plain text unchanged', () => {
@@ -58,7 +59,7 @@ describe('decodeHtmlEntities', () => {
 
   test('handles mixed entities in one string', () => {
     expect(decodeHtmlEntities('&lt;a&nbsp;href=&quot;x&quot;&gt;')).toBe(
-      '<a\u00A0href="x">',
+      '<a href="x">',
     )
   })
 })
@@ -306,8 +307,28 @@ describe('extractBingResults', () => {
 })
 
 // ---------------------------------------------------------------------------
-// BingSearchAdapter.search (integration with mocked axios)
+// BingSearchAdapter.search (integration with mocked http)
 // ---------------------------------------------------------------------------
+
+// Helper: build an http mock factory for per-test mock.module calls.
+// Provides http.get, isHttpAbortError, and getWebFetchUserAgent.
+function buildHttpMock(
+  httpGet: (...args: any[]) => any,
+  isAbort?: (e: unknown) => boolean,
+) {
+  const factory = () => ({
+    http: { get: httpGet },
+    isHttpAbortError: isAbort ?? (() => false),
+    isHttpError: () => false,
+    getWebFetchUserAgent: () => 'TestAgent/1.0',
+    HttpError: class extends Error {
+      status = 0
+    },
+  })
+  mock.module('src/utils/http.ts', factory)
+  mock.module('src/utils/http.js', factory)
+  mock.module('src/utils/http', factory)
+}
 
 describe('BingSearchAdapter.search', () => {
   // Dynamic import so mock.module() takes effect
@@ -330,15 +351,16 @@ describe('BingSearchAdapter.search', () => {
   `
 
   test('returns parsed results from fetched HTML', async () => {
-    mock.module('axios', () => ({
-      default: {
-        get: mock(() => Promise.resolve({ data: SAMPLE_HTML })),
-        isCancel: () => false,
-      },
-    }))
-    mock.module('src/utils/http', () => ({
-      getWebFetchUserAgent: () => 'TestAgent/1.0',
-    }))
+    buildHttpMock(
+      mock(() =>
+        Promise.resolve({
+          data: SAMPLE_HTML,
+          status: 200,
+          statusText: 'OK',
+          headers: new Headers(),
+        }),
+      ),
+    )
 
     const adapter = await createAdapter()
     const results = await adapter.search('test query', {})
@@ -348,15 +370,16 @@ describe('BingSearchAdapter.search', () => {
   })
 
   test('calls onProgress with query_update and search_results_received', async () => {
-    mock.module('axios', () => ({
-      default: {
-        get: mock(() => Promise.resolve({ data: SAMPLE_HTML })),
-        isCancel: () => false,
-      },
-    }))
-    mock.module('src/utils/http', () => ({
-      getWebFetchUserAgent: () => 'TestAgent/1.0',
-    }))
+    buildHttpMock(
+      mock(() =>
+        Promise.resolve({
+          data: SAMPLE_HTML,
+          status: 200,
+          statusText: 'OK',
+          headers: new Headers(),
+        }),
+      ),
+    )
 
     const progressCalls: any[] = []
     const onProgress = (p: any) => progressCalls.push(p)
@@ -382,15 +405,16 @@ describe('BingSearchAdapter.search', () => {
         </li>
       </ol>
     `
-    mock.module('axios', () => ({
-      default: {
-        get: mock(() => Promise.resolve({ data: mixedHtml })),
-        isCancel: () => false,
-      },
-    }))
-    mock.module('src/utils/http', () => ({
-      getWebFetchUserAgent: () => 'TestAgent/1.0',
-    }))
+    buildHttpMock(
+      mock(() =>
+        Promise.resolve({
+          data: mixedHtml,
+          status: 200,
+          statusText: 'OK',
+          headers: new Headers(),
+        }),
+      ),
+    )
 
     const adapter = await createAdapter()
     const results = await adapter.search('test', {
@@ -411,15 +435,16 @@ describe('BingSearchAdapter.search', () => {
         </li>
       </ol>
     `
-    mock.module('axios', () => ({
-      default: {
-        get: mock(() => Promise.resolve({ data: mixedHtml })),
-        isCancel: () => false,
-      },
-    }))
-    mock.module('src/utils/http', () => ({
-      getWebFetchUserAgent: () => 'TestAgent/1.0',
-    }))
+    buildHttpMock(
+      mock(() =>
+        Promise.resolve({
+          data: mixedHtml,
+          status: 200,
+          statusText: 'OK',
+          headers: new Headers(),
+        }),
+      ),
+    )
 
     const adapter = await createAdapter()
     const results = await adapter.search('test', {
@@ -440,15 +465,16 @@ describe('BingSearchAdapter.search', () => {
         </li>
       </ol>
     `
-    mock.module('axios', () => ({
-      default: {
-        get: mock(() => Promise.resolve({ data: html })),
-        isCancel: () => false,
-      },
-    }))
-    mock.module('src/utils/http', () => ({
-      getWebFetchUserAgent: () => 'TestAgent/1.0',
-    }))
+    buildHttpMock(
+      mock(() =>
+        Promise.resolve({
+          data: html,
+          status: 200,
+          statusText: 'OK',
+          headers: new Headers(),
+        }),
+      ),
+    )
 
     const adapter = await createAdapter()
     const results = await adapter.search('test', {
@@ -459,22 +485,26 @@ describe('BingSearchAdapter.search', () => {
   })
 
   test('throws AbortError when signal is already aborted', async () => {
-    mock.module('axios', () => ({
-      default: {
-        get: mock((_url: string, config: any) => {
-          if (config?.signal?.aborted) {
-            const err = new Error('canceled')
-            ;(err as any).__CANCEL__ = true
-            return Promise.reject(err)
-          }
-          return Promise.resolve({ data: SAMPLE_HTML })
-        }),
-        isCancel: (e: any) => e?.__CANCEL__ === true,
-      },
-    }))
-    mock.module('src/utils/http', () => ({
-      getWebFetchUserAgent: () => 'TestAgent/1.0',
-    }))
+    buildHttpMock(
+      mock((_url: string, config: any) => {
+        if (config?.signal?.aborted) {
+          const err = new DOMException(
+            'The operation was aborted.',
+            'AbortError',
+          )
+          return Promise.reject(err)
+        }
+        return Promise.resolve({
+          data: SAMPLE_HTML,
+          status: 200,
+          statusText: 'OK',
+          headers: new Headers(),
+        }) as any
+      }),
+      (e: unknown) =>
+        (e instanceof DOMException && e.name === 'AbortError') ||
+        (e instanceof Error && e.name === 'AbortError'),
+    )
 
     const adapter = await createAdapter()
     const controller = new AbortController()
@@ -486,38 +516,29 @@ describe('BingSearchAdapter.search', () => {
     ).rejects.toThrow(AbortError)
   })
 
-  test('re-throws non-abort axios errors', async () => {
+  test('re-throws non-abort http errors', async () => {
     const networkError = new Error('Network error')
-    mock.module('axios', () => ({
-      default: {
-        get: mock(() => Promise.reject(networkError)),
-        isCancel: () => false,
-      },
-    }))
-    mock.module('src/utils/http', () => ({
-      getWebFetchUserAgent: () => 'TestAgent/1.0',
-    }))
+    buildHttpMock(mock(() => Promise.reject(networkError)))
 
     const adapter = await createAdapter()
     await expect(adapter.search('test', {})).rejects.toThrow('Network error')
   })
 
   test('encodes query parameter in URL', async () => {
-    const axiosGet = mock(() => Promise.resolve({ data: SAMPLE_HTML }))
-    mock.module('axios', () => ({
-      default: {
-        get: axiosGet,
-        isCancel: () => false,
-      },
-    }))
-    mock.module('src/utils/http', () => ({
-      getWebFetchUserAgent: () => 'TestAgent/1.0',
-    }))
+    const httpGet = mock(() =>
+      Promise.resolve({
+        data: SAMPLE_HTML,
+        status: 200,
+        statusText: 'OK',
+        headers: new Headers(),
+      }),
+    )
+    buildHttpMock(httpGet)
 
     const adapter = await createAdapter()
     await adapter.search('hello world & special=chars', {})
 
-    const calledUrl = (axiosGet.mock.calls as string[][])[0][0]
+    const calledUrl = (httpGet.mock.calls as string[][])[0][0]
     expect(calledUrl).toContain('q=hello%20world%20%26%20special%3Dchars')
   })
 })

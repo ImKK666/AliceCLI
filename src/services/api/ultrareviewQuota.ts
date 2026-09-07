@@ -1,7 +1,7 @@
-import axios from 'axios'
 import { getOauthConfig } from '../../constants/oauth.js'
 import { isClaudeAISubscriber } from '../../utils/auth.js'
 import { logForDebugging } from '../../utils/debug.js'
+import { http } from '../../utils/http.js'
 import { getOAuthHeaders, prepareApiRequest } from '../../utils/teleport/api.js'
 
 export type UltrareviewQuotaResponse = {
@@ -20,7 +20,7 @@ export async function fetchUltrareviewQuota(): Promise<UltrareviewQuotaResponse 
   if (!isClaudeAISubscriber()) return null
   try {
     const { accessToken, orgUUID } = await prepareApiRequest()
-    const response = await axios.get<UltrareviewQuotaResponse>(
+    const response = await http.get<UltrareviewQuotaResponse>(
       `${getOauthConfig().BASE_API_URL}/v1/ultrareview/quota`,
       {
         headers: {

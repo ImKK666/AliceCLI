@@ -1,7 +1,7 @@
 /**
  * Tests for launchVault.tsx
  *
- * IMPORTANT: Per feedback_mock_dependency_not_subject.md, we mock axios (lower dep),
+ * IMPORTANT: Per feedback_mock_dependency_not_subject.md, we mock http (lower dep),
  * NOT the vaultsApi module itself, to avoid Bun mock.module process-level pollution.
  *
  * SECURITY: Tests verify credential value never appears in onDone message text.
@@ -19,7 +19,7 @@ import {
 } from 'bun:test'
 import { debugMock } from '../../../../tests/mocks/debug.js'
 import { logMock } from '../../../../tests/mocks/log.js'
-import { setupAxiosMock } from '../../../../tests/mocks/axios.js'
+import { setupHttpMock } from '../../../../tests/mocks/httpClient.js'
 
 mock.module('src/utils/log.ts', logMock)
 mock.module('src/utils/debug.ts', debugMock)
@@ -43,43 +43,32 @@ mock.module('src/utils/teleport/api.js', () => ({
   }),
 }))
 
-// ── Axios mock ──────────────────────────────────────────────────────────────
-const axiosGetMock = mock(async () => ({}))
-const axiosPostMock = mock(async () => ({}))
+// ── HTTP mock ───────────────────────────────────────────────────────────────
+const httpGetMock = mock(async () => ({}))
+const httpPostMock = mock(async () => ({}))
+const httpDeleteMock = mock(async () => ({}))
 
-const axiosIsAxiosError = mock((err: unknown) => {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'isAxiosError' in err &&
-    (err as { isAxiosError: boolean }).isAxiosError === true
-  )
-})
-
-const axiosDeleteMock = mock(async () => ({}))
-
-const axiosHandle = setupAxiosMock()
-axiosHandle.stubs.get = axiosGetMock
-axiosHandle.stubs.post = axiosPostMock
-axiosHandle.stubs.delete = axiosDeleteMock
-axiosHandle.stubs.isAxiosError = axiosIsAxiosError
+const httpHandle = setupHttpMock()
+httpHandle.stubs.get = httpGetMock
+httpHandle.stubs.post = httpPostMock
+httpHandle.stubs.delete = httpDeleteMock
 
 // ── Lazy import after mocks ─────────────────────────────────────────────────
 let callVault: typeof import('../launchVault.js').callVault
 
 beforeAll(async () => {
-  axiosHandle.useStubs = true
+  httpHandle.useStubs = true
   const mod = await import('../launchVault.js')
   callVault = mod.callVault
 })
 
 afterAll(() => {
-  axiosHandle.useStubs = false
+  httpHandle.useStubs = false
 })
 
 beforeEach(() => {
-  axiosGetMock.mockClear()
-  axiosPostMock.mockClear()
+  httpGetMock.mockClear()
+  httpPostMock.mockClear()
 })
 
 afterEach(() => {})
@@ -88,7 +77,7 @@ afterEach(() => {})
 describe('callVault list', () => {
   test('calls listVaults and returns vault count in onDone', async () => {
     const vaults = [{ vault_id: 'v1', name: 'Test Vault' }]
-    axiosGetMock.mockResolvedValueOnce({ data: { data: vaults }, status: 200 })
+    httpGetMock.mockResolvedValueOnce({ data: { data: vaults }, status: 200 })
 
     let onDoneMsg = ''
     const onDone = (msg: string) => {
@@ -104,7 +93,7 @@ describe('callVault list', () => {
   })
 
   test('empty vault list shows friendly message', async () => {
-    axiosGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
+    httpGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
     let onDoneMsg = ''
     const onDone = (msg: string) => {
       onDoneMsg = msg
@@ -119,14 +108,12 @@ describe('callVault list', () => {
 
   test('API error shows error in onDone', async () => {
     const err = Object.assign(new Error('Unauthorized'), {
-      isAxiosError: true,
-      response: { status: 401, data: {} },
+      status: 401,
+      data: {},
+      statusText: 'Unauthorized',
+      response: new Response(null, { status: 401 }),
     })
-    axiosGetMock.mockRejectedValueOnce(err)
-    axiosIsAxiosError.mockImplementation(
-      (e: unknown) =>
-        typeof e === 'object' && e !== null && 'isAxiosError' in e,
-    )
+    httpGetMock.mockRejectedValueOnce(err)
     let onDoneMsg = ''
     const onDone = (msg: string) => {
       onDoneMsg = msg
@@ -143,7 +130,7 @@ describe('callVault list', () => {
 // ── create ────────────────────────────────────────────────────────────────
 describe('callVault create', () => {
   test('creates vault and returns vault_id in onDone', async () => {
-    axiosPostMock.mockResolvedValueOnce({
+    httpPostMock.mockResolvedValueOnce({
       data: { vault_id: 'vault_new', name: 'My Vault' },
       status: 201,
     })
@@ -177,7 +164,7 @@ describe('callVault create', () => {
 // ── get ───────────────────────────────────────────────────────────────────
 describe('callVault get', () => {
   test('fetches vault and displays detail', async () => {
-    axiosGetMock.mockResolvedValueOnce({
+    httpGetMock.mockResolvedValueOnce({
       data: { vault_id: 'vault_123', name: 'Work' },
       status: 200,
     })
@@ -211,7 +198,7 @@ describe('callVault get', () => {
 // ── archive vault ─────────────────────────────────────────────────────────
 describe('callVault archive', () => {
   test('archives vault and confirms in onDone', async () => {
-    axiosPostMock.mockResolvedValueOnce({
+    httpPostMock.mockResolvedValueOnce({
       data: {
         vault_id: 'vault_arc',
         name: 'Old',
@@ -235,7 +222,7 @@ describe('callVault archive', () => {
 // ── add-credential ────────────────────────────────────────────────────────
 describe('callVault add-credential', () => {
   test('adds credential and confirms without leaking secret value in onDone', async () => {
-    axiosPostMock.mockResolvedValueOnce({
+    httpPostMock.mockResolvedValueOnce({
       data: { credential_id: 'cred_new', vault_id: 'vault_1', kind: 'api_key' },
       status: 201,
     })
@@ -268,7 +255,7 @@ describe('callVault add-credential', () => {
   })
 
   test('credential value does not appear in stdout output at all', async () => {
-    axiosPostMock.mockResolvedValueOnce({
+    httpPostMock.mockResolvedValueOnce({
       data: { credential_id: 'cred_secure', vault_id: 'v1', kind: 'api_key' },
       status: 201,
     })
@@ -291,7 +278,7 @@ describe('callVault add-credential', () => {
 // ── archive-credential ────────────────────────────────────────────────────
 describe('callVault archive-credential', () => {
   test('archives credential and confirms in onDone', async () => {
-    axiosPostMock.mockResolvedValueOnce({
+    httpPostMock.mockResolvedValueOnce({
       data: {
         credential_id: 'cred_arc',
         vault_id: 'vault_1',

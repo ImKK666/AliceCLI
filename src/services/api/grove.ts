@@ -1,4 +1,3 @@
-import axios from 'axios'
 import memoize from 'lodash-es/memoize.js'
 import {
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -14,6 +13,7 @@ import { getGlobalConfig, saveGlobalConfig } from '../../utils/config.js'
 import {
   getAuthHeaders,
   getUserAgent,
+  http,
   withOAuth401Retry,
 } from '../../utils/http.js'
 import { logError } from '../../utils/log.js'
@@ -61,7 +61,7 @@ export const getGroveSettings = memoize(
         if (authHeaders.error) {
           throw new Error(`Failed to get auth headers: ${authHeaders.error}`)
         }
-        return axios.get<AccountSettings>(
+        return http.get<AccountSettings>(
           `${getOauthConfig().BASE_API_URL}/api/oauth/account/settings`,
           {
             headers: {
@@ -94,7 +94,7 @@ export async function markGroveNoticeViewed(): Promise<void> {
       if (authHeaders.error) {
         throw new Error(`Failed to get auth headers: ${authHeaders.error}`)
       }
-      return axios.post(
+      return http.post(
         `${getOauthConfig().BASE_API_URL}/api/oauth/account/grove_notice_viewed`,
         {},
         {
@@ -126,7 +126,7 @@ export async function updateGroveSettings(
       if (authHeaders.error) {
         throw new Error(`Failed to get auth headers: ${authHeaders.error}`)
       }
-      return axios.patch(
+      return http.patch(
         `${getOauthConfig().BASE_API_URL}/api/oauth/account/settings`,
         {
           grove_enabled: groveEnabled,
@@ -241,7 +241,7 @@ export const getGroveNoticeConfig = memoize(
         if (authHeaders.error) {
           throw new Error(`Failed to get auth headers: ${authHeaders.error}`)
         }
-        return axios.get<GroveConfig>(
+        return http.get<GroveConfig>(
           `${getOauthConfig().BASE_API_URL}/api/claude_code_grove`,
           {
             headers: {

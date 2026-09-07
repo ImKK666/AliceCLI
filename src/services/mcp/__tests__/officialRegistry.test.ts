@@ -8,17 +8,22 @@ import {
   afterAll,
 } from 'bun:test'
 import { debugMock } from '../../../../tests/mocks/debug'
-import { setupAxiosMock } from '../../../../tests/mocks/axios.js'
+import { setupHttpMock } from '../../../../tests/mocks/httpClient'
 
-const axiosHandle = setupAxiosMock()
-axiosHandle.stubs.get = async () => ({ data: { servers: [] } })
+const httpHandle = setupHttpMock()
+httpHandle.stubs.get = async () => ({
+  data: { servers: [] },
+  status: 200,
+  statusText: 'OK',
+  headers: new Headers(),
+})
 
 beforeAll(() => {
-  axiosHandle.useStubs = true
+  httpHandle.useStubs = true
 })
 
 afterAll(() => {
-  axiosHandle.useStubs = false
+  httpHandle.useStubs = false
 })
 
 mock.module('src/utils/debug.ts', debugMock)

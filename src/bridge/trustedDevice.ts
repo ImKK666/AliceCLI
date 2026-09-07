@@ -1,4 +1,3 @@
-import axios from 'axios'
 import memoize from 'lodash-es/memoize.js'
 import { hostname } from 'os'
 import { getOauthConfig } from '../constants/oauth.js'
@@ -8,6 +7,7 @@ import {
 } from '../services/analytics/growthbook.js'
 import { logForDebugging } from '../utils/debug.js'
 import { errorMessage } from '../utils/errors.js'
+import { http } from '../utils/http.js'
 import { isEssentialTrafficOnly } from '../utils/privacyLevel.js'
 import { getSecureStorage } from '../utils/secureStorage/index.js'
 import { jsonStringify } from '../utils/slowOperations.js'
@@ -142,7 +142,7 @@ export async function enrollTrustedDevice(): Promise<void> {
     const baseUrl = getOauthConfig().BASE_API_URL
     let response
     try {
-      response = await axios.post<{
+      response = await http.post<{
         device_token?: string
         device_id?: string
       }>(

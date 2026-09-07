@@ -3,9 +3,9 @@
  * search results using regex pattern matching on raw HTML.
  */
 
-import axios from 'axios'
 import he from 'he'
 import { AbortError } from 'src/utils/errors.js'
+import { http, isHttpAbortError } from 'src/utils/http.js'
 import type { SearchResult, SearchOptions, WebSearchAdapter } from './types.js'
 
 const FETCH_TIMEOUT_MS = 30_000
@@ -55,15 +55,15 @@ export class BingSearchAdapter implements WebSearchAdapter {
 
     let html: string
     try {
-      const response = await axios.get(url, {
+      const response = await http.get<string>(url, {
         signal: abortController.signal,
         timeout: FETCH_TIMEOUT_MS,
         responseType: 'text',
-        headers: BROWSER_HEADERS,
+        headers: BROWSER_HEADERS as unknown as Record<string, string>,
       })
       html = response.data
     } catch (e) {
-      if (axios.isCancel(e) || abortController.signal.aborted) {
+      if (isHttpAbortError(e) || abortController.signal.aborted) {
         throw new AbortError()
       }
       throw e

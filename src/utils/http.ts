@@ -6,7 +6,6 @@
  * that still import axios directly.
  */
 
-import axios from 'axios'
 import { OAUTH_BETA_HEADER } from '../constants/oauth.js'
 import {
   getAnthropicApiKey,
@@ -123,14 +122,14 @@ export async function withOAuth401Retry<T>(
   try {
     return await request()
   } catch (err) {
-    if (!axios.isAxiosError(err)) throw err
-    const status = err.response?.status
+    if (!isHttpError(err)) throw err
+    const status = err.status
     const isAuthError =
       status === 401 ||
       (opts?.also403Revoked &&
         status === 403 &&
-        typeof err.response?.data === 'string' &&
-        err.response.data.includes('OAuth token has been revoked'))
+        typeof err.data === 'string' &&
+        err.data.includes('OAuth token has been revoked'))
     if (!isAuthError) throw err
     const failedAccessToken = getClaudeAIOAuthTokens()?.accessToken
     if (!failedAccessToken) throw err
@@ -225,6 +224,8 @@ export interface HttpRequestOptions {
   validateStatus?: (status: number) => boolean
   /** URL query parameters appended via `URLSearchParams`. */
   params?: Record<string, string>
+  /** Controls redirect behavior. Defaults to `'follow'`. */
+  redirect?: RequestRedirect
 }
 
 // ---- internal helpers -----------------------------------------------------
@@ -294,6 +295,7 @@ async function doRequest<T>(
     responseType = 'json',
     validateStatus = defaultValidateStatus,
     params,
+    redirect = 'follow',
   } = options
 
   const finalUrl = buildUrl(url, params)
@@ -343,7 +345,7 @@ async function doRequest<T>(
       headers,
       body: fetchBody,
       signal,
-      redirect: 'follow',
+      redirect,
     })
 
     const data = (await parseResponseBody(response, responseType)) as T

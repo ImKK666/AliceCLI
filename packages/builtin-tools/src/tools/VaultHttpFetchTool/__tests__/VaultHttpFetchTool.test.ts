@@ -8,43 +8,43 @@ import {
   mock,
   test,
 } from 'bun:test'
-import { setupAxiosMock } from '../../../../../../tests/mocks/axios'
+import { setupHttpMock } from '../../../../../../tests/mocks/httpClient'
 
 // After this suite finishes, switch our getSecret override off so localVault's
 // own store.test.ts (running in the same process) sees the real impl. Also
-// flip the axios stub flag off so the spread mock falls through to real axios
+// flip the http stub flag off so the spread mock falls through to real http
 // for any test file that runs after this one.
 afterAll(() => {
   useMockForGetSecret = false
   getSecretShouldThrow = false
-  axiosHandle.useStubs = false
+  httpHandle.useStubs = false
 })
 
 beforeAll(() => {
-  axiosHandle.useStubs = true
+  httpHandle.useStubs = true
 })
 
-// We mock the LOWER layers (axios + localVault store + http util) rather
+// We mock the LOWER layers (http + localVault store) rather
 // than the tool itself, per memory feedback "Mock dependency not subject".
 
-type AxiosRespLike = {
+type HttpRespLike = {
   status: number
   statusText: string
-  headers: Record<string, string | string[]>
+  headers: Headers
   data: string
 }
 
-const mockAxiosRequest = mock(
-  async (): Promise<AxiosRespLike> => ({
+const mockHttpRequest = mock(
+  async (): Promise<HttpRespLike> => ({
     status: 200,
     statusText: 'OK',
-    headers: { 'content-type': 'application/json' },
+    headers: new Headers({ 'content-type': 'application/json' }),
     data: '{"ok":true}',
   }),
 )
 
-const axiosHandle = setupAxiosMock()
-axiosHandle.stubs.request = mockAxiosRequest
+const httpHandle = setupHttpMock()
+httpHandle.stubs.request = mockHttpRequest
 
 let mockedSecret: string | null = 'XSECRETXX'
 let getSecretShouldThrow = false
@@ -82,15 +82,15 @@ function mockContext() {
   return mockToolContext()
 }
 
-function makeAxiosResp(opts: {
+function makeHttpResp(opts: {
   status?: number
   data?: string
-  headers?: Record<string, string | string[]>
+  headers?: Headers
 }) {
   return {
     status: opts.status ?? 200,
     statusText: 'STATUS',
-    headers: opts.headers ?? {},
+    headers: opts.headers ?? new Headers(),
     data: opts.data ?? '',
   }
 }
@@ -99,7 +99,7 @@ function makeAxiosResp(opts: {
 
 describe('VaultHttpFetchTool: schema + checkPermissions', () => {
   beforeEach(() => {
-    mockAxiosRequest.mockClear()
+    mockHttpRequest.mockClear()
     mockedSecret = 'XSECRETXX'
   })
 
@@ -197,14 +197,14 @@ describe('VaultHttpFetchTool: schema + checkPermissions', () => {
 
 describe('VaultHttpFetchTool: call() — secret leak prevention', () => {
   beforeEach(() => {
-    mockAxiosRequest.mockClear()
+    mockHttpRequest.mockClear()
     mockedSecret = 'XSECRETXX'
   })
 
   test('AC4: secret never appears in returned data (Bearer scheme)', async () => {
     const { VaultHttpFetchTool } = await import('../VaultHttpFetchTool.js')
-    mockAxiosRequest.mockImplementation(async () =>
-      makeAxiosResp({ data: '{"hello":"world"}' }),
+    mockHttpRequest.mockImplementation(async () =>
+      makeHttpResp({ data: '{"hello":"world"}' }),
     )
     const result = await VaultHttpFetchTool.call(
       {
@@ -224,8 +224,8 @@ describe('VaultHttpFetchTool: call() — secret leak prevention', () => {
   test('AC14: secret echoed in 4xx response body is scrubbed', async () => {
     const { VaultHttpFetchTool } = await import('../VaultHttpFetchTool.js')
     // Server returns 401 + body that echoes the auth header
-    mockAxiosRequest.mockImplementation(async () =>
-      makeAxiosResp({
+    mockHttpRequest.mockImplementation(async () =>
+      makeHttpResp({
         status: 401,
         data: 'Unauthorized: provided "Bearer XSECRETXX" is invalid',
       }),
@@ -249,8 +249,8 @@ describe('VaultHttpFetchTool: call() — secret leak prevention', () => {
 
   test('AC15: secret echoed in 200 response body is scrubbed', async () => {
     const { VaultHttpFetchTool } = await import('../VaultHttpFetchTool.js')
-    mockAxiosRequest.mockImplementation(async () =>
-      makeAxiosResp({
+    mockHttpRequest.mockImplementation(async () =>
+      makeHttpResp({
         status: 200,
         data: '{"echo":"Bearer XSECRETXX","ok":true}',
       }),
@@ -272,8 +272,8 @@ describe('VaultHttpFetchTool: call() — secret leak prevention', () => {
   test('AC16: all derived secret forms scrubbed (raw / Bearer / base64 / Basic)', async () => {
     const { VaultHttpFetchTool } = await import('../VaultHttpFetchTool.js')
     const b64 = Buffer.from('XSECRETXX', 'utf8').toString('base64')
-    mockAxiosRequest.mockImplementation(async () =>
-      makeAxiosResp({
+    mockHttpRequest.mockImplementation(async () =>
+      makeHttpResp({
         data: `raw=XSECRETXX bearer=Bearer XSECRETXX b64=${b64} basic=Basic ${b64}`,
       }),
     )
@@ -293,13 +293,13 @@ describe('VaultHttpFetchTool: call() — secret leak prevention', () => {
 
   test('AC9: response Authorization echo header is redacted by NAME', async () => {
     const { VaultHttpFetchTool } = await import('../VaultHttpFetchTool.js')
-    mockAxiosRequest.mockImplementation(async () =>
-      makeAxiosResp({
+    mockHttpRequest.mockImplementation(async () =>
+      makeHttpResp({
         data: 'ok',
-        headers: {
+        headers: new Headers({
           authorization: 'Bearer XSECRETXX',
           'content-type': 'text/plain',
-        },
+        }),
       }),
     )
     const result = await VaultHttpFetchTool.call(
@@ -316,13 +316,10 @@ describe('VaultHttpFetchTool: call() — secret leak prevention', () => {
     expect(result.data.responseHeaders!['content-type']).toBe('text/plain')
   })
 
-  test('AC8: secret never appears in axios error path', async () => {
+  test('AC8: secret never appears in http error path', async () => {
     const { VaultHttpFetchTool } = await import('../VaultHttpFetchTool.js')
-    class FakeAxiosError extends Error {
-      config = { headers: { Authorization: 'Bearer XSECRETXX' } }
-    }
-    mockAxiosRequest.mockImplementation(async () => {
-      throw new FakeAxiosError('connect ECONNREFUSED')
+    mockHttpRequest.mockImplementation(async () => {
+      throw new Error('connect ECONNREFUSED')
     })
     const result = await VaultHttpFetchTool.call(
       {
@@ -339,11 +336,9 @@ describe('VaultHttpFetchTool: call() — secret leak prevention', () => {
     expect(result.data.error).not.toContain('Bearer')
   })
 
-  test('AC17: maxRedirects=0 (no redirect Authorization re-leak)', async () => {
+  test('AC17: redirect=manual (no redirect Authorization re-leak)', async () => {
     const { VaultHttpFetchTool } = await import('../VaultHttpFetchTool.js')
-    mockAxiosRequest.mockImplementation(async () =>
-      makeAxiosResp({ data: 'ok' }),
-    )
+    mockHttpRequest.mockImplementation(async () => makeHttpResp({ data: 'ok' }))
     await VaultHttpFetchTool.call(
       {
         url: 'https://api.example.com',
@@ -354,11 +349,12 @@ describe('VaultHttpFetchTool: call() — secret leak prevention', () => {
       },
       mockContext(),
     )
-    expect(mockAxiosRequest).toHaveBeenCalledTimes(1)
-    const calls = mockAxiosRequest.mock.calls as unknown as Array<
-      Array<{ maxRedirects?: number }>
+    expect(mockHttpRequest).toHaveBeenCalledTimes(1)
+    // http.request(method, url, body, opts) — opts is arg[3]
+    const calls = mockHttpRequest.mock.calls as unknown as Array<
+      [string, string, unknown, { redirect?: string }]
     >
-    expect(calls[0]?.[0]?.maxRedirects).toBe(0)
+    expect(calls[0]?.[3]?.redirect).toBe('manual')
   })
 
   test('vault key not found -> error message (no crash)', async () => {
@@ -379,9 +375,7 @@ describe('VaultHttpFetchTool: call() — secret leak prevention', () => {
 
   test('basic scheme uses base64 Authorization', async () => {
     const { VaultHttpFetchTool } = await import('../VaultHttpFetchTool.js')
-    mockAxiosRequest.mockImplementation(async () =>
-      makeAxiosResp({ data: 'ok' }),
-    )
+    mockHttpRequest.mockImplementation(async () => makeHttpResp({ data: 'ok' }))
     await VaultHttpFetchTool.call(
       {
         url: 'https://api.example.com',
@@ -392,20 +386,19 @@ describe('VaultHttpFetchTool: call() — secret leak prevention', () => {
       },
       mockContext(),
     )
-    const calls = mockAxiosRequest.mock.calls as unknown as Array<
-      Array<{ headers?: Record<string, string> }>
+    // http.request(method, url, body, opts) — opts is arg[3]
+    const calls = mockHttpRequest.mock.calls as unknown as Array<
+      [string, string, unknown, { headers?: Record<string, string> }]
     >
-    const callArgs = calls[0]?.[0] ?? { headers: {} }
-    expect(callArgs.headers?.['Authorization']).toBe(
+    const opts = calls[0]?.[3] ?? { headers: {} }
+    expect(opts.headers?.['Authorization']).toBe(
       `Basic ${Buffer.from('XSECRETXX', 'utf8').toString('base64')}`,
     )
   })
 
   test('header_x_api_key scheme sets X-Api-Key', async () => {
     const { VaultHttpFetchTool } = await import('../VaultHttpFetchTool.js')
-    mockAxiosRequest.mockImplementation(async () =>
-      makeAxiosResp({ data: 'ok' }),
-    )
+    mockHttpRequest.mockImplementation(async () => makeHttpResp({ data: 'ok' }))
     await VaultHttpFetchTool.call(
       {
         url: 'https://api.example.com',
@@ -416,17 +409,18 @@ describe('VaultHttpFetchTool: call() — secret leak prevention', () => {
       },
       mockContext(),
     )
-    const calls = mockAxiosRequest.mock.calls as unknown as Array<
-      Array<{ headers?: Record<string, string> }>
+    // http.request(method, url, body, opts) — opts is arg[3]
+    const calls = mockHttpRequest.mock.calls as unknown as Array<
+      [string, string, unknown, { headers?: Record<string, string> }]
     >
-    const callArgs = calls[0]?.[0] ?? { headers: {} }
-    expect(callArgs.headers?.['X-Api-Key']).toBe('XSECRETXX')
-    expect(callArgs.headers?.['Authorization']).toBeUndefined()
+    const opts = calls[0]?.[3] ?? { headers: {} }
+    expect(opts.headers?.['X-Api-Key']).toBe('XSECRETXX')
+    expect(opts.headers?.['Authorization']).toBeUndefined()
   })
 
   test('auth_scheme=custom uses given auth_header_name', async () => {
     const { VaultHttpFetchTool } = await import('../VaultHttpFetchTool.js')
-    mockAxiosRequest.mockImplementation(async () => makeAxiosResp({ data: '' }))
+    mockHttpRequest.mockImplementation(async () => makeHttpResp({ data: '' }))
     const result = await VaultHttpFetchTool.call(
       {
         url: 'https://api.example.com',
@@ -438,17 +432,18 @@ describe('VaultHttpFetchTool: call() — secret leak prevention', () => {
       },
       mockContext(),
     )
-    const calls = mockAxiosRequest.mock.calls as unknown as Array<
-      Array<{ headers?: Record<string, string> }>
+    // http.request(method, url, body, opts) — opts is arg[3]
+    const calls = mockHttpRequest.mock.calls as unknown as Array<
+      [string, string, unknown, { headers?: Record<string, string> }]
     >
-    const callArgs = calls[0]?.[0] ?? { headers: {} }
-    expect(callArgs.headers?.['X-Custom-Auth']).toBe('XSECRETXX')
+    const opts = calls[0]?.[3] ?? { headers: {} }
+    expect(opts.headers?.['X-Custom-Auth']).toBe('XSECRETXX')
     expect(result.data).toBeDefined()
   })
 
   test('auth_scheme=basic encodes secret as base64 Bearer', async () => {
     const { VaultHttpFetchTool } = await import('../VaultHttpFetchTool.js')
-    mockAxiosRequest.mockImplementation(async () => makeAxiosResp({ data: '' }))
+    mockHttpRequest.mockImplementation(async () => makeHttpResp({ data: '' }))
     await VaultHttpFetchTool.call(
       {
         url: 'https://api.example.com',
@@ -459,10 +454,11 @@ describe('VaultHttpFetchTool: call() — secret leak prevention', () => {
       },
       mockContext(),
     )
-    const calls = mockAxiosRequest.mock.calls as unknown as Array<
-      Array<{ headers?: Record<string, string> }>
+    // http.request(method, url, body, opts) — opts is arg[3]
+    const calls = mockHttpRequest.mock.calls as unknown as Array<
+      [string, string, unknown, { headers?: Record<string, string> }]
     >
-    const auth = calls[0]?.[0]?.headers?.['Authorization']
+    const auth = calls[0]?.[3]?.headers?.['Authorization']
     expect(auth).toMatch(/^Basic /)
     // 'XSECRETXX' base64 = 'WFNFQ1JFVFhY'
     expect(auth).toBe(`Basic ${Buffer.from('XSECRETXX').toString('base64')}`)
@@ -834,7 +830,7 @@ describe('VaultHttpFetchTool: deny/allow rule branches', () => {
 
 describe('VaultHttpFetchTool: call() additional paths', () => {
   beforeEach(() => {
-    mockAxiosRequest.mockClear()
+    mockHttpRequest.mockClear()
     mockedSecret = 'XSECRETXX'
     getSecretShouldThrow = false
   })
@@ -858,7 +854,7 @@ describe('VaultHttpFetchTool: call() additional paths', () => {
 
   test('body sets Content-Type header (default application/json)', async () => {
     const { VaultHttpFetchTool } = await import('../VaultHttpFetchTool.js')
-    mockAxiosRequest.mockImplementation(async () => makeAxiosResp({ data: '' }))
+    mockHttpRequest.mockImplementation(async () => makeHttpResp({ data: '' }))
     await VaultHttpFetchTool.call(
       {
         vault_auth_key: 'gh',
@@ -870,15 +866,16 @@ describe('VaultHttpFetchTool: call() additional paths', () => {
       } as never,
       mockContext() as never,
     )
-    const calls = mockAxiosRequest.mock.calls as unknown as Array<
-      Array<{ headers?: Record<string, string> }>
+    // http.request(method, url, body, opts) — opts is arg[3]
+    const calls = mockHttpRequest.mock.calls as unknown as Array<
+      [string, string, unknown, { headers?: Record<string, string> }]
     >
-    expect(calls[0]?.[0]?.headers?.['Content-Type']).toBe('application/json')
+    expect(calls[0]?.[3]?.headers?.['Content-Type']).toBe('application/json')
   })
 
   test('body with explicit body_content_type uses that value', async () => {
     const { VaultHttpFetchTool } = await import('../VaultHttpFetchTool.js')
-    mockAxiosRequest.mockImplementation(async () => makeAxiosResp({ data: '' }))
+    mockHttpRequest.mockImplementation(async () => makeHttpResp({ data: '' }))
     await VaultHttpFetchTool.call(
       {
         vault_auth_key: 'gh',
@@ -891,16 +888,17 @@ describe('VaultHttpFetchTool: call() additional paths', () => {
       } as never,
       mockContext() as never,
     )
-    const calls = mockAxiosRequest.mock.calls as unknown as Array<
-      Array<{ headers?: Record<string, string> }>
+    // http.request(method, url, body, opts) — opts is arg[3]
+    const calls = mockHttpRequest.mock.calls as unknown as Array<
+      [string, string, unknown, { headers?: Record<string, string> }]
     >
-    expect(calls[0]?.[0]?.headers?.['Content-Type']).toBe('text/plain')
+    expect(calls[0]?.[3]?.headers?.['Content-Type']).toBe('text/plain')
   })
 
   test('response with null data is coerced to empty string', async () => {
     const { VaultHttpFetchTool } = await import('../VaultHttpFetchTool.js')
-    mockAxiosRequest.mockImplementation(async () =>
-      makeAxiosResp({ data: null as unknown as string }),
+    mockHttpRequest.mockImplementation(async () =>
+      makeHttpResp({ data: null as unknown as string }),
     )
     const result = await VaultHttpFetchTool.call(
       {
@@ -918,8 +916,8 @@ describe('VaultHttpFetchTool: call() additional paths', () => {
   test('response with non-string data (Buffer-like) is coerced via String()', async () => {
     const { VaultHttpFetchTool } = await import('../VaultHttpFetchTool.js')
     const buf = Buffer.from('binary-content', 'utf8')
-    mockAxiosRequest.mockImplementation(async () =>
-      makeAxiosResp({ data: buf as unknown as string }),
+    mockHttpRequest.mockImplementation(async () =>
+      makeHttpResp({ data: buf as unknown as string }),
     )
     const result = await VaultHttpFetchTool.call(
       {

@@ -1,8 +1,8 @@
-import axios from 'axios'
 import { getOauthConfig } from 'src/constants/oauth.js'
 import { getOrganizationUUID } from 'src/services/oauth/client.js'
 import { getClaudeAIOAuthTokens } from '../auth.js'
 import { toError } from '../errors.js'
+import { http } from '../http.js'
 import { logError } from '../log.js'
 import { getOAuthHeaders } from './api.js'
 
@@ -50,7 +50,7 @@ export async function fetchEnvironments(): Promise<EnvironmentResource[]> {
       'x-organization-uuid': orgUUID,
     }
 
-    const response = await axios.get<EnvironmentListResponse>(url, {
+    const response = await http.get<EnvironmentListResponse>(url, {
       headers,
       timeout: 15000,
     })
@@ -86,7 +86,7 @@ export async function createDefaultCloudEnvironment(
   }
 
   const url = `${getOauthConfig().BASE_API_URL}/v1/environment_providers/cloud/create`
-  const response = await axios.post<EnvironmentResource>(
+  const response = await http.post<EnvironmentResource>(
     url,
     {
       name,

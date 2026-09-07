@@ -1,9 +1,9 @@
-import axios, { type AxiosError } from 'axios'
 import type { StdoutMessage } from 'src/entrypoints/sdk/controlTypes.js'
 import { logForDebugging } from '../../utils/debug.js'
 import { rcLog } from '../../bridge/rcDebugLog.js'
 import { logForDiagnosticsNoPII } from '../../utils/diagLogs.js'
 import { errorMessage } from '../../utils/errors.js'
+import { http } from '../../utils/http.js'
 import { getSessionIngressAuthHeaders } from '../../utils/sessionIngressAuth.js'
 import { sleep } from '../../utils/sleep.js'
 import { jsonParse, jsonStringify } from '../../utils/slowOperations.js'
@@ -620,7 +620,7 @@ export class SSETransport implements Transport {
 
     for (let attempt = 1; attempt <= POST_MAX_RETRIES; attempt++) {
       try {
-        const response = await axios.post(this.postUrl, message, {
+        const response = await http.post(this.postUrl, message, {
           headers,
           validateStatus: alwaysValidStatus,
         })
@@ -657,9 +657,9 @@ export class SSETransport implements Transport {
           attempt,
         })
       } catch (error) {
-        const axiosError = error as AxiosError
+        const err = error as Error
         logForDebugging(
-          `SSETransport: POST error: ${axiosError.message}, attempt ${attempt}/${POST_MAX_RETRIES}`,
+          `SSETransport: POST error: ${err.message}, attempt ${attempt}/${POST_MAX_RETRIES}`,
         )
         logForDiagnosticsNoPII('warn', 'cli_sse_post_network_error', {
           attempt,

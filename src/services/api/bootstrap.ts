@@ -1,4 +1,3 @@
-import axios from 'axios'
 import isEqual from 'lodash-es/isEqual.js'
 import {
   getAnthropicApiKey,
@@ -9,7 +8,7 @@ import { z } from 'zod'
 import { getOauthConfig, OAUTH_BETA_HEADER } from '../../constants/oauth.js'
 import { getGlobalConfig, saveGlobalConfig } from '../../utils/config.js'
 import { logForDebugging } from '../../utils/debug.js'
-import { withOAuth401Retry } from '../../utils/http.js'
+import { http, isHttpError, withOAuth401Retry } from '../../utils/http.js'
 import { lazySchema } from '../../utils/lazySchema.js'
 import { logError } from '../../utils/log.js'
 import { getAPIProvider } from '../../utils/model/providers.js'
@@ -82,7 +81,7 @@ async function fetchBootstrapAPI(): Promise<BootstrapResponse | null> {
       }
 
       logForDebugging('[Bootstrap] Fetching')
-      const response = await axios.get<unknown>(endpoint, {
+      const response = await http.get<unknown>(endpoint, {
         headers: {
           'Content-Type': 'application/json',
           'User-Agent': getClaudeCodeUserAgent(),
@@ -102,7 +101,7 @@ async function fetchBootstrapAPI(): Promise<BootstrapResponse | null> {
     })
   } catch (error) {
     logForDebugging(
-      `[Bootstrap] Fetch failed: ${axios.isAxiosError(error) ? (error.response?.status ?? error.code) : 'unknown'}`,
+      `[Bootstrap] Fetch failed: ${isHttpError(error) ? error.status : 'unknown'}`,
     )
     throw error
   }

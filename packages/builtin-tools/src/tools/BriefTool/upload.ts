@@ -13,7 +13,6 @@
  */
 
 import { feature } from 'bun:bundle'
-import axios from 'axios'
 import { randomUUID } from 'crypto'
 import { readFile } from 'fs/promises'
 import { basename, extname } from 'path'
@@ -25,6 +24,7 @@ import {
 } from 'src/bridge/bridgeConfig.js'
 import { getOauthConfig } from 'src/constants/oauth.js'
 import { logForDebugging } from 'src/utils/debug.js'
+import { http } from 'src/utils/http.js'
 import { lazySchema } from 'src/utils/lazySchema.js'
 import { jsonStringify } from 'src/utils/slowOperations.js'
 
@@ -137,7 +137,7 @@ export async function uploadBriefAttachment(
     ])
 
     try {
-      const response = await axios.post(url, body, {
+      const response = await http.post(url, body, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': `multipart/form-data; boundary=${boundary}`,

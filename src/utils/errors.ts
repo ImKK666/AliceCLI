@@ -202,13 +202,13 @@ export type AxiosErrorKind =
   | 'other' // not an axios error
 
 /**
- * Classify a caught error from an axios request into one of a few buckets.
- * Replaces the ~20-line isAxiosError → 401/403 → ECONNABORTED → ECONNREFUSED
- * chain duplicated across sync-style services (settingsSync, policyLimits,
- * remoteManagedSettings, teamMemorySync).
+ * Classify a caught error from an axios or http wrapper request into one of
+ * a few buckets. Replaces the ~20-line isAxiosError → 401/403 → ECONNABORTED
+ * → ECONNREFUSED chain duplicated across sync-style services (settingsSync,
+ * policyLimits, remoteManagedSettings, teamMemorySync).
  *
- * Checks the `.isAxiosError` marker property directly (same as
- * axios.isAxiosError()) to keep this module dependency-free.
+ * Supports both AxiosError (duck-typed via `.isAxiosError`) and HttpError
+ * (duck-typed via `.name === 'HttpError'`), plus abort/timeout DOMExceptions.
  */
 export function classifyAxiosError(e: unknown): {
   kind: AxiosErrorKind
@@ -216,6 +216,32 @@ export function classifyAxiosError(e: unknown): {
   message: string
 } {
   const message = errorMessage(e)
+
+  // HttpError from the fetch-based http wrapper
+  if (
+    e instanceof Error &&
+    e.name === 'HttpError' &&
+    'status' in e &&
+    typeof (e as { status: unknown }).status === 'number'
+  ) {
+    const status = (e as { status: number }).status
+    if (status === 401 || status === 403)
+      return { kind: 'auth', status, message }
+    return { kind: 'http', status, message }
+  }
+
+  // Abort/timeout errors from AbortController (fetch wrapper uses these)
+  if (
+    e instanceof DOMException &&
+    (e.name === 'AbortError' || e.name === 'TimeoutError')
+  ) {
+    return { kind: 'timeout', message }
+  }
+  if (e instanceof TypeError && e.message.includes('fetch')) {
+    return { kind: 'network', message }
+  }
+
+  // AxiosError (duck-typed via .isAxiosError marker)
   if (
     !e ||
     typeof e !== 'object' ||

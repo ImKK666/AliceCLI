@@ -7,7 +7,6 @@
  */
 
 import { feature } from 'bun:bundle'
-import axios from 'axios'
 import { createHash } from 'crypto'
 import { chmod, writeFile } from 'fs/promises'
 import { join } from 'path'
@@ -15,6 +14,7 @@ import { logEvent } from 'src/services/analytics/index.js'
 import type { ReleaseChannel } from '../config.js'
 import { logForDebugging } from '../debug.js'
 import { toError } from '../errors.js'
+import { http, isHttpAbortError, isHttpError } from '../http.js'
 import { execFileNoThrowWithCwd } from '../execFileNoThrow.js'
 import { getFsImplementation } from '../fsOperations.js'
 import { logError } from '../log.js'
@@ -78,7 +78,7 @@ export async function getLatestVersionFromBinaryRepo(
 ): Promise<string> {
   const startTime = Date.now()
   try {
-    const response = await axios.get(`${baseUrl}/${channel}`, {
+    const response = await http.get<string>(`${baseUrl}/${channel}`, {
       timeout: 30000,
       responseType: 'text',
       ...authConfig,
@@ -92,8 +92,8 @@ export async function getLatestVersionFromBinaryRepo(
     const latencyMs = Date.now() - startTime
     const errorMessage = error instanceof Error ? error.message : String(error)
     let httpStatus: number | undefined
-    if (axios.isAxiosError(error) && error.response) {
-      httpStatus = error.response.status
+    if (isHttpError(error)) {
+      httpStatus = error.status
     }
 
     logEvent('tengu_version_check_failure', {
@@ -318,14 +318,10 @@ async function downloadAndVerifyBinary(
       // Start the stall timer before the request
       resetStallTimer()
 
-      const response = await axios.get(binaryUrl, {
+      const response = await http.get<ArrayBuffer>(binaryUrl, {
         timeout: 5 * 60000, // 5 minute total timeout
         responseType: 'arraybuffer',
         signal: controller.signal,
-        onDownloadProgress: () => {
-          // Reset stall timer on each chunk of data received
-          resetStallTimer()
-        },
         ...requestConfig,
       })
 
@@ -333,7 +329,7 @@ async function downloadAndVerifyBinary(
 
       // Verify checksum
       const hash = createHash('sha256')
-      hash.update(response.data)
+      hash.update(Buffer.from(response.data as ArrayBuffer))
       const actualChecksum = hash.digest('hex')
 
       if (actualChecksum !== expectedChecksum) {
@@ -351,8 +347,8 @@ async function downloadAndVerifyBinary(
     } catch (error) {
       clearStallTimer()
 
-      // Check if this was a stall timeout (axios wraps abort signals in CanceledError)
-      const isStallTimeout = axios.isCancel(error)
+      // Check if this was a stall timeout (fetch wraps abort signals in AbortError)
+      const isStallTimeout = isHttpAbortError(error)
 
       if (isStallTimeout) {
         lastError = new StallTimeoutError()
@@ -401,23 +397,21 @@ export async function downloadVersionFromBinaryRepo(
   logEvent('tengu_binary_download_attempt', {})
 
   // Fetch manifest to get checksum
-  let manifest
+  let manifest: { platforms: Record<string, { checksum: string }> }
   try {
-    const manifestResponse = await axios.get(
-      `${baseUrl}/${version}/manifest.json`,
-      {
-        timeout: 10000,
-        responseType: 'json',
-        ...authConfig,
-      },
-    )
+    const manifestResponse = await http.get<{
+      platforms: Record<string, { checksum: string }>
+    }>(`${baseUrl}/${version}/manifest.json`, {
+      timeout: 10000,
+      ...authConfig,
+    })
     manifest = manifestResponse.data
   } catch (error) {
     const latencyMs = Date.now() - startTime
     const errorMessage = error instanceof Error ? error.message : String(error)
     let httpStatus: number | undefined
-    if (axios.isAxiosError(error) && error.response) {
-      httpStatus = error.response.status
+    if (isHttpError(error)) {
+      httpStatus = error.status
     }
 
     logEvent('tengu_binary_manifest_fetch_failure', {
@@ -467,8 +461,8 @@ export async function downloadVersionFromBinaryRepo(
     const latencyMs = Date.now() - startTime
     const errorMessage = error instanceof Error ? error.message : String(error)
     let httpStatus: number | undefined
-    if (axios.isAxiosError(error) && error.response) {
-      httpStatus = error.response.status
+    if (isHttpError(error)) {
+      httpStatus = error.status
     }
 
     logEvent('tengu_binary_download_failure', {

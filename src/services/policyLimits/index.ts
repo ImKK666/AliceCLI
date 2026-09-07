@@ -12,7 +12,6 @@
  * - API returns empty restrictions for users without policy limits
  */
 
-import axios from 'axios'
 import { createHash } from 'crypto'
 import { readFileSync as fsReadFileSync } from 'fs'
 import { unlink, writeFile } from 'fs/promises'
@@ -31,6 +30,7 @@ import { registerCleanup } from '../../utils/cleanupRegistry.js'
 import { logForDebugging } from '../../utils/debug.js'
 import { getClaudeConfigHomeDir } from '../../utils/envUtils.js'
 import { classifyAxiosError } from '../../utils/errors.js'
+import { http } from '../../utils/http.js'
 import { safeParseJSON } from '../../utils/json.js'
 import {
   getAPIProvider,
@@ -322,7 +322,7 @@ async function fetchPolicyLimits(
       headers['If-None-Match'] = `"${cachedChecksum}"`
     }
 
-    const response = await axios.get(endpoint, {
+    const response = await http.get(endpoint, {
       headers,
       timeout: FETCH_TIMEOUT_MS,
       validateStatus: status =>

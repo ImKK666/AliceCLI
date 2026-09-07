@@ -10,7 +10,6 @@
  */
 
 import { feature } from 'bun:bundle'
-import axios from 'axios'
 import { mkdir, readFile, stat, writeFile } from 'fs/promises'
 import pickBy from 'lodash-es/pickBy.js'
 import { dirname } from 'path'
@@ -27,7 +26,8 @@ import {
 import { clearMemoryFileCaches } from '../../utils/claudemd.js'
 import { getMemoryPath } from '../../utils/config.js'
 import { logForDiagnosticsNoPII } from '../../utils/diagLogs.js'
-import { classifyAxiosError } from '../../utils/errors.js'
+import { errorMessage } from '../../utils/errors.js'
+import { http, isHttpError, isHttpAbortError } from '../../utils/http.js'
 import { getRepoRemoteHash } from '../../utils/git.js'
 import {
   getAPIProvider,
@@ -263,7 +263,7 @@ async function fetchUserSettingsOnce(): Promise<SettingsSyncFetchResult> {
     }
 
     const endpoint = getSettingsSyncEndpoint()
-    const response = await axios.get(endpoint, {
+    const response = await http.get(endpoint, {
       headers,
       timeout: SETTINGS_SYNC_TIMEOUT_MS,
       validateStatus: status => status === 200 || status === 404,
@@ -294,21 +294,21 @@ async function fetchUserSettingsOnce(): Promise<SettingsSyncFetchResult> {
       isEmpty: false,
     }
   } catch (error) {
-    const { kind, message } = classifyAxiosError(error)
-    switch (kind) {
-      case 'auth':
+    if (isHttpAbortError(error)) {
+      return { success: false, error: 'Settings sync request timeout' }
+    }
+    if (isHttpError(error)) {
+      const status = error.status
+      if (status === 401 || status === 403) {
         return {
           success: false,
           error: 'Not authorized for settings sync',
           skipRetry: true,
         }
-      case 'timeout':
-        return { success: false, error: 'Settings sync request timeout' }
-      case 'network':
-        return { success: false, error: 'Cannot connect to server' }
-      default:
-        return { success: false, error: message }
+      }
+      return { success: false, error: `HTTP ${status}` }
     }
+    return { success: false, error: errorMessage(error) }
   }
 }
 
@@ -365,7 +365,7 @@ async function uploadUserSettings(
     }
 
     const endpoint = getSettingsSyncEndpoint()
-    const response = await axios.put(
+    const response = await http.put(
       endpoint,
       { entries },
       {
@@ -377,10 +377,11 @@ async function uploadUserSettings(
     logForDiagnosticsNoPII('info', 'settings_sync_uploaded', {
       entryCount: Object.keys(entries).length,
     })
+    const respData = response.data as Record<string, unknown> | undefined
     return {
       success: true,
-      checksum: response.data?.checksum,
-      lastModified: response.data?.lastModified,
+      checksum: respData?.checksum as string | undefined,
+      lastModified: respData?.lastModified as string | undefined,
     }
   } catch (error) {
     logForDiagnosticsNoPII('warn', 'settings_sync_upload_error')

@@ -18,11 +18,11 @@
  * Reuses the same base-URL + auth-header pattern as memoryStoresApi.ts / triggersApi.ts.
  */
 
-import axios from 'axios'
 import { getOauthConfig } from '../../constants/oauth.js'
 import { assertWorkspaceHost } from '../../services/auth/hostGuard.js'
-import { prepareWorkspaceApiRequest } from '../../utils/teleport/api.js'
+import { http, isHttpError } from '../../utils/http.js'
 import { sanitizeId } from '../../utils/sanitizeId.js'
+import { prepareWorkspaceApiRequest } from '../../utils/teleport/api.js'
 
 export type Vault = {
   vault_id: string
@@ -105,8 +105,8 @@ function vaultsBaseUrl(): string {
 
 function classifyError(err: unknown, id?: string): VaultsApiError {
   const safeId = id ? ` (${sanitizeId(id)})` : ''
-  if (axios.isAxiosError(err)) {
-    const status = err.response?.status ?? 0
+  if (isHttpError(err)) {
+    const status = err.status
     if (status === 401) {
       return new VaultsApiError(
         'Authentication failed. Please run /login to re-authenticate.',
@@ -123,16 +123,13 @@ function classifyError(err: unknown, id?: string): VaultsApiError {
       return new VaultsApiError(`Vault or credential not found${safeId}.`, 404)
     }
     if (status === 429) {
-      const retryAfter =
-        (err.response?.headers as Record<string, string> | undefined)?.[
-          'retry-after'
-        ] ?? ''
+      const retryAfter = err.response.headers.get('retry-after') ?? ''
       const detail = retryAfter ? ` Retry after ${retryAfter}s.` : ''
       return new VaultsApiError(`Rate limit exceeded.${detail}`, 429)
     }
     const msg =
-      (err.response?.data as { error?: { message?: string } } | undefined)
-        ?.error?.message ?? err.message
+      (err.data as { error?: { message?: string } } | undefined)?.error
+        ?.message ?? err.message
     return new VaultsApiError(msg, status)
   }
   if (err instanceof VaultsApiError) return err
@@ -164,10 +161,8 @@ async function withRetry<T>(fn: () => Promise<T>, id?: string): Promise<T> {
       if (classified.statusCode >= 500) {
         lastErr = classified
         if (attempt < MAX_RETRIES - 1) {
-          const retryAfterHeader = axios.isAxiosError(err)
-            ? (err.response?.headers as Record<string, string> | undefined)?.[
-                'retry-after'
-              ]
+          const retryAfterHeader = isHttpError(err)
+            ? (err.response.headers.get('retry-after') ?? undefined)
             : undefined
           const waitMs =
             parseRetryAfterMs(retryAfterHeader) ?? 500 * 2 ** attempt
@@ -186,7 +181,7 @@ async function withRetry<T>(fn: () => Promise<T>, id?: string): Promise<T> {
 export async function listVaults(): Promise<Vault[]> {
   return withRetry(async () => {
     const headers = await buildHeaders()
-    const response = await axios.get<ListVaultsResponse>(vaultsBaseUrl(), {
+    const response = await http.get<ListVaultsResponse>(vaultsBaseUrl(), {
       headers,
     })
     return response.data.data ?? []
@@ -197,7 +192,7 @@ export async function createVault(name: string): Promise<Vault> {
   return withRetry(async () => {
     const headers = await buildHeaders()
     const body: CreateVaultBody = { name }
-    const response = await axios.post<Vault>(vaultsBaseUrl(), body, {
+    const response = await http.post<Vault>(vaultsBaseUrl(), body, {
       headers,
     })
     return response.data
@@ -207,7 +202,7 @@ export async function createVault(name: string): Promise<Vault> {
 export async function getVault(id: string): Promise<Vault> {
   return withRetry(async () => {
     const headers = await buildHeaders()
-    const response = await axios.get<Vault>(`${vaultsBaseUrl()}/${id}`, {
+    const response = await http.get<Vault>(`${vaultsBaseUrl()}/${id}`, {
       headers,
     })
     return response.data
@@ -223,7 +218,7 @@ export async function getVault(id: string): Promise<Vault> {
 export async function archiveVault(id: string): Promise<Vault> {
   return withRetry(async () => {
     const headers = await buildHeaders()
-    const response = await axios.post<Vault>(
+    const response = await http.post<Vault>(
       `${vaultsBaseUrl()}/${id}/archive`,
       {},
       { headers },
@@ -237,7 +232,7 @@ export async function archiveVault(id: string): Promise<Vault> {
 export async function listCredentials(vaultId: string): Promise<Credential[]> {
   return withRetry(async () => {
     const headers = await buildHeaders()
-    const response = await axios.get<ListCredentialsResponse>(
+    const response = await http.get<ListCredentialsResponse>(
       `${vaultsBaseUrl()}/${vaultId}/credentials`,
       { headers },
     )
@@ -259,7 +254,7 @@ export async function addCredential(
   return withRetry(async () => {
     const headers = await buildHeaders()
     const body: AddCredentialBody = { key, secret }
-    const response = await axios.post<Credential>(
+    const response = await http.post<Credential>(
       `${vaultsBaseUrl()}/${vaultId}/credentials`,
       body,
       { headers },
@@ -280,7 +275,7 @@ export async function archiveCredential(
 ): Promise<Credential> {
   return withRetry(async () => {
     const headers = await buildHeaders()
-    const response = await axios.post<Credential>(
+    const response = await http.post<Credential>(
       `${vaultsBaseUrl()}/${vaultId}/credentials/${credentialId}/archive`,
       {},
       { headers },

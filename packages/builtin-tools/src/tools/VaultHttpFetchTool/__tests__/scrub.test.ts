@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import {
   buildDerivedSecretForms,
   scrubAllSecretForms,
-  scrubAxiosError,
+  scrubRequestError,
   scrubResponseHeaders,
   truncateToBytes,
 } from '../scrub.js'
@@ -236,7 +236,7 @@ describe('truncateToBytes (H1: byte-aware reason capping)', () => {
   })
 })
 
-describe('scrubAxiosError', () => {
+describe('scrubRequestError', () => {
   test('NEVER stringifies raw Error / AxiosError (would expose .config.headers)', () => {
     // Mimic an axios-like error with config.headers carrying Authorization
     class FakeAxiosError extends Error {
@@ -244,7 +244,7 @@ describe('scrubAxiosError', () => {
     }
     const e = new FakeAxiosError('Request failed with status code 401')
     const forms = buildDerivedSecretForms('XSECRETXX')
-    const result = scrubAxiosError(e, forms)
+    const result = scrubRequestError(e, forms)
     expect(result).not.toContain('XSECRETXX')
     expect(result).not.toContain('Bearer')
     // Should be a synthetic safe summary, not JSON.stringify of the error
@@ -254,13 +254,13 @@ describe('scrubAxiosError', () => {
   test('scrubs secret-derived strings in error.message', () => {
     const e = new Error('Bearer XSECRETXX failed')
     const forms = buildDerivedSecretForms('XSECRETXX')
-    const result = scrubAxiosError(e, forms)
+    const result = scrubRequestError(e, forms)
     expect(result).toBe('Request failed: [REDACTED] failed')
   })
 
   test('handles non-Error throwable', () => {
-    expect(scrubAxiosError('boom', [])).toBe('Request failed (unknown error)')
-    expect(scrubAxiosError({ status: 500 }, [])).toBe(
+    expect(scrubRequestError('boom', [])).toBe('Request failed (unknown error)')
+    expect(scrubRequestError({ status: 500 }, [])).toBe(
       'Request failed (unknown error)',
     )
   })

@@ -8,8 +8,8 @@
  *   - Proper content snippet extraction from Exa responses
  */
 
-import axios from 'axios'
 import { AbortError } from 'src/utils/errors.js'
+import { http, isHttpAbortError } from 'src/utils/http.js'
 import { getSettings_DEPRECATED } from 'src/utils/settings/settings.js'
 import type { SearchResult, SearchOptions, WebSearchAdapter } from './types.js'
 
@@ -55,7 +55,7 @@ export class ExaSearchAdapter implements WebSearchAdapter {
 
     let responseText: string
     try {
-      const response = await axios.post(
+      const response = await http.post<string>(
         exaUrl,
         {
           jsonrpc: '2.0',
@@ -79,9 +79,9 @@ export class ExaSearchAdapter implements WebSearchAdapter {
           responseType: 'text',
         },
       )
-      responseText = response.data as string
+      responseText = response.data
     } catch (e) {
-      if (axios.isCancel(e) || abortController.signal.aborted) {
+      if (isHttpAbortError(e) || abortController.signal.aborted) {
         throw new AbortError()
       }
       throw e

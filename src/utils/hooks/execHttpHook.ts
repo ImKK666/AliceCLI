@@ -1,4 +1,5 @@
-import axios from 'axios'
+import { lookup as dnsLookup } from 'dns'
+import { isIP } from 'net'
 import type { HookEvent } from 'src/entrypoints/agentSdkTypes.js'
 import { createCombinedAbortSignal } from '../combinedAbortSignal.js'
 import { logForDebugging } from '../debug.js'
@@ -7,7 +8,7 @@ import { getProxyUrl, shouldBypassProxy } from '../proxy.js'
 // Import as namespace so spyOn works in tests (direct imports bypass spies)
 import * as settingsModule from '../settings/settings.js'
 import type { HttpHook } from '../settings/types.js'
-import { ssrfGuardedLookup } from './ssrfGuard.js'
+import { isBlockedAddress } from './ssrfGuard.js'
 
 const DEFAULT_HTTP_HOOK_TIMEOUT_MS = 10 * 60 * 1000 // 10 minutes (matches TOOL_HOOK_EXECUTION_TIMEOUT_MS)
 
@@ -109,6 +110,47 @@ function interpolateEnvVars(
 }
 
 /**
+ * Pre-flight SSRF check: resolve the hostname and reject blocked addresses.
+ * Replaces axios's `lookup` callback. Has a small TOCTOU window (DNS can
+ * change between check and fetch), but matches the security posture of the
+ * original implementation.
+ */
+async function ssrfPreflightCheck(url: string): Promise<void> {
+  const { hostname } = new URL(url)
+
+  // IP literal — check directly
+  if (isIP(hostname) !== 0) {
+    if (isBlockedAddress(hostname)) {
+      throw new Error(
+        `HTTP hook blocked: ${hostname} is a private/link-local address. Loopback (127.0.0.1, ::1) is allowed for local dev.`,
+      )
+    }
+    return
+  }
+
+  // Resolve hostname and check all addresses
+  await new Promise<void>((resolve, reject) => {
+    dnsLookup(hostname, { all: true }, (err, addresses) => {
+      if (err) {
+        reject(err)
+        return
+      }
+      for (const { address } of addresses) {
+        if (isBlockedAddress(address)) {
+          reject(
+            new Error(
+              `HTTP hook blocked: ${hostname} resolves to ${address} (private/link-local address). Loopback (127.0.0.1, ::1) is allowed for local dev.`,
+            ),
+          )
+          return
+        }
+      }
+      resolve()
+    })
+  })
+}
+
+/**
  * Execute an HTTP hook by POSTing the hook input JSON to the configured URL.
  * Returns the raw response for the caller to interpret.
  *
@@ -199,27 +241,26 @@ export async function execHttpHook(
       logForDebugging(`Hooks: HTTP hook POST to ${hook.url}`)
     }
 
-    const response = await axios.post<string>(hook.url, jsonInput, {
+    // SSRF guard: pre-flight DNS check to block private/link-local ranges
+    // (but allow loopback for local dev). Skipped when any proxy is in
+    // use — the proxy performs DNS for the target, and applying the
+    // guard would instead validate the proxy's own IP, breaking
+    // connections to corporate proxies on private networks.
+    if (!sandboxProxy && !envProxyActive) {
+      await ssrfPreflightCheck(hook.url)
+    }
+
+    const response = await fetch(hook.url, {
+      method: 'POST',
       headers,
+      body: jsonInput,
       signal: combinedSignal,
-      responseType: 'text',
-      validateStatus: () => true,
-      maxRedirects: 0,
-      // Explicit false prevents axios's own env-var proxy detection; when an
-      // env-var proxy is configured, the global axios interceptor installed
-      // by configureGlobalAgents() handles it via httpsAgent instead.
-      proxy: sandboxProxy ?? false,
-      // SSRF guard: validate resolved IPs, block private/link-local ranges
-      // (but allow loopback for local dev). Skipped when any proxy is in
-      // use — the proxy performs DNS for the target, and applying the
-      // guard would instead validate the proxy's own IP, breaking
-      // connections to corporate proxies on private networks.
-      lookup: sandboxProxy || envProxyActive ? undefined : ssrfGuardedLookup,
+      redirect: 'manual',
     })
 
     cleanup()
 
-    const body = response.data ?? ''
+    const body = await response.text()
     logForDebugging(
       `Hooks: HTTP hook response status ${response.status}, body length ${body.length}`,
     )

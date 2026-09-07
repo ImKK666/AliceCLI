@@ -1,4 +1,3 @@
-import axios from 'axios'
 import { z } from 'zod/v4'
 import { getOauthConfig } from 'src/constants/oauth.js'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from 'src/services/analytics/growthbook.js'
@@ -10,6 +9,7 @@ import {
   checkAndRefreshOAuthTokenIfNeeded,
   getClaudeAIOAuthTokens,
 } from 'src/utils/auth.js'
+import { http } from 'src/utils/http.js'
 import { lazySchema } from 'src/utils/lazySchema.js'
 import { appendRemoteTriggerAuditRecord } from 'src/utils/remoteTriggerAudit.js'
 import { jsonStringify } from 'src/utils/slowOperations.js'
@@ -139,11 +139,8 @@ export const RemoteTriggerTool = buildTool({
           break
       }
 
-      const res = await axios.request({
-        method,
-        url,
+      const res = await http.request(method, url, data, {
         headers,
-        data,
         timeout: 20_000,
         signal: context.abortController.signal,
         validateStatus: () => true,

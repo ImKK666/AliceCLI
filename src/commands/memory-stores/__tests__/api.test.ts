@@ -22,7 +22,7 @@ import {
 } from 'bun:test'
 import { debugMock } from '../../../../tests/mocks/debug.js'
 import { logMock } from '../../../../tests/mocks/log.js'
-import { setupAxiosMock } from '../../../../tests/mocks/axios.js'
+import { setupHttpMock } from '../../../../tests/mocks/httpClient.js'
 
 mock.module('src/utils/log.ts', logMock)
 mock.module('src/utils/debug.ts', debugMock)
@@ -47,27 +47,17 @@ mock.module('src/utils/teleport/api.js', () => ({
 // (mocked to https://api.anthropic.com), which passes the host guard.
 // Mocking hostGuard would pollute hostGuard's own test file via Bun process-level cache.
 
-// ── Axios mock ──────────────────────────────────────────────────────────────
-const axiosGetMock = mock(async () => ({}))
-const axiosPostMock = mock(async () => ({}))
-const axiosPatchMock = mock(async () => ({}))
-const axiosDeleteMock = mock(async () => ({}))
+// ── HTTP mock ───────────────────────────────────────────────────────────────
+const httpGetMock = mock(async () => ({}))
+const httpPostMock = mock(async () => ({}))
+const httpPatchMock = mock(async () => ({}))
+const httpDeleteMock = mock(async () => ({}))
 
-const axiosIsAxiosError = mock((err: unknown) => {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'isAxiosError' in err &&
-    (err as { isAxiosError: boolean }).isAxiosError === true
-  )
-})
-
-const axiosHandle = setupAxiosMock()
-axiosHandle.stubs.get = axiosGetMock
-axiosHandle.stubs.post = axiosPostMock
-axiosHandle.stubs.patch = axiosPatchMock
-axiosHandle.stubs.delete = axiosDeleteMock
-axiosHandle.stubs.isAxiosError = axiosIsAxiosError
+const httpHandle = setupHttpMock()
+httpHandle.stubs.get = httpGetMock
+httpHandle.stubs.post = httpPostMock
+httpHandle.stubs.patch = httpPatchMock
+httpHandle.stubs.delete = httpDeleteMock
 
 // ── Lazy import after mocks ─────────────────────────────────────────────────
 let listStores: typeof import('../memoryStoresApi.js').listStores
@@ -83,7 +73,7 @@ let listVersions: typeof import('../memoryStoresApi.js').listVersions
 let redactVersion: typeof import('../memoryStoresApi.js').redactVersion
 
 beforeAll(async () => {
-  axiosHandle.useStubs = true
+  httpHandle.useStubs = true
   const mod = await import('../memoryStoresApi.js')
   listStores = mod.listStores
   getStore = mod.getStore
@@ -99,14 +89,14 @@ beforeAll(async () => {
 })
 
 afterAll(() => {
-  axiosHandle.useStubs = false
+  httpHandle.useStubs = false
 })
 
 beforeEach(() => {
-  axiosGetMock.mockClear()
-  axiosPostMock.mockClear()
-  axiosPatchMock.mockClear()
-  axiosDeleteMock.mockClear()
+  httpGetMock.mockClear()
+  httpPostMock.mockClear()
+  httpPatchMock.mockClear()
+  httpDeleteMock.mockClear()
   prepareWorkspaceApiRequestMock.mockClear()
   process.env['ANTHROPIC_API_KEY'] = mockApiKey
 })
@@ -123,16 +113,16 @@ describe('updateMemory regression: must use PATCH not POST', () => {
       memory_store_id: 'ms_1',
       content: 'Updated content',
     }
-    axiosPatchMock.mockResolvedValueOnce({ data: updated, status: 200 })
+    httpPatchMock.mockResolvedValueOnce({ data: updated, status: 200 })
 
     await updateMemory('ms_1', 'mem_upd', 'Updated content')
 
     // PATCH must have been called
-    expect(axiosPatchMock).toHaveBeenCalledTimes(1)
+    expect(httpPatchMock).toHaveBeenCalledTimes(1)
     // POST must NOT have been called for update
-    expect(axiosPostMock).not.toHaveBeenCalled()
+    expect(httpPostMock).not.toHaveBeenCalled()
     // The URL must contain the store id, memories path, and memory id
-    const calls = axiosPatchMock.mock.calls as unknown as [
+    const calls = httpPatchMock.mock.calls as unknown as [
       string,
       unknown,
       unknown,
@@ -156,93 +146,76 @@ describe('listStores', () => {
         created_at: '2026-01-01T00:00:00Z',
       },
     ]
-    axiosGetMock.mockResolvedValueOnce({ data: { data: stores }, status: 200 })
+    httpGetMock.mockResolvedValueOnce({ data: { data: stores }, status: 200 })
 
     const result = await listStores()
     expect(result).toHaveLength(1)
     expect(result[0]!.memory_store_id).toBe('ms_1')
-    expect(axiosGetMock).toHaveBeenCalledTimes(1)
-    const calls = axiosGetMock.mock.calls as unknown as [string, unknown][]
+    expect(httpGetMock).toHaveBeenCalledTimes(1)
+    const calls = httpGetMock.mock.calls as unknown as [string, unknown][]
     expect(calls[0]?.[0]).toContain('/v1/memory_stores')
   })
 
   test('returns empty array on empty response', async () => {
-    axiosGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
+    httpGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
     const result = await listStores()
     expect(result).toHaveLength(0)
   })
 
   test('throws 401 with friendly message', async () => {
     const err = Object.assign(new Error('Unauthorized'), {
-      isAxiosError: true,
-      response: { status: 401, data: {} },
+      status: 401,
+      data: {},
+      statusText: 'Unauthorized',
+      response: new Response(null, { status: 401 }),
     })
-    axiosGetMock.mockRejectedValueOnce(err)
-    axiosIsAxiosError.mockImplementation(
-      (e: unknown) =>
-        typeof e === 'object' &&
-        e !== null &&
-        'isAxiosError' in e &&
-        (e as { isAxiosError: boolean }).isAxiosError === true,
-    )
+    httpGetMock.mockRejectedValueOnce(err)
     await expect(listStores()).rejects.toThrow(/login|authenticate/i)
   })
 
   test('throws 403 with subscription message', async () => {
     const err = Object.assign(new Error('Forbidden'), {
-      isAxiosError: true,
-      response: { status: 403, data: {} },
+      status: 403,
+      data: {},
+      statusText: 'Forbidden',
+      response: new Response(null, { status: 403 }),
     })
-    axiosGetMock.mockRejectedValueOnce(err)
-    axiosIsAxiosError.mockImplementation(
-      (e: unknown) =>
-        typeof e === 'object' &&
-        e !== null &&
-        'isAxiosError' in e &&
-        (e as { isAxiosError: boolean }).isAxiosError === true,
-    )
+    httpGetMock.mockRejectedValueOnce(err)
     await expect(listStores()).rejects.toThrow(/subscription|pro|max|team/i)
   })
 
   test('retries on 5xx and eventually throws', async () => {
     const make5xx = () =>
       Object.assign(new Error('Server Error'), {
-        isAxiosError: true,
-        response: { status: 500, data: {} },
+        status: 500,
+        data: {},
+        statusText: 'Internal Server Error',
+        response: new Response(null, { status: 500 }),
       })
-    axiosGetMock
+    httpGetMock
       .mockRejectedValueOnce(make5xx())
       .mockRejectedValueOnce(make5xx())
       .mockRejectedValueOnce(make5xx())
-    axiosIsAxiosError.mockImplementation(
-      (e: unknown) =>
-        typeof e === 'object' &&
-        e !== null &&
-        'isAxiosError' in e &&
-        (e as { isAxiosError: boolean }).isAxiosError === true,
-    )
     await expect(listStores()).rejects.toThrow()
-    expect(axiosGetMock).toHaveBeenCalledTimes(3)
+    expect(httpGetMock).toHaveBeenCalledTimes(3)
   }, 15000)
 
   test('honors Retry-After header on 5xx', async () => {
     const serverErr = Object.assign(new Error('Service Unavailable'), {
-      isAxiosError: true,
-      response: { status: 503, data: {}, headers: { 'retry-after': '0' } },
+      status: 503,
+      data: {},
+      statusText: 'Service Unavailable',
+      response: new Response(null, {
+        status: 503,
+        headers: { 'retry-after': '0' },
+      }),
     })
-    axiosGetMock
+    httpGetMock
       .mockRejectedValueOnce(serverErr)
       .mockResolvedValueOnce({ data: { data: [] }, status: 200 })
-    axiosIsAxiosError.mockImplementation(
-      (e: unknown) =>
-        typeof e === 'object' &&
-        e !== null &&
-        'isAxiosError' in e &&
-        (e as { isAxiosError: boolean }).isAxiosError === true,
-    )
     const result = await listStores()
     expect(result).toHaveLength(0)
-    expect(axiosGetMock).toHaveBeenCalledTimes(2)
+    expect(httpGetMock).toHaveBeenCalledTimes(2)
   })
 })
 
@@ -254,27 +227,22 @@ describe('getStore', () => {
       name: 'Work Store',
       namespace: 'work',
     }
-    axiosGetMock.mockResolvedValueOnce({ data: store, status: 200 })
+    httpGetMock.mockResolvedValueOnce({ data: store, status: 200 })
 
     const result = await getStore('ms_get')
     expect(result.memory_store_id).toBe('ms_get')
-    const calls = axiosGetMock.mock.calls as unknown as [string, unknown][]
+    const calls = httpGetMock.mock.calls as unknown as [string, unknown][]
     expect(calls[0]?.[0]).toContain('ms_get')
   })
 
   test('throws 404 with not found message', async () => {
     const err = Object.assign(new Error('Not Found'), {
-      isAxiosError: true,
-      response: { status: 404, data: {} },
+      status: 404,
+      data: {},
+      statusText: 'Not Found',
+      response: new Response(null, { status: 404 }),
     })
-    axiosGetMock.mockRejectedValueOnce(err)
-    axiosIsAxiosError.mockImplementation(
-      (e: unknown) =>
-        typeof e === 'object' &&
-        e !== null &&
-        'isAxiosError' in e &&
-        (e as { isAxiosError: boolean }).isAxiosError === true,
-    )
+    httpGetMock.mockRejectedValueOnce(err)
     await expect(getStore('nonexistent')).rejects.toThrow(/not found/i)
   })
 })
@@ -287,11 +255,11 @@ describe('createStore', () => {
       name: 'My New Store',
       namespace: 'default',
     }
-    axiosPostMock.mockResolvedValueOnce({ data: store, status: 201 })
+    httpPostMock.mockResolvedValueOnce({ data: store, status: 201 })
 
     const result = await createStore('My New Store')
     expect(result.memory_store_id).toBe('ms_new')
-    const calls = axiosPostMock.mock.calls as unknown as [
+    const calls = httpPostMock.mock.calls as unknown as [
       string,
       unknown,
       unknown,
@@ -312,15 +280,15 @@ describe('archiveStore', () => {
       name: 'Archived Store',
       archived_at: '2026-01-01T00:00:00Z',
     }
-    axiosPostMock.mockResolvedValueOnce({ data: store, status: 200 })
+    httpPostMock.mockResolvedValueOnce({ data: store, status: 200 })
 
     const result = await archiveStore('ms_arc')
     expect(result.memory_store_id).toBe('ms_arc')
     // POST must be called for archive
-    expect(axiosPostMock).toHaveBeenCalledTimes(1)
+    expect(httpPostMock).toHaveBeenCalledTimes(1)
     // DELETE must NOT be called
-    expect(axiosDeleteMock).not.toHaveBeenCalled()
-    const calls = axiosPostMock.mock.calls as unknown as [
+    expect(httpDeleteMock).not.toHaveBeenCalled()
+    const calls = httpPostMock.mock.calls as unknown as [
       string,
       unknown,
       unknown,
@@ -337,7 +305,7 @@ describe('listMemories', () => {
     const memories = [
       { memory_id: 'mem_1', memory_store_id: 'ms_1', content: 'Test memory' },
     ]
-    axiosGetMock.mockResolvedValueOnce({
+    httpGetMock.mockResolvedValueOnce({
       data: { data: memories },
       status: 200,
     })
@@ -345,24 +313,19 @@ describe('listMemories', () => {
     const result = await listMemories('ms_1')
     expect(result).toHaveLength(1)
     expect(result[0]!.memory_id).toBe('mem_1')
-    const calls = axiosGetMock.mock.calls as unknown as [string, unknown][]
+    const calls = httpGetMock.mock.calls as unknown as [string, unknown][]
     expect(calls[0]?.[0]).toContain('ms_1')
     expect(calls[0]?.[0]).toContain('/memories')
   })
 
   test('throws 404 when store not found', async () => {
     const err = Object.assign(new Error('Not Found'), {
-      isAxiosError: true,
-      response: { status: 404, data: {} },
+      status: 404,
+      data: {},
+      statusText: 'Not Found',
+      response: new Response(null, { status: 404 }),
     })
-    axiosGetMock.mockRejectedValueOnce(err)
-    axiosIsAxiosError.mockImplementation(
-      (e: unknown) =>
-        typeof e === 'object' &&
-        e !== null &&
-        'isAxiosError' in e &&
-        (e as { isAxiosError: boolean }).isAxiosError === true,
-    )
+    httpGetMock.mockRejectedValueOnce(err)
     await expect(listMemories('nonexistent')).rejects.toThrow(/not found/i)
   })
 })
@@ -375,11 +338,11 @@ describe('createMemory', () => {
       memory_store_id: 'ms_1',
       content: 'New memory content',
     }
-    axiosPostMock.mockResolvedValueOnce({ data: memory, status: 201 })
+    httpPostMock.mockResolvedValueOnce({ data: memory, status: 201 })
 
     const result = await createMemory('ms_1', 'New memory content')
     expect(result.memory_id).toBe('mem_new')
-    const calls = axiosPostMock.mock.calls as unknown as [
+    const calls = httpPostMock.mock.calls as unknown as [
       string,
       unknown,
       unknown,
@@ -400,11 +363,11 @@ describe('getMemory', () => {
       memory_store_id: 'ms_1',
       content: 'Memory content',
     }
-    axiosGetMock.mockResolvedValueOnce({ data: memory, status: 200 })
+    httpGetMock.mockResolvedValueOnce({ data: memory, status: 200 })
 
     const result = await getMemory('ms_1', 'mem_get')
     expect(result.memory_id).toBe('mem_get')
-    const calls = axiosGetMock.mock.calls as unknown as [string, unknown][]
+    const calls = httpGetMock.mock.calls as unknown as [string, unknown][]
     expect(calls[0]?.[0]).toContain('ms_1')
     expect(calls[0]?.[0]).toContain('/memories/')
     expect(calls[0]?.[0]).toContain('mem_get')
@@ -414,10 +377,10 @@ describe('getMemory', () => {
 // ── deleteMemory ──────────────────────────────────────────────────────────
 describe('deleteMemory', () => {
   test('calls DELETE /v1/memory_stores/{id}/memories/{mid}', async () => {
-    axiosDeleteMock.mockResolvedValueOnce({ status: 204 })
+    httpDeleteMock.mockResolvedValueOnce({ status: 204 })
 
     await deleteMemory('ms_1', 'mem_del')
-    const calls = axiosDeleteMock.mock.calls as unknown as [string, unknown][]
+    const calls = httpDeleteMock.mock.calls as unknown as [string, unknown][]
     const url = calls[0]?.[0] as string
     expect(url).toContain('ms_1')
     expect(url).toContain('/memories/')
@@ -426,17 +389,12 @@ describe('deleteMemory', () => {
 
   test('throws 401 when not authenticated', async () => {
     const err = Object.assign(new Error('Unauthorized'), {
-      isAxiosError: true,
-      response: { status: 401, data: {} },
+      status: 401,
+      data: {},
+      statusText: 'Unauthorized',
+      response: new Response(null, { status: 401 }),
     })
-    axiosDeleteMock.mockRejectedValueOnce(err)
-    axiosIsAxiosError.mockImplementation(
-      (e: unknown) =>
-        typeof e === 'object' &&
-        e !== null &&
-        'isAxiosError' in e &&
-        (e as { isAxiosError: boolean }).isAxiosError === true,
-    )
+    httpDeleteMock.mockRejectedValueOnce(err)
     await expect(deleteMemory('ms_1', 'mem_x')).rejects.toThrow(
       /login|authenticate/i,
     )
@@ -453,7 +411,7 @@ describe('listVersions', () => {
         created_at: '2026-01-01T00:00:00Z',
       },
     ]
-    axiosGetMock.mockResolvedValueOnce({
+    httpGetMock.mockResolvedValueOnce({
       data: { data: versions },
       status: 200,
     })
@@ -461,7 +419,7 @@ describe('listVersions', () => {
     const result = await listVersions('ms_1')
     expect(result).toHaveLength(1)
     expect(result[0]!.version_id).toBe('ver_1')
-    const calls = axiosGetMock.mock.calls as unknown as [string, unknown][]
+    const calls = httpGetMock.mock.calls as unknown as [string, unknown][]
     expect(calls[0]?.[0]).toContain('ms_1')
     expect(calls[0]?.[0]).toContain('/memory_versions')
   })
@@ -475,15 +433,15 @@ describe('redactVersion', () => {
       memory_store_id: 'ms_1',
       redacted_at: '2026-01-01T00:00:00Z',
     }
-    axiosPostMock.mockResolvedValueOnce({ data: version, status: 200 })
+    httpPostMock.mockResolvedValueOnce({ data: version, status: 200 })
 
     const result = await redactVersion('ms_1', 'ver_red')
     expect(result.version_id).toBe('ver_red')
     // POST must be called for redact
-    expect(axiosPostMock).toHaveBeenCalledTimes(1)
+    expect(httpPostMock).toHaveBeenCalledTimes(1)
     // DELETE must NOT be called
-    expect(axiosDeleteMock).not.toHaveBeenCalled()
-    const calls = axiosPostMock.mock.calls as unknown as [
+    expect(httpDeleteMock).not.toHaveBeenCalled()
+    const calls = httpPostMock.mock.calls as unknown as [
       string,
       unknown,
       unknown,
@@ -497,17 +455,12 @@ describe('redactVersion', () => {
 
   test('throws 403 with subscription message', async () => {
     const err = Object.assign(new Error('Forbidden'), {
-      isAxiosError: true,
-      response: { status: 403, data: {} },
+      status: 403,
+      data: {},
+      statusText: 'Forbidden',
+      response: new Response(null, { status: 403 }),
     })
-    axiosPostMock.mockRejectedValueOnce(err)
-    axiosIsAxiosError.mockImplementation(
-      (e: unknown) =>
-        typeof e === 'object' &&
-        e !== null &&
-        'isAxiosError' in e &&
-        (e as { isAxiosError: boolean }).isAxiosError === true,
-    )
+    httpPostMock.mockRejectedValueOnce(err)
     await expect(redactVersion('ms_1', 'ver_x')).rejects.toThrow(
       /subscription|pro|max|team/i,
     )
@@ -518,29 +471,27 @@ describe('redactVersion', () => {
 describe('429 rate-limit: not retried (non-5xx)', () => {
   test('throws immediately on 429 without retry', async () => {
     const err = Object.assign(new Error('Too Many Requests'), {
-      isAxiosError: true,
-      response: { status: 429, data: {}, headers: { 'retry-after': '60' } },
+      status: 429,
+      data: {},
+      statusText: 'Too Many Requests',
+      response: new Response(null, {
+        status: 429,
+        headers: { 'retry-after': '60' },
+      }),
     })
-    axiosGetMock.mockRejectedValueOnce(err)
-    axiosIsAxiosError.mockImplementation(
-      (e: unknown) =>
-        typeof e === 'object' &&
-        e !== null &&
-        'isAxiosError' in e &&
-        (e as { isAxiosError: boolean }).isAxiosError === true,
-    )
+    httpGetMock.mockRejectedValueOnce(err)
     await expect(listStores()).rejects.toThrow()
     // Must NOT have retried — 429 is not a 5xx
-    expect(axiosGetMock).toHaveBeenCalledTimes(1)
+    expect(httpGetMock).toHaveBeenCalledTimes(1)
   })
 })
 
 // ── Invariant: buildHeaders must return x-api-key, not Authorization ─────────
 describe('invariant: x-api-key present, no Authorization, no x-organization-uuid', () => {
   test('buildHeaders returns x-api-key header (workspace key)', async () => {
-    axiosGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
+    httpGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
     await listStores()
-    const calls = axiosGetMock.mock.calls as unknown as [
+    const calls = httpGetMock.mock.calls as unknown as [
       string,
       { headers: Record<string, string> },
     ][]
@@ -549,9 +500,9 @@ describe('invariant: x-api-key present, no Authorization, no x-organization-uuid
   })
 
   test('buildHeaders does NOT include Authorization header', async () => {
-    axiosGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
+    httpGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
     await listStores()
-    const calls = axiosGetMock.mock.calls as unknown as [
+    const calls = httpGetMock.mock.calls as unknown as [
       string,
       { headers: Record<string, string> },
     ][]
@@ -560,9 +511,9 @@ describe('invariant: x-api-key present, no Authorization, no x-organization-uuid
   })
 
   test('buildHeaders does NOT include x-organization-uuid header', async () => {
-    axiosGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
+    httpGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
     await listStores()
-    const calls = axiosGetMock.mock.calls as unknown as [
+    const calls = httpGetMock.mock.calls as unknown as [
       string,
       { headers: Record<string, string> },
     ][]
@@ -572,15 +523,15 @@ describe('invariant: x-api-key present, no Authorization, no x-organization-uuid
 
   test('uses prepareWorkspaceApiRequest to obtain API key', async () => {
     prepareWorkspaceApiRequestMock.mockClear()
-    axiosGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
+    httpGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
     await listStores()
     expect(prepareWorkspaceApiRequestMock).toHaveBeenCalledTimes(1)
   })
 
   test('request goes to api.anthropic.com (host guard passes for correct host)', async () => {
-    axiosGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
+    httpGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
     await listStores()
-    const calls = axiosGetMock.mock.calls as unknown as [string, unknown][]
+    const calls = httpGetMock.mock.calls as unknown as [string, unknown][]
     expect(calls[0]?.[0]).toContain('api.anthropic.com')
   })
 })

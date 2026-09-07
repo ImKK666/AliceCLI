@@ -1,6 +1,6 @@
-import axios from 'axios'
 import { logForDebugging } from '../utils/debug.js'
 import { errorMessage } from '../utils/errors.js'
+import { http } from '../utils/http.js'
 import { validateBridgeId } from './bridgeApi.js'
 import { getBridgeAccessToken } from './bridgeConfig.js'
 import { getReplBridgeHandle } from './replBridgeHandle.js'
@@ -77,7 +77,7 @@ export async function postInterClaudeMessage(
 
     const url = `${baseUrl}/v1/sessions/${encodeURIComponent(compatTarget)}/messages`
 
-    const response = await axios.post(
+    const response = await http.post(
       url,
       {
         type: 'peer_message',
@@ -102,9 +102,11 @@ export async function postInterClaudeMessage(
       return { ok: true }
     }
 
+    const respData = response.data as Record<string, unknown> | null
+    const errorObj = respData?.error as Record<string, unknown> | undefined
     const detail =
-      typeof response.data === 'object' && response.data?.error?.message
-        ? response.data.error.message
+      typeof respData === 'object' && typeof errorObj?.message === 'string'
+        ? errorObj.message
         : `HTTP ${response.status}`
     logForDebugging(`[bridge:peer] Send failed: ${detail}`)
     return { ok: false, error: detail }

@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { readFile, stat } from 'fs/promises';
 import * as React from 'react';
 import { useCallback, useEffect, useState } from 'react';
@@ -21,7 +20,7 @@ import { openBrowser } from '../utils/browser.js';
 import { logForDebugging } from '../utils/debug.js';
 import { env } from '../utils/env.js';
 import { type GitRepoState, getGitState, getIsGit } from '../utils/git.js';
-import { getAuthHeaders, getUserAgent } from '../utils/http.js';
+import { getAuthHeaders, getUserAgent, http, isHttpError, isHttpAbortError } from '../utils/http.js';
 import { getInMemoryErrors, logError } from '../utils/log.js';
 import { isEssentialTrafficOnly } from '../utils/privacyLevel.js';
 import {
@@ -620,22 +619,22 @@ async function submitFeedback(
       ...authResult.headers,
     };
 
-    const response = await axios.post(
+    const response = await http.post(
       'https://api.anthropic.com/api/claude_cli_feedback',
       {
         content: jsonStringify(data),
       },
       {
         headers,
-        timeout: 30000, // 30 second timeout to prevent hanging
+        timeout: 30000,
         signal,
       },
     );
 
     if (response.status === 200) {
-      const result = response.data;
+      const result = response.data as Record<string, unknown> | undefined;
       if (result?.feedback_id) {
-        return { success: true, feedbackId: result.feedback_id };
+        return { success: true, feedbackId: result.feedback_id as string };
       }
       sanitizeAndLogError(new Error('Failed to submit feedback: request did not return feedback_id'));
       return { success: false };
@@ -645,12 +644,12 @@ async function submitFeedback(
     return { success: false };
   } catch (err) {
     // Handle cancellation/abort - don't log as error
-    if (axios.isCancel(err)) {
+    if (isHttpAbortError(err)) {
       return { success: false };
     }
 
-    if (axios.isAxiosError(err) && err.response?.status === 403) {
-      const errorData = err.response.data;
+    if (isHttpError(err) && err.status === 403) {
+      const errorData = err.data as Record<string, any> | undefined;
       if (
         errorData?.error?.type === 'permission_error' &&
         errorData?.error?.message?.includes('Custom data retention settings')

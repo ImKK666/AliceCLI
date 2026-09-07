@@ -1,4 +1,3 @@
-import axios from 'axios'
 import { mkdir, readFile, writeFile } from 'fs/promises'
 import { dirname, join } from 'path'
 import { coerce } from 'semver'
@@ -7,6 +6,7 @@ import { getGlobalConfig, saveGlobalConfig } from './config.js'
 import { getClaudeConfigHomeDir } from './envUtils.js'
 import { toError } from './errors.js'
 import { logError } from './log.js'
+import { http } from './http.js'
 import { isEssentialTrafficOnly } from './privacyLevel.js'
 import { gt } from './semver.js'
 
@@ -90,7 +90,9 @@ export async function fetchAndStoreChangelog(): Promise<void> {
     return
   }
 
-  const response = await axios.get(RAW_CHANGELOG_URL)
+  const response = await http.get<string>(RAW_CHANGELOG_URL, {
+    responseType: 'text',
+  })
   if (response.status === 200) {
     const changelogContent = response.data
 

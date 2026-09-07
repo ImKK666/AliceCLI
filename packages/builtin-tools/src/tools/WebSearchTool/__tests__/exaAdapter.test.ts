@@ -1,11 +1,12 @@
 import { afterAll, afterEach, describe, expect, mock, test } from 'bun:test'
-import { setupAxiosMock } from '../../../../../../tests/mocks/axios'
+import { setupHttpMock } from '../../../../../../tests/mocks/httpClient'
 
-// Each test below calls `mock.module('axios', ...)` per-test. Re-register a
-// spread-real axios mock at end-of-file so the per-test stubs do not leak
-// into subsequent test files (mock.module is process-global, last-write-wins).
+// Each test below calls `mock.module('src/utils/http.ts', ...)` per-test.
+// Re-register a spread-real http mock at end-of-file so the per-test stubs
+// do not leak into subsequent test files (mock.module is process-global,
+// last-write-wins).
 afterAll(() => {
-  setupAxiosMock()
+  setupHttpMock()
 })
 
 const _abortMock = () => ({
@@ -20,6 +21,25 @@ const _abortMock = () => ({
 })
 mock.module('src/utils/errors.js', _abortMock)
 mock.module('src/utils/errors', _abortMock)
+
+// Helper: build an http mock factory for per-test mock.module calls.
+function buildHttpMock(
+  httpPost: (...args: unknown[]) => unknown,
+  isAbort?: (e: unknown) => boolean,
+) {
+  const factory = () => ({
+    http: { post: httpPost },
+    isHttpAbortError: isAbort ?? (() => false),
+    isHttpError: () => false,
+    getWebFetchUserAgent: () => 'TestAgent/1.0',
+    HttpError: class extends Error {
+      status = 0
+    },
+  })
+  mock.module('src/utils/http.ts', factory)
+  mock.module('src/utils/http.js', factory)
+  mock.module('src/utils/http', factory)
+}
 
 describe('ExaSearchAdapter.search', () => {
   const createAdapter = async () => {
@@ -48,14 +68,16 @@ describe('ExaSearchAdapter.search', () => {
   })
 
   test('parses structured Title/URL/Content blocks from SSE response', async () => {
-    mock.module('axios', () => ({
-      default: {
-        post: mock(() =>
-          Promise.resolve({ data: buildSseResponse(STRUCTURED_TEXT) }),
-        ),
-        isCancel: () => false,
-      },
-    }))
+    buildHttpMock(
+      mock(() =>
+        Promise.resolve({
+          data: buildSseResponse(STRUCTURED_TEXT),
+          status: 200,
+          statusText: 'OK',
+          headers: new Headers(),
+        }),
+      ),
+    )
 
     const adapter = await createAdapter()
     const results = await adapter.search('test query', {})
@@ -76,14 +98,16 @@ describe('ExaSearchAdapter.search', () => {
   test('parses markdown link fallback when no structured blocks', async () => {
     const markdownText =
       '- [React Docs](https://react.dev/docs)\n- [React Hooks](https://react.dev/hooks)'
-    mock.module('axios', () => ({
-      default: {
-        post: mock(() =>
-          Promise.resolve({ data: buildSseResponse(markdownText) }),
-        ),
-        isCancel: () => false,
-      },
-    }))
+    buildHttpMock(
+      mock(() =>
+        Promise.resolve({
+          data: buildSseResponse(markdownText),
+          status: 200,
+          statusText: 'OK',
+          headers: new Headers(),
+        }),
+      ),
+    )
 
     const adapter = await createAdapter()
     const results = await adapter.search('react', {})
@@ -99,14 +123,16 @@ describe('ExaSearchAdapter.search', () => {
 
   test('parses plain URL fallback', async () => {
     const plainUrlText = 'https://example.com/page1\nhttps://example.com/page2'
-    mock.module('axios', () => ({
-      default: {
-        post: mock(() =>
-          Promise.resolve({ data: buildSseResponse(plainUrlText) }),
-        ),
-        isCancel: () => false,
-      },
-    }))
+    buildHttpMock(
+      mock(() =>
+        Promise.resolve({
+          data: buildSseResponse(plainUrlText),
+          status: 200,
+          statusText: 'OK',
+          headers: new Headers(),
+        }),
+      ),
+    )
 
     const adapter = await createAdapter()
     const results = await adapter.search('test', {})
@@ -116,12 +142,16 @@ describe('ExaSearchAdapter.search', () => {
   })
 
   test('returns empty array for empty response', async () => {
-    mock.module('axios', () => ({
-      default: {
-        post: mock(() => Promise.resolve({ data: '' })),
-        isCancel: () => false,
-      },
-    }))
+    buildHttpMock(
+      mock(() =>
+        Promise.resolve({
+          data: '',
+          status: 200,
+          statusText: 'OK',
+          headers: new Headers(),
+        }),
+      ),
+    )
 
     const adapter = await createAdapter()
     const results = await adapter.search('test', {})
@@ -133,12 +163,16 @@ describe('ExaSearchAdapter.search', () => {
     const jsonResponse = JSON.stringify({
       result: { content: [{ type: 'text', text: STRUCTURED_TEXT }] },
     })
-    mock.module('axios', () => ({
-      default: {
-        post: mock(() => Promise.resolve({ data: jsonResponse })),
-        isCancel: () => false,
-      },
-    }))
+    buildHttpMock(
+      mock(() =>
+        Promise.resolve({
+          data: jsonResponse,
+          status: 200,
+          statusText: 'OK',
+          headers: new Headers(),
+        }),
+      ),
+    )
 
     const adapter = await createAdapter()
     const results = await adapter.search('test', {})
@@ -148,14 +182,16 @@ describe('ExaSearchAdapter.search', () => {
   })
 
   test('calls onProgress with query_update and search_results_received', async () => {
-    mock.module('axios', () => ({
-      default: {
-        post: mock(() =>
-          Promise.resolve({ data: buildSseResponse(STRUCTURED_TEXT) }),
-        ),
-        isCancel: () => false,
-      },
-    }))
+    buildHttpMock(
+      mock(() =>
+        Promise.resolve({
+          data: buildSseResponse(STRUCTURED_TEXT),
+          status: 200,
+          statusText: 'OK',
+          headers: new Headers(),
+        }),
+      ),
+    )
 
     const progressCalls: any[] = []
     const onProgress = (p: any) => progressCalls.push(p)
@@ -181,14 +217,16 @@ describe('ExaSearchAdapter.search', () => {
       'URL: https://blocked.com/b',
     ].join('\n')
 
-    mock.module('axios', () => ({
-      default: {
-        post: mock(() =>
-          Promise.resolve({ data: buildSseResponse(mixedText) }),
-        ),
-        isCancel: () => false,
-      },
-    }))
+    buildHttpMock(
+      mock(() =>
+        Promise.resolve({
+          data: buildSseResponse(mixedText),
+          status: 200,
+          statusText: 'OK',
+          headers: new Headers(),
+        }),
+      ),
+    )
 
     const adapter = await createAdapter()
     const results = await adapter.search('test', {
@@ -208,14 +246,16 @@ describe('ExaSearchAdapter.search', () => {
       'URL: https://spam.com/b',
     ].join('\n')
 
-    mock.module('axios', () => ({
-      default: {
-        post: mock(() =>
-          Promise.resolve({ data: buildSseResponse(mixedText) }),
-        ),
-        isCancel: () => false,
-      },
-    }))
+    buildHttpMock(
+      mock(() =>
+        Promise.resolve({
+          data: buildSseResponse(mixedText),
+          status: 200,
+          statusText: 'OK',
+          headers: new Headers(),
+        }),
+      ),
+    )
 
     const adapter = await createAdapter()
     const results = await adapter.search('test', {
@@ -235,12 +275,16 @@ describe('ExaSearchAdapter.search', () => {
       'URL: https://other.com/page',
     ].join('\n')
 
-    mock.module('axios', () => ({
-      default: {
-        post: mock(() => Promise.resolve({ data: buildSseResponse(text) })),
-        isCancel: () => false,
-      },
-    }))
+    buildHttpMock(
+      mock(() =>
+        Promise.resolve({
+          data: buildSseResponse(text),
+          status: 200,
+          statusText: 'OK',
+          headers: new Headers(),
+        }),
+      ),
+    )
 
     const adapter = await createAdapter()
     const results = await adapter.search('test', {
@@ -252,14 +296,19 @@ describe('ExaSearchAdapter.search', () => {
   })
 
   test('throws AbortError when signal is already aborted', async () => {
-    mock.module('axios', () => ({
-      default: {
-        post: mock(() =>
-          Promise.resolve({ data: buildSseResponse(STRUCTURED_TEXT) }),
-        ),
-        isCancel: () => false,
-      },
-    }))
+    buildHttpMock(
+      mock(() =>
+        Promise.resolve({
+          data: buildSseResponse(STRUCTURED_TEXT),
+          status: 200,
+          statusText: 'OK',
+          headers: new Headers(),
+        }),
+      ),
+      (e: unknown) =>
+        (e instanceof DOMException && e.name === 'AbortError') ||
+        (e instanceof Error && e.name === 'AbortError'),
+    )
 
     const adapter = await createAdapter()
     const controller = new AbortController()
@@ -271,35 +320,31 @@ describe('ExaSearchAdapter.search', () => {
     ).rejects.toThrow(AbortError)
   })
 
-  test('re-throws non-abort axios errors', async () => {
+  test('re-throws non-abort http errors', async () => {
     const networkError = new Error('Network error')
-    mock.module('axios', () => ({
-      default: {
-        post: mock(() => Promise.reject(networkError)),
-        isCancel: () => false,
-      },
-    }))
+    buildHttpMock(mock(() => Promise.reject(networkError)))
 
     const adapter = await createAdapter()
     await expect(adapter.search('test', {})).rejects.toThrow('Network error')
   })
 
   test('sends correct MCP request payload to Exa endpoint', async () => {
-    const axiosPost = mock(() =>
-      Promise.resolve({ data: buildSseResponse(STRUCTURED_TEXT) }),
+    const httpPost = mock(() =>
+      Promise.resolve({
+        data: buildSseResponse(STRUCTURED_TEXT),
+        status: 200,
+        statusText: 'OK',
+        headers: new Headers(),
+      }),
     )
-    mock.module('axios', () => ({
-      default: {
-        post: axiosPost,
-        isCancel: () => false,
-      },
-    }))
+    buildHttpMock(httpPost)
 
     const adapter = await createAdapter()
     await adapter.search('hello world', {})
 
-    expect(axiosPost.mock.calls).toHaveLength(1)
-    const [url, body, config] = (axiosPost.mock.calls as any[][])[0]
+    expect(httpPost.mock.calls).toHaveLength(1)
+    // http.post(url, body, opts) — url is arg[0], body is arg[1], opts is arg[2]
+    const [url, body, config] = (httpPost.mock.calls as any[][])[0]
     expect(url).toBe('https://mcp.exa.ai/mcp')
     expect(body.jsonrpc).toBe('2.0')
     expect(body.method).toBe('tools/call')
@@ -313,15 +358,15 @@ describe('ExaSearchAdapter.search', () => {
   })
 
   test('passes custom search options to MCP request', async () => {
-    const axiosPost = mock(() =>
-      Promise.resolve({ data: buildSseResponse(STRUCTURED_TEXT) }),
+    const httpPost = mock(() =>
+      Promise.resolve({
+        data: buildSseResponse(STRUCTURED_TEXT),
+        status: 200,
+        statusText: 'OK',
+        headers: new Headers(),
+      }),
     )
-    mock.module('axios', () => ({
-      default: {
-        post: axiosPost,
-        isCancel: () => false,
-      },
-    }))
+    buildHttpMock(httpPost)
 
     const adapter = await createAdapter()
     await adapter.search('test', {
@@ -331,7 +376,8 @@ describe('ExaSearchAdapter.search', () => {
       contextMaxCharacters: 20000,
     })
 
-    const [, body] = (axiosPost.mock.calls as any[][])[0]
+    // http.post(url, body, opts) — body is arg[1]
+    const [, body] = (httpPost.mock.calls as any[][])[0]
     expect(body.params.arguments.numResults).toBe(15)
     expect(body.params.arguments.livecrawl).toBe('preferred')
     expect(body.params.arguments.type).toBe('deep')

@@ -8,9 +8,9 @@
  *   getOrganizationUUID() → x-organization-uuid header
  */
 
-import axios from 'axios'
 import { getOauthConfig } from '../../constants/oauth.js'
 import { assertWorkspaceHost } from '../../services/auth/hostGuard.js'
+import { http, isHttpError } from '../../utils/http.js'
 import { prepareWorkspaceApiRequest } from '../../utils/teleport/api.js'
 
 export type AgentTrigger = {
@@ -75,8 +75,8 @@ function agentsBaseUrl(): string {
 }
 
 function classifyError(err: unknown): AgentsApiError {
-  if (axios.isAxiosError(err)) {
-    const status = err.response?.status ?? 0
+  if (isHttpError(err)) {
+    const status = err.status
     if (status === 401) {
       return new AgentsApiError(
         'Authentication failed. Please run /login to re-authenticate.',
@@ -94,16 +94,13 @@ function classifyError(err: unknown): AgentsApiError {
     }
     // G2: add 429 handler (was missing; other P2 clients have it)
     if (status === 429) {
-      const retryAfter =
-        (err.response?.headers as Record<string, string> | undefined)?.[
-          'retry-after'
-        ] ?? ''
+      const retryAfter = err.response.headers.get('retry-after') ?? ''
       const detail = retryAfter ? ` Retry after ${retryAfter}s.` : ''
       return new AgentsApiError(`Rate limit exceeded.${detail}`, 429)
     }
     const msg =
-      (err.response?.data as { error?: { message?: string } } | undefined)
-        ?.error?.message ?? err.message
+      (err.data as { error?: { message?: string } } | undefined)?.error
+        ?.message ?? err.message
     return new AgentsApiError(msg, status)
   }
   if (err instanceof AgentsApiError) return err
@@ -136,10 +133,8 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
         lastErr = classified
         if (attempt < MAX_RETRIES - 1) {
           // Honor Retry-After if present; fall back to exponential backoff.
-          const retryAfterHeader = axios.isAxiosError(err)
-            ? (err.response?.headers as Record<string, string> | undefined)?.[
-                'retry-after'
-              ]
+          const retryAfterHeader = isHttpError(err)
+            ? (err.response.headers.get('retry-after') ?? undefined)
             : undefined
           const waitMs =
             parseRetryAfterMs(retryAfterHeader) ?? 500 * 2 ** attempt
@@ -156,7 +151,7 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
 export async function listAgents(): Promise<AgentTrigger[]> {
   return withRetry(async () => {
     const headers = await buildHeaders()
-    const response = await axios.get<ListAgentsResponse>(agentsBaseUrl(), {
+    const response = await http.get<ListAgentsResponse>(agentsBaseUrl(), {
       headers,
     })
     return response.data.data ?? []
@@ -169,7 +164,7 @@ export async function createAgent(
 ): Promise<AgentTrigger> {
   return withRetry(async () => {
     const headers = await buildHeaders()
-    const response = await axios.post<AgentTrigger>(
+    const response = await http.post<AgentTrigger>(
       agentsBaseUrl(),
       {
         cron_expr: cron,
@@ -189,14 +184,14 @@ export async function createAgent(
 export async function deleteAgent(id: string): Promise<void> {
   return withRetry(async () => {
     const headers = await buildHeaders()
-    await axios.delete(`${agentsBaseUrl()}/${id}`, { headers })
+    await http.delete(`${agentsBaseUrl()}/${id}`, { headers })
   })
 }
 
 export async function runAgent(id: string): Promise<AgentRunResponse> {
   return withRetry(async () => {
     const headers = await buildHeaders()
-    const response = await axios.post<AgentRunResponse>(
+    const response = await http.post<AgentRunResponse>(
       `${agentsBaseUrl()}/${id}/run`,
       {},
       { headers },

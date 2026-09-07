@@ -1,8 +1,8 @@
-import axios, { type AxiosError } from 'axios'
 import type { StdoutMessage } from 'src/entrypoints/sdk/controlTypes.js'
 import { logForDebugging } from '../../utils/debug.js'
 import { rcLog } from '../../bridge/rcDebugLog.js'
 import { logForDiagnosticsNoPII } from '../../utils/diagLogs.js'
+import { http } from '../../utils/http.js'
 import { getSessionIngressAuthToken } from '../../utils/sessionIngressAuth.js'
 import { SerialBatchEventUploader } from './SerialBatchEventUploader.js'
 import {
@@ -215,7 +215,7 @@ export class HybridTransport extends WebSocketTransport {
 
     let response
     try {
-      response = await axios.post(
+      response = await http.post(
         this.postUrl,
         { events },
         {
@@ -225,8 +225,8 @@ export class HybridTransport extends WebSocketTransport {
         },
       )
     } catch (error) {
-      const axiosError = error as AxiosError
-      logForDebugging(`HybridTransport: POST error: ${axiosError.message}`)
+      const err = error as Error
+      logForDebugging(`HybridTransport: POST error: ${err.message}`)
       logForDiagnosticsNoPII('warn', 'cli_hybrid_post_network_error')
       throw error
     }

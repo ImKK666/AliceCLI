@@ -9,22 +9,24 @@ import {
   test,
 } from 'bun:test'
 import { authMock } from '../../../../../../tests/mocks/auth'
-import { setupAxiosMock } from '../../../../../../tests/mocks/axios'
+import { setupHttpMock } from '../../../../../../tests/mocks/httpClient'
 
 let requestStatus = 200
 const auditRecords: Record<string, unknown>[] = []
 
-const axiosHandle = setupAxiosMock()
-axiosHandle.stubs.request = async () => ({
+const httpHandle = setupHttpMock()
+httpHandle.stubs.request = async () => ({
   status: requestStatus,
+  statusText: 'OK',
   data: { ok: requestStatus >= 200 && requestStatus < 300 },
+  headers: new Headers(),
 })
 
 beforeAll(() => {
-  axiosHandle.useStubs = true
+  httpHandle.useStubs = true
 })
 afterAll(() => {
-  axiosHandle.useStubs = false
+  httpHandle.useStubs = false
 })
 
 mock.module('src/utils/auth.js', authMock)

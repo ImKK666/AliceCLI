@@ -1,11 +1,11 @@
 import type { McpbManifestAny as McpbManifest } from '@anthropic-ai/mcpb'
-import axios from 'axios'
 import { createHash } from 'crypto'
 import { chmod, writeFile } from 'fs/promises'
 import { dirname, join } from 'path'
 import type { McpServerConfig } from '../../services/mcp/types.js'
 import { logForDebugging } from '../debug.js'
 import { parseAndValidateManifestFromBytes } from '../dxt/helpers.js'
+import { http } from '../http.js'
 import { parseZipModes, unzipFile } from '../dxt/zip.js'
 import { errorMessage, getErrnoCode, isENOENT, toError } from '../errors.js'
 import { getFsImplementation } from '../fsOperations.js'
@@ -502,18 +502,9 @@ async function downloadMcpb(
   const started = performance.now()
   let fetchTelemetryFired = false
   try {
-    const response = await axios.get(url, {
+    const response = await http.get<ArrayBuffer>(url, {
       timeout: 120000, // 2 minute timeout
       responseType: 'arraybuffer',
-      maxRedirects: 5, // Follow redirects (like curl -L)
-      onDownloadProgress: progressEvent => {
-        if (progressEvent.total && onProgress) {
-          const percent = Math.round(
-            (progressEvent.loaded / progressEvent.total) * 100,
-          )
-          onProgress(`Downloading... ${percent}%`)
-        }
-      },
     })
 
     const data = new Uint8Array(response.data)

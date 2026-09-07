@@ -20,9 +20,9 @@
  * Reuses the same base-URL + auth-header pattern as triggersApi.ts / agentsApi.ts.
  */
 
-import axios from 'axios'
 import { getOauthConfig } from '../../constants/oauth.js'
 import { assertWorkspaceHost } from '../../services/auth/hostGuard.js'
+import { http, isHttpError } from '../../utils/http.js'
 import { prepareWorkspaceApiRequest } from '../../utils/teleport/api.js'
 
 export type MemoryStore = {
@@ -120,8 +120,8 @@ function memoryStoresBaseUrl(): string {
 }
 
 function classifyError(err: unknown): MemoryStoresApiError {
-  if (axios.isAxiosError(err)) {
-    const status = err.response?.status ?? 0
+  if (isHttpError(err)) {
+    const status = err.status
     if (status === 401) {
       return new MemoryStoresApiError(
         'Authentication failed. Please run /login to re-authenticate.',
@@ -138,16 +138,13 @@ function classifyError(err: unknown): MemoryStoresApiError {
       return new MemoryStoresApiError('Memory store or memory not found.', 404)
     }
     if (status === 429) {
-      const retryAfter =
-        (err.response?.headers as Record<string, string> | undefined)?.[
-          'retry-after'
-        ] ?? ''
+      const retryAfter = err.response.headers.get('retry-after') ?? ''
       const detail = retryAfter ? ` Retry after ${retryAfter}s.` : ''
       return new MemoryStoresApiError(`Rate limit exceeded.${detail}`, 429)
     }
     const msg =
-      (err.response?.data as { error?: { message?: string } } | undefined)
-        ?.error?.message ?? err.message
+      (err.data as { error?: { message?: string } } | undefined)?.error
+        ?.message ?? err.message
     return new MemoryStoresApiError(msg, status)
   }
   if (err instanceof MemoryStoresApiError) return err
@@ -182,10 +179,8 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
       if (classified.statusCode >= 500) {
         lastErr = classified
         if (attempt < MAX_RETRIES - 1) {
-          const retryAfterHeader = axios.isAxiosError(err)
-            ? (err.response?.headers as Record<string, string> | undefined)?.[
-                'retry-after'
-              ]
+          const retryAfterHeader = isHttpError(err)
+            ? (err.response.headers.get('retry-after') ?? undefined)
             : undefined
           const waitMs =
             parseRetryAfterMs(retryAfterHeader) ?? 500 * 2 ** attempt
@@ -204,12 +199,9 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
 export async function listStores(): Promise<MemoryStore[]> {
   return withRetry(async () => {
     const headers = await buildHeaders()
-    const response = await axios.get<ListStoresResponse>(
-      memoryStoresBaseUrl(),
-      {
-        headers,
-      },
-    )
+    const response = await http.get<ListStoresResponse>(memoryStoresBaseUrl(), {
+      headers,
+    })
     return response.data.data ?? []
   })
 }
@@ -222,13 +214,9 @@ export async function createStore(
     const headers = await buildHeaders()
     const body: CreateStoreBody = { name }
     if (namespace) body.namespace = namespace
-    const response = await axios.post<MemoryStore>(
-      memoryStoresBaseUrl(),
-      body,
-      {
-        headers,
-      },
-    )
+    const response = await http.post<MemoryStore>(memoryStoresBaseUrl(), body, {
+      headers,
+    })
     return response.data
   })
 }
@@ -236,7 +224,7 @@ export async function createStore(
 export async function getStore(id: string): Promise<MemoryStore> {
   return withRetry(async () => {
     const headers = await buildHeaders()
-    const response = await axios.get<MemoryStore>(
+    const response = await http.get<MemoryStore>(
       `${memoryStoresBaseUrl()}/${id}`,
       { headers },
     )
@@ -253,7 +241,7 @@ export async function getStore(id: string): Promise<MemoryStore> {
 export async function archiveStore(id: string): Promise<MemoryStore> {
   return withRetry(async () => {
     const headers = await buildHeaders()
-    const response = await axios.post<MemoryStore>(
+    const response = await http.post<MemoryStore>(
       `${memoryStoresBaseUrl()}/${id}/archive`,
       {},
       { headers },
@@ -267,7 +255,7 @@ export async function archiveStore(id: string): Promise<MemoryStore> {
 export async function listMemories(storeId: string): Promise<Memory[]> {
   return withRetry(async () => {
     const headers = await buildHeaders()
-    const response = await axios.get<ListMemoriesResponse>(
+    const response = await http.get<ListMemoriesResponse>(
       `${memoryStoresBaseUrl()}/${storeId}/memories`,
       { headers },
     )
@@ -282,7 +270,7 @@ export async function createMemory(
   return withRetry(async () => {
     const headers = await buildHeaders()
     const body: CreateMemoryBody = { content }
-    const response = await axios.post<Memory>(
+    const response = await http.post<Memory>(
       `${memoryStoresBaseUrl()}/${storeId}/memories`,
       body,
       { headers },
@@ -297,7 +285,7 @@ export async function getMemory(
 ): Promise<Memory> {
   return withRetry(async () => {
     const headers = await buildHeaders()
-    const response = await axios.get<Memory>(
+    const response = await http.get<Memory>(
       `${memoryStoresBaseUrl()}/${storeId}/memories/${memoryId}`,
       { headers },
     )
@@ -320,7 +308,7 @@ export async function updateMemory(
   return withRetry(async () => {
     const headers = await buildHeaders()
     const body: UpdateMemoryBody = { content }
-    const response = await axios.patch<Memory>(
+    const response = await http.patch<Memory>(
       `${memoryStoresBaseUrl()}/${storeId}/memories/${memoryId}`,
       body,
       { headers },
@@ -335,7 +323,7 @@ export async function deleteMemory(
 ): Promise<void> {
   return withRetry(async () => {
     const headers = await buildHeaders()
-    await axios.delete(
+    await http.delete(
       `${memoryStoresBaseUrl()}/${storeId}/memories/${memoryId}`,
       { headers },
     )
@@ -347,7 +335,7 @@ export async function deleteMemory(
 export async function listVersions(storeId: string): Promise<MemoryVersion[]> {
   return withRetry(async () => {
     const headers = await buildHeaders()
-    const response = await axios.get<ListVersionsResponse>(
+    const response = await http.get<ListVersionsResponse>(
       `${memoryStoresBaseUrl()}/${storeId}/memory_versions`,
       { headers },
     )
@@ -367,7 +355,7 @@ export async function redactVersion(
 ): Promise<MemoryVersion> {
   return withRetry(async () => {
     const headers = await buildHeaders()
-    const response = await axios.post<MemoryVersion>(
+    const response = await http.post<MemoryVersion>(
       `${memoryStoresBaseUrl()}/${storeId}/memory_versions/${versionId}/redact`,
       {},
       { headers },

@@ -7,15 +7,15 @@ import {
   mock,
   test,
 } from 'bun:test'
-import { setupAxiosMock } from '../../../../../../tests/mocks/axios'
+import { setupHttpMock } from '../../../../../../tests/mocks/httpClient'
 
-// Each test below calls `mock.module('axios', ...)` per-test. Without an
-// afterAll cleanup, the LAST per-test stub leaks into every test file that
-// runs after this one (mock.module is process-global, last-write-wins). The
-// spread-real mock registered here at the end re-routes axios to the real
-// module, undoing the stub leakage so later suites see real axios.
+// Each test below calls `mock.module('src/utils/http.ts', ...)` per-test.
+// Without an afterAll cleanup, the LAST per-test stub leaks into every test
+// file that runs after this one (mock.module is process-global, last-write-wins).
+// The spread-real mock registered here at the end re-routes http to the real
+// module, undoing the stub leakage so later suites see real http.
 afterAll(() => {
-  setupAxiosMock()
+  setupHttpMock()
 })
 
 // Defensive mock: agent.test.ts mocks config.js which can corrupt Bun's
@@ -36,6 +36,25 @@ mock.module('src/utils/errors', _abortMock)
 
 const originalBraveSearchApiKey = process.env.BRAVE_SEARCH_API_KEY
 const originalBraveApiKey = process.env.BRAVE_API_KEY
+
+// Helper: build an http mock factory for per-test mock.module calls.
+function buildHttpMock(
+  httpGet: (...args: any[]) => any,
+  isAbort?: (e: unknown) => boolean,
+) {
+  const factory = () => ({
+    http: { get: httpGet },
+    isHttpAbortError: isAbort ?? (() => false),
+    isHttpError: () => false,
+    getWebFetchUserAgent: () => 'TestAgent/1.0',
+    HttpError: class extends Error {
+      status = 0
+    },
+  })
+  mock.module('src/utils/http.ts', factory)
+  mock.module('src/utils/http.js', factory)
+  mock.module('src/utils/http', factory)
+}
 
 describe('BraveSearchAdapter.search', () => {
   const createAdapter = async () => {
@@ -82,12 +101,16 @@ describe('BraveSearchAdapter.search', () => {
   })
 
   test('returns parsed results from Brave LLM context payload', async () => {
-    mock.module('axios', () => ({
-      default: {
-        get: mock(() => Promise.resolve({ data: SAMPLE_RESPONSE })),
-        isCancel: () => false,
-      },
-    }))
+    buildHttpMock(
+      mock(() =>
+        Promise.resolve({
+          data: SAMPLE_RESPONSE,
+          status: 200,
+          statusText: 'OK',
+          headers: new Headers(),
+        }),
+      ),
+    )
 
     const adapter = await createAdapter()
     const results = await adapter.search('test query', {})
@@ -102,12 +125,16 @@ describe('BraveSearchAdapter.search', () => {
   })
 
   test('calls onProgress with query_update and search_results_received', async () => {
-    mock.module('axios', () => ({
-      default: {
-        get: mock(() => Promise.resolve({ data: SAMPLE_RESPONSE })),
-        isCancel: () => false,
-      },
-    }))
+    buildHttpMock(
+      mock(() =>
+        Promise.resolve({
+          data: SAMPLE_RESPONSE,
+          status: 200,
+          statusText: 'OK',
+          headers: new Headers(),
+        }),
+      ),
+    )
 
     const progressCalls: any[] = []
     const onProgress = (p: any) => progressCalls.push(p)
@@ -137,12 +164,16 @@ describe('BraveSearchAdapter.search', () => {
       },
     }
 
-    mock.module('axios', () => ({
-      default: {
-        get: mock(() => Promise.resolve({ data: mixedResponse })),
-        isCancel: () => false,
-      },
-    }))
+    buildHttpMock(
+      mock(() =>
+        Promise.resolve({
+          data: mixedResponse,
+          status: 200,
+          statusText: 'OK',
+          headers: new Headers(),
+        }),
+      ),
+    )
 
     const adapter = await createAdapter()
     const results = await adapter.search('test', {
@@ -163,12 +194,16 @@ describe('BraveSearchAdapter.search', () => {
       },
     }
 
-    mock.module('axios', () => ({
-      default: {
-        get: mock(() => Promise.resolve({ data: mixedResponse })),
-        isCancel: () => false,
-      },
-    }))
+    buildHttpMock(
+      mock(() =>
+        Promise.resolve({
+          data: mixedResponse,
+          status: 200,
+          statusText: 'OK',
+          headers: new Headers(),
+        }),
+      ),
+    )
 
     const adapter = await createAdapter()
     const results = await adapter.search('test', {
@@ -189,12 +224,16 @@ describe('BraveSearchAdapter.search', () => {
       },
     }
 
-    mock.module('axios', () => ({
-      default: {
-        get: mock(() => Promise.resolve({ data: response })),
-        isCancel: () => false,
-      },
-    }))
+    buildHttpMock(
+      mock(() =>
+        Promise.resolve({
+          data: response,
+          status: 200,
+          statusText: 'OK',
+          headers: new Headers(),
+        }),
+      ),
+    )
 
     const adapter = await createAdapter()
     const results = await adapter.search('test', {
@@ -206,19 +245,26 @@ describe('BraveSearchAdapter.search', () => {
   })
 
   test('throws AbortError when signal is already aborted', async () => {
-    mock.module('axios', () => ({
-      default: {
-        get: mock((_url: string, config: any) => {
-          if (config?.signal?.aborted) {
-            const err = new Error('canceled')
-            ;(err as any).__CANCEL__ = true
-            return Promise.reject(err)
-          }
-          return Promise.resolve({ data: SAMPLE_RESPONSE })
-        }),
-        isCancel: (e: any) => e?.__CANCEL__ === true,
-      },
-    }))
+    buildHttpMock(
+      mock((_url: string, config: any) => {
+        if (config?.signal?.aborted) {
+          const err = new DOMException(
+            'The operation was aborted.',
+            'AbortError',
+          )
+          return Promise.reject(err)
+        }
+        return Promise.resolve({
+          data: SAMPLE_RESPONSE,
+          status: 200,
+          statusText: 'OK',
+          headers: new Headers(),
+        }) as any
+      }),
+      (e: unknown) =>
+        (e instanceof DOMException && e.name === 'AbortError') ||
+        (e instanceof Error && e.name === 'AbortError'),
+    )
 
     const adapter = await createAdapter()
     const controller = new AbortController()
@@ -230,36 +276,34 @@ describe('BraveSearchAdapter.search', () => {
     ).rejects.toThrow(AbortError)
   })
 
-  test('re-throws non-abort axios errors', async () => {
+  test('re-throws non-abort http errors', async () => {
     const networkError = new Error('Network error')
-    mock.module('axios', () => ({
-      default: {
-        get: mock(() => Promise.reject(networkError)),
-        isCancel: () => false,
-      },
-    }))
+    buildHttpMock(mock(() => Promise.reject(networkError)))
 
     const adapter = await createAdapter()
     await expect(adapter.search('test', {})).rejects.toThrow('Network error')
   })
 
   test('sends the documented HTTPS endpoint with query params and auth header', async () => {
-    const axiosGet = mock(() => Promise.resolve({ data: SAMPLE_RESPONSE }))
-    mock.module('axios', () => ({
-      default: {
-        get: axiosGet,
-        isCancel: () => false,
-      },
-    }))
+    const httpGet = mock(() =>
+      Promise.resolve({
+        data: SAMPLE_RESPONSE,
+        status: 200,
+        statusText: 'OK',
+        headers: new Headers(),
+      }),
+    )
+    buildHttpMock(httpGet)
 
     const adapter = await createAdapter()
     await adapter.search('hello world & special=chars', {})
 
-    expect(axiosGet.mock.calls).toHaveLength(1)
-    expect((axiosGet.mock.calls as any[][])[0][0]).toBe(
+    expect(httpGet.mock.calls).toHaveLength(1)
+    // http.get(url, opts) — url is arg[0], opts is arg[1]
+    expect((httpGet.mock.calls as any[][])[0][0]).toBe(
       'https://api.search.brave.com/res/v1/llm/context',
     )
-    expect((axiosGet.mock.calls as any[][])[0][1]).toMatchObject({
+    expect((httpGet.mock.calls as any[][])[0][1]).toMatchObject({
       params: { q: 'hello world & special=chars' },
       headers: {
         Accept: 'application/json',
@@ -272,18 +316,20 @@ describe('BraveSearchAdapter.search', () => {
     delete process.env.BRAVE_SEARCH_API_KEY
     process.env.BRAVE_API_KEY = 'fallback-key'
 
-    const axiosGet = mock(() => Promise.resolve({ data: SAMPLE_RESPONSE }))
-    mock.module('axios', () => ({
-      default: {
-        get: axiosGet,
-        isCancel: () => false,
-      },
-    }))
+    const httpGet = mock(() =>
+      Promise.resolve({
+        data: SAMPLE_RESPONSE,
+        status: 200,
+        statusText: 'OK',
+        headers: new Headers(),
+      }),
+    )
+    buildHttpMock(httpGet)
 
     const adapter = await createAdapter()
     await adapter.search('test', {})
 
-    expect((axiosGet.mock.calls as any[][])[0][1].headers).toMatchObject({
+    expect((httpGet.mock.calls as any[][])[0][1].headers).toMatchObject({
       'X-Subscription-Token': 'fallback-key',
     })
   })
@@ -292,12 +338,16 @@ describe('BraveSearchAdapter.search', () => {
     delete process.env.BRAVE_SEARCH_API_KEY
     delete process.env.BRAVE_API_KEY
 
-    mock.module('axios', () => ({
-      default: {
-        get: mock(() => Promise.resolve({ data: SAMPLE_RESPONSE })),
-        isCancel: () => false,
-      },
-    }))
+    buildHttpMock(
+      mock(() =>
+        Promise.resolve({
+          data: SAMPLE_RESPONSE,
+          status: 200,
+          statusText: 'OK',
+          headers: new Headers(),
+        }),
+      ),
+    )
 
     const adapter = await createAdapter()
     await expect(adapter.search('test', {})).rejects.toThrow(

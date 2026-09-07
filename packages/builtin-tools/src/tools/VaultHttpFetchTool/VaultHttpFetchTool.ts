@@ -1,4 +1,3 @@
-import axios from 'axios'
 import { z } from 'zod/v4'
 import { getSecret } from 'src/services/localVault/store.js'
 import { buildTool, type ToolDef } from 'src/Tool.js'
@@ -6,7 +5,7 @@ import {
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
   logEvent,
 } from 'src/services/analytics/index.js'
-import { getWebFetchUserAgent } from 'src/utils/http.js'
+import { getWebFetchUserAgent, http } from 'src/utils/http.js'
 import { isValidKey } from 'src/utils/localValidate.js'
 import { lazySchema } from 'src/utils/lazySchema.js'
 import { getRuleByContentsForToolName } from 'src/utils/permissions/permissions.js'
@@ -20,7 +19,7 @@ import { DESCRIPTION, PROMPT } from './prompt.js'
 import {
   buildDerivedSecretForms,
   scrubAllSecretForms,
-  scrubAxiosError,
+  scrubRequestError,
   scrubResponseHeaders,
   truncateToBytes,
 } from './scrub.js'
@@ -54,7 +53,7 @@ const inputSchema = lazySchema(() =>
       ),
     // H5 fix: enforce HTTP header name character set. Without this regex,
     // a model-supplied value containing CR/LF could inject additional
-    // headers via header[name]=secret assignment in axios.
+    // headers via header[name]=secret assignment.
     auth_header_name: z
       .string()
       .regex(/^[A-Za-z0-9_-]{1,64}$/)
@@ -126,7 +125,7 @@ function hashKey(key: string): string {
 export const VaultHttpFetchTool = buildTool({
   name: VAULT_HTTP_FETCH_TOOL_NAME,
   searchHint: 'authenticated HTTPS request using a vault-stored secret',
-  // Response cap matches axios maxContentLength; toolResultStorage will spill
+  // Response cap matches RESPONSE_BODY_CAP_BYTES limit; toolResultStorage will spill
   // anything larger to a file ref.
   maxResultSizeChars: RESPONSE_BODY_CAP_BYTES,
   // Vault tools are NOT concurrency safe — multiple parallel fetches racing
@@ -363,26 +362,20 @@ export const VaultHttpFetchTool = buildTool({
     })
 
     try {
-      const resp = await axios.request({
-        url: input.url,
-        method: input.method,
+      const resp = await http.request(input.method, input.url, input.body, {
         headers,
-        data: input.body,
         timeout: REQUEST_TIMEOUT_MS,
-        maxContentLength: RESPONSE_BODY_CAP_BYTES,
         // No redirects: a 30x to a different origin would re-send Authorization
         // unless we strip it — and stripping is fragile. Refuse to follow.
-        maxRedirects: 0,
+        redirect: 'manual',
         // Don't throw on 4xx/5xx; the body still needs scrubbing in those
         // success-path responses.
         validateStatus: () => true,
-        // Avoid axios trying to transform / parse JSON; we want to scrub the
-        // raw body first.
-        transformResponse: [(data: unknown) => data],
+        // Return raw text; we want to scrub the body before any JSON parsing.
         responseType: 'text',
       })
 
-      // Body might be a Buffer when Content-Type is binary; coerce safely.
+      // Body is always a string with responseType: 'text'; coerce safely.
       const rawBody =
         typeof resp.data === 'string'
           ? resp.data
@@ -390,16 +383,34 @@ export const VaultHttpFetchTool = buildTool({
             ? ''
             : String(resp.data)
 
+      // Enforce response body size cap (RESPONSE_BODY_CAP_BYTES).
+      if (rawBody.length > RESPONSE_BODY_CAP_BYTES) {
+        return {
+          data: {
+            error: scrubAllSecretForms(
+              `Response body too large (${rawBody.length} bytes, limit ${RESPONSE_BODY_CAP_BYTES})`,
+              forms,
+            ),
+          },
+        }
+      }
+
+      // Convert Headers to a plain Record for scrubbing.
+      const headerRecord: Record<string, string> = {}
+      resp.headers.forEach((value, key) => {
+        headerRecord[key] = value
+      })
+
       return {
         data: {
           status: resp.status,
           statusText: resp.statusText,
-          responseHeaders: scrubResponseHeaders(resp.headers, forms),
+          responseHeaders: scrubResponseHeaders(headerRecord, forms),
           body: scrubAllSecretForms(rawBody, forms),
         },
       }
     } catch (e) {
-      return { data: { error: scrubAxiosError(e, forms) } }
+      return { data: { error: scrubRequestError(e, forms) } }
     }
   },
   renderToolUseMessage,

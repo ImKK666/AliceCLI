@@ -21,7 +21,7 @@
 import { afterAll, beforeEach, describe, expect, mock, test } from 'bun:test';
 import { debugMock } from '../../../../tests/mocks/debug.js';
 import { logMock } from '../../../../tests/mocks/log.js';
-import { setupAxiosMock } from '../../../../tests/mocks/axios.js';
+import { setupHttpMock } from '../../../../tests/mocks/httpClient';
 
 // Pre-import the real react and ink modules so we can delegate after this
 // suite. Bun's mock.module is process-global / last-write-wins; without
@@ -40,7 +40,7 @@ afterAll(() => {
   // The handle reference exists by the time afterAll runs (TDZ resolves via
   // closure). Flip useStubs off so the spread-real fall-through kicks in for
   // any test file that runs after this one in the same process.
-  _ultrareviewAxiosHandle.useStubs = false;
+  _ultrareviewHttpHandle.useStubs = false;
 });
 
 // Mock dependency chain before any subject import
@@ -100,24 +100,24 @@ mock.module('src/utils/teleport/api.js', () => ({
   }),
 }));
 
-// Mock axios — per-test responses set via mockAxiosPost.mockImplementationOnce
+// Mock http — per-test responses set via mockHttpPost.mockImplementationOnce
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const mockAxiosPost = mock(
+const mockHttpPost = mock(
   async (..._args: any[]): Promise<any> => ({
     status: 200,
+    statusText: 'OK',
     data: { action: 'proceed', billing_note: null },
+    headers: new Headers(),
   }),
 );
 
-// Spread real axios + flag-gate stubs so the per-test mockAxiosPost stops
+// Spread real http + flag-gate stubs so the per-test mockHttpPost stops
 // leaking into later test files (mock.module is process-global). Default ON
 // for this suite; afterAll above flips _useStubReactForUltrareview, but here
-// we tie axios cleanup to the helper's own flag — see suite-level afterAll.
-const _ultrareviewAxiosHandle = setupAxiosMock();
-_ultrareviewAxiosHandle.useStubs = true;
-_ultrareviewAxiosHandle.stubs.post = mockAxiosPost;
-_ultrareviewAxiosHandle.stubs.isAxiosError = (e: unknown) =>
-  typeof e === 'object' && e !== null && (e as { isAxiosError?: boolean }).isAxiosError === true;
+// we tie http cleanup to the helper's own flag — see suite-level afterAll.
+const _ultrareviewHttpHandle = setupHttpMock();
+_ultrareviewHttpHandle.useStubs = true;
+_ultrareviewHttpHandle.stubs.post = mockHttpPost;
 
 // Mock detectCurrentRepositoryWithHost
 mock.module('src/utils/detectRepository.js', () => ({

@@ -1,6 +1,6 @@
-import axios from 'axios'
 import { logForDebugging } from '../../utils/debug.js'
 import { errorMessage } from '../../utils/errors.js'
+import { http } from '../../utils/http.js'
 
 type RegistryServer = {
   server: {
@@ -36,7 +36,7 @@ export async function prefetchOfficialMcpUrls(): Promise<void> {
   }
 
   try {
-    const response = await axios.get<RegistryResponse>(
+    const response = await http.get<RegistryResponse>(
       'https://api.anthropic.com/mcp-registry/v0/servers?version=latest&visibility=commercial',
       { timeout: 5000 },
     )

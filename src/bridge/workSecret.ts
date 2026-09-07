@@ -1,4 +1,4 @@
-import axios from 'axios'
+import { http } from '../utils/http.js'
 import { jsonParse, jsonStringify } from '../utils/slowOperations.js'
 import type { WorkSecret } from './types.js'
 
@@ -98,7 +98,7 @@ export async function registerWorker(
   sessionUrl: string,
   accessToken: string,
 ): Promise<number> {
-  const response = await axios.post(
+  const response = await http.post<Record<string, unknown>>(
     `${sessionUrl}/worker/register`,
     {},
     {

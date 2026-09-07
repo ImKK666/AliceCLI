@@ -8,7 +8,6 @@
  * Cache location: ~/.claude/plugins/install-counts-cache.json
  */
 
-import axios from 'axios'
 import { randomBytes } from 'crypto'
 import { readFile, rename, unlink, writeFile } from 'fs/promises'
 import { join } from 'path'
@@ -17,6 +16,7 @@ import { errorMessage, getErrnoCode } from '../errors.js'
 import { getFsImplementation } from '../fsOperations.js'
 import { logError } from '../log.js'
 import { jsonParse, jsonStringify } from '../slowOperations.js'
+import { http } from '../http.js'
 import { classifyFetchError, logPluginFetch } from './fetchTelemetry.js'
 import { getPluginsDirectory } from './pluginDirectories.js'
 
@@ -188,7 +188,7 @@ async function fetchInstallCountsFromGitHub(): Promise<
 
   const started = performance.now()
   try {
-    const response = await axios.get<GitHubStatsResponse>(INSTALL_COUNTS_URL, {
+    const response = await http.get<GitHubStatsResponse>(INSTALL_COUNTS_URL, {
       timeout: 10000,
     })
 

@@ -1,4 +1,3 @@
-import axios, { type AxiosResponse } from 'axios'
 import { LRUCache } from 'lru-cache'
 import {
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -6,7 +5,12 @@ import {
 } from 'src/services/analytics/index.js'
 import { queryHaiku } from 'src/services/api/claude.js'
 import { AbortError } from 'src/utils/errors.js'
-import { getWebFetchUserAgent } from 'src/utils/http.js'
+import {
+  http,
+  type HttpResponse,
+  isHttpError,
+  getWebFetchUserAgent,
+} from 'src/utils/http.js'
 import { logError } from 'src/utils/log.js'
 import {
   isBinaryContentType,
@@ -58,32 +62,8 @@ export function clearWebFetchCache(): void {
   URL_CACHE.clear()
 }
 
-function responseHeaderToString(value: unknown): string | undefined {
-  if (typeof value === 'string') {
-    return value
-  }
-  if (Array.isArray(value)) {
-    const parts = value
-      .map(responseHeaderToString)
-      .filter((part): part is string => part !== undefined)
-    return parts.length > 0 ? parts.join(', ') : undefined
-  }
-  return undefined
-}
-
-function getResponseHeader(
-  headers: AxiosResponse<unknown>['headers'],
-  name: string,
-): string | undefined {
-  const headersWithGet = headers as { get?: (headerName: string) => unknown }
-  if (typeof headersWithGet.get === 'function') {
-    const value = responseHeaderToString(headersWithGet.get(name))
-    if (value !== undefined) {
-      return value
-    }
-  }
-
-  return responseHeaderToString(headers[name.toLowerCase()])
+function getResponseHeader(headers: Headers, name: string): string | undefined {
+  return headers.get(name) ?? undefined
 }
 
 // Lazy singleton — defers the turndown → @mixmark-io/domino import (~1.4MB
@@ -240,41 +220,32 @@ export async function getWithPermittedRedirects(
   signal: AbortSignal,
   redirectChecker: (originalUrl: string, redirectUrl: string) => boolean,
   depth = 0,
-): Promise<AxiosResponse<ArrayBuffer> | RedirectInfo> {
+): Promise<HttpResponse<ArrayBuffer> | RedirectInfo> {
   if (depth > MAX_REDIRECTS) {
     throw new Error(`Too many redirects (exceeded ${MAX_REDIRECTS})`)
   }
   try {
-    return await axios.get(url, {
+    const response = await http.get<ArrayBuffer>(url, {
       signal,
       timeout: getFetchTimeoutMs(),
-      maxRedirects: 0,
       responseType: 'arraybuffer',
-      maxContentLength: MAX_HTTP_CONTENT_LENGTH,
       headers: {
         Accept: 'text/markdown, text/html, */*',
         'User-Agent': getWebFetchUserAgent(),
       },
+      validateStatus: () => true,
     })
-  } catch (error) {
-    if (
-      axios.isAxiosError(error) &&
-      error.response &&
-      [301, 302, 307, 308].includes(error.response.status)
-    ) {
-      const redirectLocation = getResponseHeader(
-        error.response.headers,
-        'location',
-      )
+
+    // Handle redirects manually (maxRedirects: 0 equivalent)
+    if ([301, 302, 307, 308].includes(response.status)) {
+      const redirectLocation = getResponseHeader(response.headers, 'location')
       if (!redirectLocation) {
         throw new Error('Redirect missing Location header')
       }
 
-      // Resolve relative URLs against the original URL
       const redirectUrl = new URL(redirectLocation, url).toString()
 
       if (redirectChecker(url, redirectUrl)) {
-        // Recursively follow the permitted redirect
         return getWithPermittedRedirects(
           redirectUrl,
           signal,
@@ -282,34 +253,38 @@ export async function getWithPermittedRedirects(
           depth + 1,
         )
       } else {
-        // Return redirect information to the caller
         return {
           type: 'redirect',
           originalUrl: url,
           redirectUrl,
-          statusCode: error.response.status,
+          statusCode: response.status,
         }
       }
     }
 
-    // Detect egress proxy blocks: the proxy returns 403 with
-    // X-Proxy-Error: blocked-by-allowlist when egress is restricted
+    // Detect egress proxy blocks
     if (
-      axios.isAxiosError(error) &&
-      error.response?.status === 403 &&
-      getResponseHeader(error.response.headers, 'x-proxy-error') ===
+      response.status === 403 &&
+      getResponseHeader(response.headers, 'x-proxy-error') ===
         'blocked-by-allowlist'
     ) {
       const hostname = new URL(url).hostname
       throw new EgressBlockedError(hostname)
     }
 
+    if (response.status >= 400) {
+      throw new Error(`HTTP ${response.status} ${response.statusText}`)
+    }
+
+    return response
+  } catch (error) {
+    if (error instanceof EgressBlockedError) throw error
     throw error
   }
 }
 
 function isRedirectInfo(
-  response: AxiosResponse<ArrayBuffer> | RedirectInfo,
+  response: HttpResponse<ArrayBuffer> | RedirectInfo,
 ): response is RedirectInfo {
   return 'type' in response && response.type === 'redirect'
 }
@@ -382,9 +357,6 @@ export async function getURLMarkdownContent(
   }
 
   const rawBuffer = Buffer.from(response.data)
-  // Release the axios-held ArrayBuffer copy; rawBuffer owns the bytes now.
-  // This lets GC reclaim up to MAX_HTTP_CONTENT_LENGTH (10MB) before Turndown
-  // builds its DOM tree (which can be 3-5x the HTML size).
   ;(response as { data: unknown }).data = null
   const contentType = getResponseHeader(response.headers, 'content-type') ?? ''
 
@@ -490,7 +462,7 @@ export async function fetchContentWithTavily(
       ? baseUrl
       : `${baseUrl.replace(/\/$/, '')}/extract`
 
-  const response = await axios.post<{ url: string; raw_content: string }>(
+  const response = await http.post<{ url: string; raw_content: string }>(
     extractUrl,
     {
       urls: [url],

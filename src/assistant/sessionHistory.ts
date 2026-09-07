@@ -1,7 +1,7 @@
-import axios from 'axios'
 import { getOauthConfig } from '../constants/oauth.js'
 import type { SDKMessage } from '../entrypoints/agentSdkTypes.js'
 import { logForDebugging } from '../utils/debug.js'
+import { http } from '../utils/http.js'
 import { getOAuthHeaders, prepareApiRequest } from '../utils/teleport/api.js'
 
 export const HISTORY_PAGE_SIZE = 100
@@ -47,10 +47,14 @@ async function fetchPage(
   params: Record<string, string | number | boolean>,
   label: string,
 ): Promise<HistoryPage | null> {
-  const resp = await axios
+  const stringParams: Record<string, string> = {}
+  for (const [k, v] of Object.entries(params)) {
+    stringParams[k] = String(v)
+  }
+  const resp = await http
     .get<SessionEventsResponse>(ctx.baseUrl, {
       headers: ctx.headers,
-      params,
+      params: stringParams,
       timeout: 15000,
       validateStatus: () => true,
     })

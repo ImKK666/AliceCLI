@@ -12,7 +12,6 @@
  * - API returns empty settings for users without managed settings
  */
 
-import axios from 'axios'
 import { createHash } from 'crypto'
 import { open, unlink } from 'fs/promises'
 import { getOauthConfig, OAUTH_BETA_HEADER } from '../../constants/oauth.js'
@@ -24,6 +23,7 @@ import {
 import { registerCleanup } from '../../utils/cleanupRegistry.js'
 import { logForDebugging } from '../../utils/debug.js'
 import { classifyAxiosError, getErrnoCode } from '../../utils/errors.js'
+import { http } from '../../utils/http.js'
 import { settingsChangeDetector } from '../../utils/settings/changeDetector.js'
 import {
   type SettingsJson,
@@ -275,7 +275,7 @@ async function fetchRemoteManagedSettings(
       headers['If-None-Match'] = `"${cachedChecksum}"`
     }
 
-    const response = await axios.get(endpoint, {
+    const response = await http.get(endpoint, {
       headers,
       timeout: SETTINGS_TIMEOUT_MS,
       // Allow 204, 304, and 404 responses without treating them as errors.

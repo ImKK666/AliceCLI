@@ -4,7 +4,7 @@ import type {
   LogRecordExporter,
   ReadableLogRecord,
 } from '@opentelemetry/sdk-logs'
-import axios from 'axios'
+import { http, isHttpError } from 'src/utils/http.js'
 import { randomUUID } from 'crypto'
 import { appendFile, mkdir, readdir, unlink, writeFile } from 'fs/promises'
 import * as path from 'path'
@@ -584,7 +584,7 @@ export class FirstPartyEventLoggingExporter implements LogRecordExporter {
       : baseHeaders
 
     try {
-      const response = await axios.post(this.endpoint, payload, {
+      const response = await http.post(this.endpoint, payload, {
         timeout: this.timeout,
         headers,
       })
@@ -592,17 +592,13 @@ export class FirstPartyEventLoggingExporter implements LogRecordExporter {
       return
     } catch (error) {
       // Handle 401 by retrying without auth
-      if (
-        useAuth &&
-        axios.isAxiosError(error) &&
-        error.response?.status === 401
-      ) {
+      if (useAuth && isHttpError(error) && error.status === 401) {
         if (process.env.USER_TYPE === 'ant') {
           logForDebugging(
             '1P event logging: 401 auth error, retrying without auth',
           )
         }
-        const response = await axios.post(this.endpoint, payload, {
+        const response = await http.post(this.endpoint, payload, {
           timeout: this.timeout,
           headers: baseHeaders,
         })
@@ -781,23 +777,19 @@ export class FirstPartyEventLoggingExporter implements LogRecordExporter {
 }
 
 function getAxiosErrorContext(error: unknown): string {
-  if (!axios.isAxiosError(error)) {
+  if (!isHttpError(error)) {
     return errorMessage(error)
   }
 
   const parts: string[] = []
 
-  const requestId = error.response?.headers?.['request-id']
+  const requestId = error.response.headers.get('request-id')
   if (requestId) {
     parts.push(`request-id=${requestId}`)
   }
 
-  if (error.response?.status) {
-    parts.push(`status=${error.response.status}`)
-  }
-
-  if (error.code) {
-    parts.push(`code=${error.code}`)
+  if (error.status) {
+    parts.push(`status=${error.status}`)
   }
 
   if (error.message) {

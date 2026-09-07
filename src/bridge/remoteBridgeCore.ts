@@ -29,7 +29,7 @@
  */
 
 import { feature } from 'bun:bundle'
-import axios from 'axios'
+import { http, isHttpAbortError } from 'src/utils/http.js'
 import {
   createV2ReplTransport,
   type ReplBridgeTransport,
@@ -1028,7 +1028,7 @@ async function archiveSession(
   // cse_* and we correctly send it.
   const compatId = toCompatSessionId(sessionId)
   try {
-    const response = await axios.post(
+    const response = await http.post(
       `${baseUrl}/v1/sessions/${compatId}/archive`,
       {},
       {
@@ -1048,8 +1048,6 @@ async function archiveSession(
   } catch (err) {
     const msg = errorMessage(err)
     logForDebugging(`[remote-bridge] Archive failed: ${msg}`)
-    return axios.isAxiosError(err) && err.code === 'ECONNABORTED'
-      ? 'timeout'
-      : 'error'
+    return isHttpAbortError(err) ? 'timeout' : 'error'
   }
 }

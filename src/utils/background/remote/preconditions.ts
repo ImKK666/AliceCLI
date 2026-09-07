@@ -1,4 +1,3 @@
-import axios from 'axios'
 import { getOauthConfig } from 'src/constants/oauth.js'
 import { getOrganizationUUID } from 'src/services/oauth/client.js'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../../../services/analytics/growthbook.js'
@@ -11,6 +10,7 @@ import { getCwd } from '../../cwd.js'
 import { logForDebugging } from '../../debug.js'
 import { detectCurrentRepository } from '../../detectRepository.js'
 import { errorMessage } from '../../errors.js'
+import { http, isHttpError } from '../../http.js'
 import { findGitRoot, getIsClean } from '../../git.js'
 import { getOAuthHeaders } from '../../teleport/api.js'
 import { fetchEnvironments } from '../../teleport/environments.js'
@@ -105,7 +105,7 @@ export async function checkGithubAppInstalled(
 
     logForDebugging(`Checking GitHub app installation for ${owner}/${repo}`)
 
-    const response = await axios.get<{
+    const response = await http.get<{
       repo: {
         name: string
         owner: { login: string }
@@ -142,9 +142,9 @@ export async function checkGithubAppInstalled(
     return false
   } catch (error) {
     // 4XX errors typically mean app is not installed or repo not accessible
-    if (axios.isAxiosError(error)) {
-      const status = error.response?.status
-      if (status && status >= 400 && status < 500) {
+    if (isHttpError(error)) {
+      const status = error.status
+      if (status >= 400 && status < 500) {
         logForDebugging(
           `checkGithubAppInstalled: Got ${status} error, app likely not installed on ${owner}/${repo}`,
         )
@@ -183,21 +183,22 @@ export async function checkGithubTokenSynced(): Promise<boolean> {
 
     logForDebugging('Checking if GitHub token is synced via web-setup')
 
-    const response = await axios.get(url, {
+    const response = await http.get(url, {
       headers,
       timeout: 15000,
     })
 
     const synced =
-      response.status === 200 && response.data?.is_authenticated === true
+      response.status === 200 &&
+      (response.data as Record<string, unknown>)?.is_authenticated === true
     logForDebugging(
       `GitHub token synced: ${synced} (status=${response.status}, data=${JSON.stringify(response.data)})`,
     )
     return synced
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      const status = error.response?.status
-      if (status && status >= 400 && status < 500) {
+    if (isHttpError(error)) {
+      const status = error.status
+      if (status >= 400 && status < 500) {
         logForDebugging(
           `checkGithubTokenSynced: Got ${status}, token not synced`,
         )

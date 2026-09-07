@@ -7,14 +7,13 @@ import {
   type PushMetricExporter,
   type ResourceMetrics,
 } from '@opentelemetry/sdk-metrics'
-import axios from 'axios'
 import { checkMetricsEnabled } from 'src/services/api/metricsOptOut.js'
 import { getIsNonInteractiveSession } from '../../bootstrap/state.js'
 import { getSubscriptionType, isClaudeAISubscriber } from '../auth.js'
 import { checkHasTrustDialogAccepted } from '../config.js'
 import { logForDebugging } from '../debug.js'
 import { errorMessage, toError } from '../errors.js'
-import { getAuthHeaders } from '../http.js'
+import { getAuthHeaders, http } from '../http.js'
 import { logError } from '../log.js'
 import { jsonStringify } from '../slowOperations.js'
 import { getClaudeCodeUserAgent } from '../userAgent.js'
@@ -127,7 +126,7 @@ export class BigQueryMetricsExporter implements PushMetricExporter {
         ...authResult.headers,
       }
 
-      const response = await axios.post(this.endpoint, payload, {
+      const response = await http.post(this.endpoint, payload, {
         timeout: this.timeout,
         headers,
       })

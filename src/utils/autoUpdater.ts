@@ -1,4 +1,3 @@
-import axios from 'axios'
 import { constants as fsConstants } from 'fs'
 import { access, writeFile } from 'fs/promises'
 import { homedir } from 'os'
@@ -9,6 +8,7 @@ import {
   logEvent,
 } from 'src/services/analytics/index.js'
 import { type ReleaseChannel, saveGlobalConfig } from './config.js'
+import { http } from './http.js'
 import { logForDebugging } from './debug.js'
 import { env } from './env.js'
 import { getClaudeConfigHomeDir } from './envUtils.js'
@@ -384,7 +384,7 @@ export async function getLatestVersionFromGcs(
   channel: ReleaseChannel,
 ): Promise<string | null> {
   try {
-    const response = await axios.get(`${GCS_BUCKET_URL}/${channel}`, {
+    const response = await http.get<string>(`${GCS_BUCKET_URL}/${channel}`, {
       timeout: 5000,
       responseType: 'text',
     })

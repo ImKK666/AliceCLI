@@ -15,9 +15,9 @@
  * Reuses the same base-URL + auth-header pattern as memoryStoresApi.ts.
  */
 
-import axios from 'axios'
 import { getOauthConfig } from '../../constants/oauth.js'
 import { assertWorkspaceHost } from '../../services/auth/hostGuard.js'
+import { http, isHttpError } from '../../utils/http.js'
 import { prepareWorkspaceApiRequest } from '../../utils/teleport/api.js'
 
 export type Skill = {
@@ -116,8 +116,8 @@ function skillVersionUrl(id: string, version: string): string {
 }
 
 function classifyError(err: unknown): SkillsApiError {
-  if (axios.isAxiosError(err)) {
-    const status = err.response?.status ?? 0
+  if (isHttpError(err)) {
+    const status = err.status
     if (status === 401) {
       return new SkillsApiError(
         'Authentication failed. Please run /login to re-authenticate.',
@@ -134,16 +134,13 @@ function classifyError(err: unknown): SkillsApiError {
       return new SkillsApiError('Skill or version not found.', 404)
     }
     if (status === 429) {
-      const retryAfter =
-        (err.response?.headers as Record<string, string> | undefined)?.[
-          'retry-after'
-        ] ?? ''
+      const retryAfter = err.response.headers.get('retry-after') ?? ''
       const detail = retryAfter ? ` Retry after ${retryAfter}s.` : ''
       return new SkillsApiError(`Rate limit exceeded.${detail}`, 429)
     }
     const msg =
-      (err.response?.data as { error?: { message?: string } } | undefined)
-        ?.error?.message ?? err.message
+      (err.data as { error?: { message?: string } } | undefined)?.error
+        ?.message ?? err.message
     return new SkillsApiError(msg, status)
   }
   if (err instanceof SkillsApiError) return err
@@ -175,10 +172,8 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
       if (classified.statusCode >= 500) {
         lastErr = classified
         if (attempt < MAX_RETRIES - 1) {
-          const retryAfterHeader = axios.isAxiosError(err)
-            ? (err.response?.headers as Record<string, string> | undefined)?.[
-                'retry-after'
-              ]
+          const retryAfterHeader = isHttpError(err)
+            ? (err.response.headers.get('retry-after') ?? undefined)
             : undefined
           const waitMs =
             parseRetryAfterMs(retryAfterHeader) ?? 500 * 2 ** attempt
@@ -197,7 +192,7 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
 export async function listSkills(): Promise<Skill[]> {
   return withRetry(async () => {
     const headers = await buildHeaders()
-    const response = await axios.get<ListSkillsResponse>(skillsBaseUrl(), {
+    const response = await http.get<ListSkillsResponse>(skillsBaseUrl(), {
       headers,
     })
     return response.data.data ?? []
@@ -207,7 +202,7 @@ export async function listSkills(): Promise<Skill[]> {
 export async function getSkill(id: string): Promise<Skill> {
   return withRetry(async () => {
     const headers = await buildHeaders()
-    const response = await axios.get<Skill>(skillUrl(id), { headers })
+    const response = await http.get<Skill>(skillUrl(id), { headers })
     return response.data
   })
 }
@@ -215,7 +210,7 @@ export async function getSkill(id: string): Promise<Skill> {
 export async function getSkillVersions(id: string): Promise<SkillVersion[]> {
   return withRetry(async () => {
     const headers = await buildHeaders()
-    const response = await axios.get<ListVersionsResponse>(
+    const response = await http.get<ListVersionsResponse>(
       skillVersionsUrl(id),
       { headers },
     )
@@ -229,7 +224,7 @@ export async function getSkillVersion(
 ): Promise<SkillVersion> {
   return withRetry(async () => {
     const headers = await buildHeaders()
-    const response = await axios.get<SkillVersion>(
+    const response = await http.get<SkillVersion>(
       skillVersionUrl(id, version),
       { headers },
     )
@@ -241,7 +236,7 @@ export async function createSkill(name: string, body: string): Promise<Skill> {
   return withRetry(async () => {
     const headers = await buildHeaders()
     const requestBody: CreateSkillBody = { name, body }
-    const response = await axios.post<Skill>(skillsBaseUrl(), requestBody, {
+    const response = await http.post<Skill>(skillsBaseUrl(), requestBody, {
       headers,
     })
     return response.data
@@ -251,6 +246,6 @@ export async function createSkill(name: string, body: string): Promise<Skill> {
 export async function deleteSkill(id: string): Promise<void> {
   return withRetry(async () => {
     const headers = await buildHeaders()
-    await axios.delete(skillUrl(id), { headers })
+    await http.delete(skillUrl(id), { headers })
   })
 }

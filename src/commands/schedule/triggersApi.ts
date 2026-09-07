@@ -12,9 +12,9 @@
  * Reuses the same base-URL + auth-header pattern as agentsApi.ts.
  */
 
-import axios from 'axios'
 import { getOauthConfig } from '../../constants/oauth.js'
 import { assertSubscriptionBaseUrl } from '../../services/auth/hostGuard.js'
+import { http, isHttpError } from '../../utils/http.js'
 import { getOAuthHeaders, prepareApiRequest } from '../../utils/teleport/api.js'
 
 export type Trigger = {
@@ -100,8 +100,8 @@ function triggersBaseUrl(): string {
 }
 
 function classifyError(err: unknown): TriggersApiError {
-  if (axios.isAxiosError(err)) {
-    const status = err.response?.status ?? 0
+  if (isHttpError(err)) {
+    const status = err.status
     if (status === 401) {
       return new TriggersApiError(
         'Authentication failed. Please run /login to re-authenticate.',
@@ -118,16 +118,13 @@ function classifyError(err: unknown): TriggersApiError {
       return new TriggersApiError('Trigger not found.', 404)
     }
     if (status === 429) {
-      const retryAfter =
-        (err.response?.headers as Record<string, string> | undefined)?.[
-          'retry-after'
-        ] ?? ''
+      const retryAfter = err.response.headers.get('retry-after') ?? ''
       const detail = retryAfter ? ` Retry after ${retryAfter}s.` : ''
       return new TriggersApiError(`Rate limit exceeded.${detail}`, 429)
     }
     const msg =
-      (err.response?.data as { error?: { message?: string } } | undefined)
-        ?.error?.message ?? err.message
+      (err.data as { error?: { message?: string } } | undefined)?.error
+        ?.message ?? err.message
     return new TriggersApiError(msg, status)
   }
   if (err instanceof TriggersApiError) return err
@@ -162,10 +159,8 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
       if (classified.statusCode >= 500) {
         lastErr = classified
         if (attempt < MAX_RETRIES - 1) {
-          const retryAfterHeader = axios.isAxiosError(err)
-            ? (err.response?.headers as Record<string, string> | undefined)?.[
-                'retry-after'
-              ]
+          const retryAfterHeader = isHttpError(err)
+            ? (err.response.headers.get('retry-after') ?? undefined)
             : undefined
           const waitMs =
             parseRetryAfterMs(retryAfterHeader) ?? 500 * 2 ** attempt
@@ -182,7 +177,7 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
 export async function listTriggers(): Promise<Trigger[]> {
   return withRetry(async () => {
     const headers = await buildHeaders()
-    const response = await axios.get<ListTriggersResponse>(triggersBaseUrl(), {
+    const response = await http.get<ListTriggersResponse>(triggersBaseUrl(), {
       headers,
     })
     return response.data.data ?? []
@@ -192,7 +187,7 @@ export async function listTriggers(): Promise<Trigger[]> {
 export async function getTrigger(id: string): Promise<Trigger> {
   return withRetry(async () => {
     const headers = await buildHeaders()
-    const response = await axios.get<Trigger>(`${triggersBaseUrl()}/${id}`, {
+    const response = await http.get<Trigger>(`${triggersBaseUrl()}/${id}`, {
       headers,
     })
     return response.data
@@ -202,7 +197,7 @@ export async function getTrigger(id: string): Promise<Trigger> {
 export async function createTrigger(body: CreateTriggerBody): Promise<Trigger> {
   return withRetry(async () => {
     const headers = await buildHeaders()
-    const response = await axios.post<Trigger>(triggersBaseUrl(), body, {
+    const response = await http.post<Trigger>(triggersBaseUrl(), body, {
       headers,
     })
     return response.data
@@ -221,7 +216,7 @@ export async function updateTrigger(
 ): Promise<Trigger> {
   return withRetry(async () => {
     const headers = await buildHeaders()
-    const response = await axios.post<Trigger>(
+    const response = await http.post<Trigger>(
       `${triggersBaseUrl()}/${id}`,
       body,
       { headers },
@@ -233,14 +228,14 @@ export async function updateTrigger(
 export async function deleteTrigger(id: string): Promise<void> {
   return withRetry(async () => {
     const headers = await buildHeaders()
-    await axios.delete(`${triggersBaseUrl()}/${id}`, { headers })
+    await http.delete(`${triggersBaseUrl()}/${id}`, { headers })
   })
 }
 
 export async function runTrigger(id: string): Promise<TriggerRunResponse> {
   return withRetry(async () => {
     const headers = await buildHeaders()
-    const response = await axios.post<TriggerRunResponse>(
+    const response = await http.post<TriggerRunResponse>(
       `${triggersBaseUrl()}/${id}/run`,
       {},
       { headers },

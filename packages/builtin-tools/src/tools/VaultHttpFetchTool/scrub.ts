@@ -6,8 +6,8 @@
  * search, telemetry, or compact summaries. The scrub layer applies to:
  *   - response body (server might echo Authorization)
  *   - response headers (Authorization / X-Api-Key / Set-Cookie)
- *   - axios error messages (axios.AxiosError.config can carry the request
- *     headers — including the Authorization we just sent)
+ *   - error messages (HttpError / network errors can carry request
+ *     details — including the Authorization we just sent)
  *
  * Strategy: build all "derived forms" of the secret BEFORE the request, then
  * apply scrubAllSecretForms to every byte that crosses the tool boundary.
@@ -173,11 +173,14 @@ export function truncateToBytes(input: string, maxBytes: number): string {
 }
 
 /**
- * Convert an axios / fetch error into a safe summary string. NEVER stringify
- * the raw error: axios.AxiosError carries .config.headers which contains the
- * Authorization we just sent. Build a synthetic message and scrub it.
+ * Convert an HTTP request error into a safe summary string. NEVER stringify
+ * the raw error: it may carry request headers including the Authorization
+ * we just sent. Build a synthetic message and scrub it.
  */
-export function scrubAxiosError(e: unknown, forms: readonly string[]): string {
+export function scrubRequestError(
+  e: unknown,
+  forms: readonly string[],
+): string {
   if (e instanceof Error) {
     const msg = scrubAllSecretForms(e.message, forms)
     return `Request failed: ${msg}`

@@ -1,5 +1,4 @@
 import type { Client } from '@modelcontextprotocol/sdk/client/index.js'
-import axios from 'axios'
 import { execa } from 'execa'
 import capitalize from 'lodash-es/capitalize.js'
 import memoize from 'lodash-es/memoize.js'
@@ -36,6 +35,7 @@ const ideOnboardingDialog =
 
 import { createAbortController } from './abortController.js'
 import { logForDebugging } from './debug.js'
+import { http, isHttpError } from './http.js'
 import { envDynamic } from './envDynamic.js'
 import { errorMessage, isFsInaccessible } from './errors.js'
 /* eslint-enable @typescript-eslint/no-require-imports */
@@ -1424,10 +1424,11 @@ async function installFromArtifactory(command: string): Promise<string> {
     'https://artifactory.infra.ant.dev/artifactory/armorcode-claude-code-internal/claude-vscode-releases/stable'
 
   try {
-    const versionResponse = await axios.get(versionUrl, {
+    const versionResponse = await http.get<string>(versionUrl, {
       headers: {
         Authorization: `Bearer ${authToken}`,
       },
+      responseType: 'text',
     })
 
     const version = versionResponse.data.trim()
@@ -1443,7 +1444,7 @@ async function installFromArtifactory(command: string): Promise<string> {
     )
 
     try {
-      const vsixResponse = await axios.get(vsixUrl, {
+      const vsixResponse = await http.get<ReadableStream>(vsixUrl, {
         headers: {
           Authorization: `Bearer ${authToken}`,
         },
@@ -1452,8 +1453,12 @@ async function installFromArtifactory(command: string): Promise<string> {
 
       // Write the downloaded file to disk
       const writeStream = getFsImplementation().createWriteStream(tempVsixPath)
+      const { Readable } = await import('stream')
+      const nodeStream = Readable.fromWeb(
+        vsixResponse.data as unknown as import('stream/web').ReadableStream,
+      )
       await new Promise<void>((resolve, reject) => {
-        vsixResponse.data.pipe(writeStream)
+        nodeStream.pipe(writeStream)
         writeStream.on('finish', resolve)
         writeStream.on('error', reject)
       })
@@ -1484,7 +1489,7 @@ async function installFromArtifactory(command: string): Promise<string> {
       }
     }
   } catch (error) {
-    if (axios.isAxiosError(error)) {
+    if (isHttpError(error)) {
       throw new Error(
         `Failed to fetch extension version from artifactory: ${error.message}`,
       )

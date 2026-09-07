@@ -1,7 +1,7 @@
-import axios from 'axios'
 import { createHash } from 'crypto'
 import memoize from 'lodash-es/memoize.js'
 import { getOrCreateUserID } from '../../utils/config.js'
+import { http } from '../../utils/http.js'
 import { logError } from '../../utils/log.js'
 import { getCanonicalName } from '../../utils/model/model.js'
 import { getAPIProvider } from '../../utils/model/providers.js'
@@ -112,7 +112,7 @@ async function flushLogs(): Promise<void> {
   logBatch = []
 
   try {
-    await axios.post(DATADOG_LOGS_ENDPOINT, logsToSend, {
+    await http.post(DATADOG_LOGS_ENDPOINT, logsToSend, {
       headers: {
         'Content-Type': 'application/json',
         'DD-API-KEY': DATADOG_CLIENT_TOKEN,

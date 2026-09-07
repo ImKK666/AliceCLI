@@ -10,7 +10,7 @@ import {
 } from 'bun:test'
 import { debugMock } from '../../../../tests/mocks/debug.js'
 import { logMock } from '../../../../tests/mocks/log.js'
-import { setupAxiosMock } from '../../../../tests/mocks/axios.js'
+import { setupHttpMock } from '../../../../tests/mocks/httpClient.js'
 
 // Mock side-effect modules first
 mock.module('src/utils/log.ts', logMock)
@@ -36,25 +36,15 @@ mock.module('src/utils/teleport/api.js', () => ({
 // (mocked to https://api.anthropic.com), which passes the host guard.
 // Mocking hostGuard would pollute hostGuard's own test file via Bun process-level cache.
 
-// ── Axios mock ──────────────────────────────────────────────────────────────
-const axiosGetMock = mock(async () => ({}))
-const axiosPostMock = mock(async () => ({}))
-const axiosDeleteMock = mock(async () => ({}))
+// ── HTTP mock ───────────────────────────────────────────────────────────────
+const httpGetMock = mock(async () => ({}))
+const httpPostMock = mock(async () => ({}))
+const httpDeleteMock = mock(async () => ({}))
 
-const axiosIsAxiosError = mock((err: unknown) => {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'isAxiosError' in err &&
-    (err as { isAxiosError: boolean }).isAxiosError === true
-  )
-})
-
-const axiosHandle = setupAxiosMock()
-axiosHandle.stubs.get = axiosGetMock
-axiosHandle.stubs.post = axiosPostMock
-axiosHandle.stubs.delete = axiosDeleteMock
-axiosHandle.stubs.isAxiosError = axiosIsAxiosError
+const httpHandle = setupHttpMock()
+httpHandle.stubs.get = httpGetMock
+httpHandle.stubs.post = httpPostMock
+httpHandle.stubs.delete = httpDeleteMock
 
 // Lazy import after mocks are in place
 let listAgents: typeof import('../agentsApi.js').listAgents
@@ -63,7 +53,7 @@ let deleteAgent: typeof import('../agentsApi.js').deleteAgent
 let runAgent: typeof import('../agentsApi.js').runAgent
 
 beforeAll(async () => {
-  axiosHandle.useStubs = true
+  httpHandle.useStubs = true
   const mod = await import('../agentsApi.js')
   listAgents = mod.listAgents
   createAgent = mod.createAgent
@@ -72,13 +62,13 @@ beforeAll(async () => {
 })
 
 afterAll(() => {
-  axiosHandle.useStubs = false
+  httpHandle.useStubs = false
 })
 
 beforeEach(() => {
-  axiosGetMock.mockClear()
-  axiosPostMock.mockClear()
-  axiosDeleteMock.mockClear()
+  httpGetMock.mockClear()
+  httpPostMock.mockClear()
+  httpDeleteMock.mockClear()
   prepareWorkspaceApiRequestMock.mockClear()
   // Ensure ANTHROPIC_API_KEY is set for happy-path tests
   process.env['ANTHROPIC_API_KEY'] = mockApiKey
@@ -103,50 +93,40 @@ describe('listAgents', () => {
         next_run: null,
       },
     ]
-    axiosGetMock.mockResolvedValueOnce({ data: { data: agents }, status: 200 })
+    httpGetMock.mockResolvedValueOnce({ data: { data: agents }, status: 200 })
 
     const result = await listAgents()
     expect(result).toHaveLength(1)
     expect(result[0]!.id).toBe('agt_1')
-    expect(axiosGetMock).toHaveBeenCalledTimes(1)
+    expect(httpGetMock).toHaveBeenCalledTimes(1)
   })
 
   test('returns empty array when data.data is empty', async () => {
-    axiosGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
+    httpGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
     const result = await listAgents()
     expect(result).toHaveLength(0)
   })
 
   test('throws on 401 with friendly message', async () => {
     const err = Object.assign(new Error('Unauthorized'), {
-      isAxiosError: true,
-      response: { status: 401, data: {} },
+      status: 401,
+      data: {},
+      statusText: 'Unauthorized',
+      response: new Response(null, { status: 401 }),
     })
-    axiosGetMock.mockRejectedValueOnce(err)
-    axiosIsAxiosError.mockImplementation(
-      (e: unknown) =>
-        typeof e === 'object' &&
-        e !== null &&
-        'isAxiosError' in e &&
-        (e as { isAxiosError: boolean }).isAxiosError === true,
-    )
+    httpGetMock.mockRejectedValueOnce(err)
 
     await expect(listAgents()).rejects.toThrow('re-authenticate')
   })
 
   test('throws on 403 with subscription message', async () => {
     const err = Object.assign(new Error('Forbidden'), {
-      isAxiosError: true,
-      response: { status: 403, data: {} },
+      status: 403,
+      data: {},
+      statusText: 'Forbidden',
+      response: new Response(null, { status: 403 }),
     })
-    axiosGetMock.mockRejectedValueOnce(err)
-    axiosIsAxiosError.mockImplementation(
-      (e: unknown) =>
-        typeof e === 'object' &&
-        e !== null &&
-        'isAxiosError' in e &&
-        (e as { isAxiosError: boolean }).isAxiosError === true,
-    )
+    httpGetMock.mockRejectedValueOnce(err)
 
     await expect(listAgents()).rejects.toThrow('Subscription')
   })
@@ -154,23 +134,18 @@ describe('listAgents', () => {
   test('retries on 5xx and eventually throws', async () => {
     const make5xxErr = () =>
       Object.assign(new Error('Server Error'), {
-        isAxiosError: true,
-        response: { status: 500, data: {} },
+        status: 500,
+        data: {},
+        statusText: 'Internal Server Error',
+        response: new Response(null, { status: 500 }),
       })
-    axiosGetMock
+    httpGetMock
       .mockRejectedValueOnce(make5xxErr())
       .mockRejectedValueOnce(make5xxErr())
       .mockRejectedValueOnce(make5xxErr())
-    axiosIsAxiosError.mockImplementation(
-      (e: unknown) =>
-        typeof e === 'object' &&
-        e !== null &&
-        'isAxiosError' in e &&
-        (e as { isAxiosError: boolean }).isAxiosError === true,
-    )
 
     await expect(listAgents()).rejects.toThrow()
-    expect(axiosGetMock).toHaveBeenCalledTimes(3)
+    expect(httpGetMock).toHaveBeenCalledTimes(3)
   }, 15000)
 })
 
@@ -184,12 +159,12 @@ describe('createAgent', () => {
       timezone: 'UTC',
       next_run: null,
     }
-    axiosPostMock.mockResolvedValueOnce({ data: agent, status: 201 })
+    httpPostMock.mockResolvedValueOnce({ data: agent, status: 201 })
 
     const result = await createAgent('0 9 * * *', 'Test')
     expect(result.id).toBe('agt_new')
     const callArgs = (
-      axiosPostMock.mock.calls as unknown as [string, unknown, unknown][]
+      httpPostMock.mock.calls as unknown as [string, unknown, unknown][]
     )[0]
     const body = callArgs?.[1] as { cron_expr: string; timezone: string }
     expect(body.cron_expr).toBe('0 9 * * *')
@@ -198,17 +173,12 @@ describe('createAgent', () => {
 
   test('throws on 404', async () => {
     const err = Object.assign(new Error('Not Found'), {
-      isAxiosError: true,
-      response: { status: 404, data: {} },
+      status: 404,
+      data: {},
+      statusText: 'Not Found',
+      response: new Response(null, { status: 404 }),
     })
-    axiosPostMock.mockRejectedValueOnce(err)
-    axiosIsAxiosError.mockImplementation(
-      (e: unknown) =>
-        typeof e === 'object' &&
-        e !== null &&
-        'isAxiosError' in e &&
-        (e as { isAxiosError: boolean }).isAxiosError === true,
-    )
+    httpPostMock.mockRejectedValueOnce(err)
 
     await expect(createAgent('0 9 * * *', 'Test')).rejects.toThrow(
       'Agent not found',
@@ -218,11 +188,11 @@ describe('createAgent', () => {
 
 describe('deleteAgent', () => {
   test('calls DELETE endpoint with agent id', async () => {
-    axiosDeleteMock.mockResolvedValueOnce({ status: 204 })
+    httpDeleteMock.mockResolvedValueOnce({ status: 204 })
 
     await deleteAgent('agt_del')
     const url = (
-      axiosDeleteMock.mock.calls as unknown as [string, unknown][]
+      httpDeleteMock.mock.calls as unknown as [string, unknown][]
     )[0]?.[0] as string
     expect(url).toContain('agt_del')
   })
@@ -230,7 +200,7 @@ describe('deleteAgent', () => {
 
 describe('runAgent', () => {
   test('calls POST /v1/agents/:id/run and returns run_id', async () => {
-    axiosPostMock.mockResolvedValueOnce({
+    httpPostMock.mockResolvedValueOnce({
       data: { run_id: 'run_abc' },
       status: 200,
     })
@@ -238,7 +208,7 @@ describe('runAgent', () => {
     const result = await runAgent('agt_run')
     expect(result.run_id).toBe('run_abc')
     const url = (
-      axiosPostMock.mock.calls as unknown as [string, unknown, unknown][]
+      httpPostMock.mock.calls as unknown as [string, unknown, unknown][]
     )[0]?.[0] as string
     expect(url).toContain('agt_run/run')
   })
@@ -247,7 +217,7 @@ describe('runAgent', () => {
 // ── M3 regression: createAgent must use system timezone, not hardcoded UTC ──
 describe('createAgent M3: timezone uses system TZ not hardcoded UTC', () => {
   test('createAgent passes system timezone to the API body', async () => {
-    axiosPostMock.mockResolvedValueOnce({
+    httpPostMock.mockResolvedValueOnce({
       data: {
         id: 'agt_tz',
         cron_expr: '0 9 * * 1',
@@ -260,7 +230,7 @@ describe('createAgent M3: timezone uses system TZ not hardcoded UTC', () => {
 
     await createAgent('0 9 * * 1', 'hello')
 
-    const calls = axiosPostMock.mock.calls as unknown as [
+    const calls = httpPostMock.mock.calls as unknown as [
       string,
       Record<string, unknown>,
       unknown,
@@ -270,7 +240,7 @@ describe('createAgent M3: timezone uses system TZ not hardcoded UTC', () => {
     // Must NOT be the hardcoded 'UTC' string — must be a real timezone string
     // In CI the system TZ may be UTC, but the field must still be present and a string.
     expect(typeof body?.timezone).toBe('string')
-    expect((body?.timezone as string).length).toBeGreaterThan(0)
+    expect((body!.timezone as string).length).toBeGreaterThan(0)
   })
 })
 
@@ -280,25 +250,22 @@ describe('withRetry M5: honors Retry-After header on 5xx', () => {
     // First call: 503 with Retry-After: 0 (immediate, so test is fast)
     // Second call: success
     const serverErr = Object.assign(new Error('Service Unavailable'), {
-      isAxiosError: true,
-      response: { status: 503, data: {}, headers: { 'retry-after': '0' } },
+      status: 503,
+      data: {},
+      statusText: 'Service Unavailable',
+      response: new Response(null, {
+        status: 503,
+        headers: { 'retry-after': '0' },
+      }),
     })
-    axiosGetMock
+    httpGetMock
       .mockRejectedValueOnce(serverErr)
       .mockResolvedValueOnce({ data: { data: [] }, status: 200 })
-
-    axiosIsAxiosError.mockImplementation(
-      (e: unknown) =>
-        typeof e === 'object' &&
-        e !== null &&
-        'isAxiosError' in e &&
-        (e as { isAxiosError: boolean }).isAxiosError === true,
-    )
 
     const result = await listAgents()
     // Should have retried and succeeded on second attempt
     expect(result).toHaveLength(0)
-    expect(axiosGetMock).toHaveBeenCalledTimes(2)
+    expect(httpGetMock).toHaveBeenCalledTimes(2)
   })
 })
 
@@ -306,7 +273,7 @@ describe('withRetry M5: honors Retry-After header on 5xx', () => {
 describe('regression: uses prepareWorkspaceApiRequest for auth', () => {
   test('listAgents calls prepareWorkspaceApiRequest to obtain workspace API key', async () => {
     prepareWorkspaceApiRequestMock.mockClear()
-    axiosGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
+    httpGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
 
     await listAgents()
 
@@ -317,9 +284,9 @@ describe('regression: uses prepareWorkspaceApiRequest for auth', () => {
 // ── Invariant: buildHeaders must return x-api-key, not Authorization ─────────
 describe('invariant: x-api-key present, no Authorization, no x-organization-uuid', () => {
   test('buildHeaders returns x-api-key header (workspace key)', async () => {
-    axiosGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
+    httpGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
     await listAgents()
-    const calls = axiosGetMock.mock.calls as unknown as [
+    const calls = httpGetMock.mock.calls as unknown as [
       string,
       { headers: Record<string, string> },
     ][]
@@ -328,9 +295,9 @@ describe('invariant: x-api-key present, no Authorization, no x-organization-uuid
   })
 
   test('buildHeaders does NOT include Authorization header', async () => {
-    axiosGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
+    httpGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
     await listAgents()
-    const calls = axiosGetMock.mock.calls as unknown as [
+    const calls = httpGetMock.mock.calls as unknown as [
       string,
       { headers: Record<string, string> },
     ][]
@@ -339,9 +306,9 @@ describe('invariant: x-api-key present, no Authorization, no x-organization-uuid
   })
 
   test('buildHeaders does NOT include x-organization-uuid header', async () => {
-    axiosGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
+    httpGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
     await listAgents()
-    const calls = axiosGetMock.mock.calls as unknown as [
+    const calls = httpGetMock.mock.calls as unknown as [
       string,
       { headers: Record<string, string> },
     ][]
@@ -350,9 +317,9 @@ describe('invariant: x-api-key present, no Authorization, no x-organization-uuid
   })
 
   test('buildHeaders includes anthropic-beta header with managed-agents umbrella', async () => {
-    axiosGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
+    httpGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
     await listAgents()
-    const calls = axiosGetMock.mock.calls as unknown as [
+    const calls = httpGetMock.mock.calls as unknown as [
       string,
       { headers: Record<string, string> },
     ][]
@@ -374,9 +341,9 @@ describe('invariant: x-api-key present, no Authorization, no x-organization-uuid
 
   test('request goes to api.anthropic.com (host guard passes for correct host)', async () => {
     // The real assertWorkspaceHost() runs and passes since BASE_API_URL is api.anthropic.com
-    axiosGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
+    httpGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
     await listAgents()
-    const calls = axiosGetMock.mock.calls as unknown as [string, unknown][]
+    const calls = httpGetMock.mock.calls as unknown as [string, unknown][]
     expect(calls[0]?.[0]).toContain('api.anthropic.com')
   })
 })

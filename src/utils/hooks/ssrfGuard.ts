@@ -1,5 +1,9 @@
-import type { AddressFamily, LookupAddress as AxiosLookupAddress } from 'axios'
 import { lookup as dnsLookup } from 'dns'
+
+/** Address family returned by dns.lookup — matches axios's AddressFamily. */
+type AddressFamily = 4 | 6
+/** Resolved address record — matches axios's LookupAddress. */
+type LookupAddress = { address: string; family: AddressFamily }
 import { isIP } from 'net'
 
 /**
@@ -205,20 +209,17 @@ function extractMappedIPv4(addr: string): string | null {
 
 /**
  * A dns.lookup-compatible function that resolves a hostname and rejects
- * addresses in blocked ranges. Used as the `lookup` option in axios request
- * config so that the validated IP is the one the socket connects to — no
- * rebinding window between validation and connection.
+ * addresses in blocked ranges. Used to validate resolved IPs before
+ * connecting — no rebinding window between validation and connection.
  *
  * IP literals in the hostname are validated directly without DNS.
- *
- * Signature matches axios's `lookup` config option (not Node's dns.lookup).
  */
 export function ssrfGuardedLookup(
   hostname: string,
   options: object,
   callback: (
     err: Error | null,
-    address: AxiosLookupAddress | AxiosLookupAddress[],
+    address: LookupAddress | LookupAddress[] | string,
     family?: AddressFamily,
   ) => void,
 ): void {

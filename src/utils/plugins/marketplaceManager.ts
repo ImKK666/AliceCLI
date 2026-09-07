@@ -18,7 +18,6 @@
  *                   └── marketplace.json
  */
 
-import axios from 'axios'
 import { writeFile } from 'fs/promises'
 import isEqual from 'lodash-es/isEqual.js'
 import memoize from 'lodash-es/memoize.js'
@@ -26,6 +25,7 @@ import { basename, dirname, isAbsolute, join, resolve, sep } from 'path'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../../services/analytics/growthbook.js'
 import { logForDebugging } from '../debug.js'
 import { isEnvTruthy } from '../envUtils.js'
+import { http, isHttpError } from '../http.js'
 import {
   ConfigParseError,
   errorMessage,
@@ -1279,7 +1279,7 @@ async function cacheMarketplaceFromUrl(
   let response
   const fetchStarted = performance.now()
   try {
-    response = await axios.get(url, {
+    response = await http.get(url, {
       timeout: 10000,
       headers,
     })
@@ -1291,25 +1291,24 @@ async function cacheMarketplaceFromUrl(
       performance.now() - fetchStarted,
       classifyFetchError(error),
     )
-    if (axios.isAxiosError(error)) {
-      if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
-        throw new Error(
-          `Could not connect to ${redactedUrl}. Please check your internet connection and verify the URL is correct.\n\nTechnical details: ${error.message}`,
-        )
-      }
-      if (error.code === 'ETIMEDOUT') {
-        throw new Error(
-          `Request timed out while downloading marketplace from ${redactedUrl}. The server may be slow or unreachable.\n\nTechnical details: ${error.message}`,
-        )
-      }
-      if (error.response) {
-        throw new Error(
-          `HTTP ${error.response.status} error while downloading marketplace from ${redactedUrl}. The marketplace file may not exist at this URL.\n\nTechnical details: ${error.message}`,
-        )
-      }
+    if (isHttpError(error)) {
+      throw new Error(
+        `HTTP ${error.status} error while downloading marketplace from ${redactedUrl}. The marketplace file may not exist at this URL.\n\nTechnical details: ${error.message}`,
+      )
+    }
+    const msg = errorMessage(error)
+    if (msg.includes('ECONNREFUSED') || msg.includes('ENOTFOUND')) {
+      throw new Error(
+        `Could not connect to ${redactedUrl}. Please check your internet connection and verify the URL is correct.\n\nTechnical details: ${msg}`,
+      )
+    }
+    if (msg.includes('ETIMEDOUT')) {
+      throw new Error(
+        `Request timed out while downloading marketplace from ${redactedUrl}. The server may be slow or unreachable.\n\nTechnical details: ${msg}`,
+      )
     }
     throw new Error(
-      `Failed to download marketplace from ${redactedUrl}: ${errorMessage(error)}`,
+      `Failed to download marketplace from ${redactedUrl}: ${msg}`,
     )
   }
 
