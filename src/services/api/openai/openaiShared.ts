@@ -42,10 +42,10 @@ export function isOfficialOpenAIBaseURL(baseURL: string | undefined): boolean {
  * for the whole conversation — never derived from full message bodies (that
  * changes every turn and defeats routing).
  *
- * Format: `ccb:<sessionId>`
+ * Format: `alice:<sessionId>`
  */
 export function formatOpenAIPromptCacheKey(sessionId: string): string {
-  return `ccb:${sessionId}`
+  return `alice:${sessionId}`
 }
 
 /**

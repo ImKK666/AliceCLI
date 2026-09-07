@@ -11,6 +11,7 @@ import type { AppState } from '../../state/AppStateStore.js';
 import type { Message } from '../../types/message.js';
 import { getSessionId } from '../../bootstrap/state.js';
 import { clearConversation } from '../../commands/clear/conversation.js';
+import { CLI_BIN_NAME } from '../../constants/brand.js';
 import { createSystemMessage } from '../../utils/messages.js';
 import { enqueuePendingNotification } from '../../utils/messageQueueManager.js';
 import { updateTaskState } from '../../utils/task/framework.js';
@@ -139,7 +140,7 @@ export function UltraplanChoiceDialog({
             setMessages(prev => [
               ...prev,
               createSystemMessage(
-                `Previous session saved · resume with: ccb --resume ${previousSessionId}`,
+                `Previous session saved · resume with: ${CLI_BIN_NAME} --resume ${previousSessionId}`,
                 'suggestion',
               ),
             ]);

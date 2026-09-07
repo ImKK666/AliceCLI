@@ -25,6 +25,7 @@ import {
   supportsTabStatus,
   wrapForMultiplexer,
 } from '@anthropic/ink'
+import { CLI_BIN_NAME } from '../constants/brand.js'
 import { shutdownDatadog } from '../services/analytics/datadog.js'
 import { shutdown1PEventLogging } from '../services/analytics/firstPartyEventLogger.js'
 import {
@@ -169,7 +170,9 @@ function printResumeHint(): void {
 
       writeSync(
         1,
-        chalk.dim(`\nResume this session with:\nccb --resume ${resumeArg}\n`),
+        chalk.dim(
+          `\nResume this session with:\n${CLI_BIN_NAME} --resume ${resumeArg}\n`,
+        ),
       )
       resumeHintPrinted = true
     } catch {

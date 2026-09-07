@@ -1,3 +1,4 @@
+import { CLI_BIN_NAME } from '../../constants/brand.js'
 import { registerBuiltinPlugin } from '../builtinPlugins.js'
 import { buildCliLaunch } from '../../utils/cliLaunch.js'
 
@@ -6,8 +7,7 @@ export function registerWeixinBuiltinPlugin(): void {
 
   registerBuiltinPlugin({
     name: 'weixin',
-    description:
-      'WeChat channel integration. Enables inbound WeChat messages via channels and provides reply/send_typing MCP tools. Configure with `ccb weixin login` and enable for a session with `--channels plugin:weixin@builtin`.',
+    description: `WeChat channel integration. Enables inbound WeChat messages via channels and provides reply/send_typing MCP tools. Configure with \`${CLI_BIN_NAME} weixin login\` and enable for a session with \`--channels plugin:weixin@builtin\`.`,
     version: MACRO.VERSION,
     defaultEnabled: true,
     mcpServers: {

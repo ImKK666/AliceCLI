@@ -11,6 +11,7 @@ import { getDesktopUpsellConfig } from '../../components/DesktopUpsell/DesktopUp
 import { color } from '@anthropic/ink'
 import { shouldShowOverageCreditUpsell } from '../../components/LogoV2/OverageCreditUpsell.js'
 import { getShortcutDisplay } from '../../keybindings/shortcutFormat.js'
+import { CLI_BIN_NAME } from '../../constants/brand.js'
 import { isKairosCronEnabled } from '@alice-cli/builtin-tools/tools/ScheduleCronTool/prompt.js'
 import { is1PApiCustomer } from '../../utils/auth.js'
 import { countConcurrentSessions } from '../../utils/concurrentSessions.js'
@@ -376,7 +377,7 @@ const externalTips: Tip[] = [
   {
     id: 'continue',
     content: async () =>
-      'Run ccb --continue or ccb --resume to resume a conversation',
+      `Run ${CLI_BIN_NAME} --continue or ${CLI_BIN_NAME} --resume to resume a conversation`,
     cooldownSessions: 10,
     isRelevant: async () => true,
   },

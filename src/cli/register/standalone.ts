@@ -236,7 +236,7 @@ export function register(program: Command, _helpers: RegisterHelpers): void {
       },
     )
 
-  // claude update — update ccb to the latest version via npm or bun
+  // alice update — update alice to the latest version via npm or bun
   program
     .command('update')
     .description('Update alice-cli to the latest version')

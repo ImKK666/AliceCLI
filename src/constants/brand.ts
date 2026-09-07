@@ -1,5 +1,6 @@
 export const BRAND_NAME = 'Alice'
 export const PRODUCT_NAME = 'Alice CLI'
+export const CLI_BIN_NAME = 'alice'
 export const PRODUCT_ATTRIBUTION = 'Generated with Alice CLI'
 export const CO_AUTHOR_PREFIX = 'Co-Authored-By:'
 export const DEFAULT_ATTRIBUTION_EMAIL = 'noreply@alice-cli.dev'
