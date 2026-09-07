@@ -9,8 +9,8 @@ import {
   type SpeculationResult,
   type SpeculationState,
 } from '../../state/AppStateStore.js'
-import { commandHasAnyCd } from '@claude-code-best/builtin-tools/tools/BashTool/bashPermissions.js'
-import { checkReadOnlyConstraints } from '@claude-code-best/builtin-tools/tools/BashTool/readOnlyValidation.js'
+import { commandHasAnyCd } from '@alice-cli/builtin-tools/tools/BashTool/bashPermissions.js'
+import { checkReadOnlyConstraints } from '@alice-cli/builtin-tools/tools/BashTool/readOnlyValidation.js'
 import type { SpeculationAcceptMessage } from '../../types/logs.js'
 import type { Message } from '../../types/message.js'
 import { createChildAbortController } from '../../utils/abortController.js'

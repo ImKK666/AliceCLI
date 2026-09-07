@@ -11,7 +11,7 @@ import {
 } from '../../bootstrap/state.js'
 import { COMMAND_NAME_TAG, TICK_TAG } from '../../constants/xml.js'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../../services/analytics/growthbook.js'
-import { REPL_TOOL_NAME } from '@claude-code-best/builtin-tools/tools/REPLTool/constants.js'
+import { REPL_TOOL_NAME } from '@alice-cli/builtin-tools/tools/REPLTool/constants.js'
 import { type AgentId, asAgentId } from '../../types/ids.js'
 import type { AttributionSnapshotMessage } from '../../types/logs.js'
 import {

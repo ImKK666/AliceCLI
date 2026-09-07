@@ -481,7 +481,7 @@ export async function createChatGPTResponsesStream(params: {
     'OpenAI-Beta': 'responses=experimental',
     Origin: 'https://chatgpt.com',
     Referer: 'https://chatgpt.com/',
-    originator: 'claude-code-best',
+    originator: 'alice-cli',
   }
   if (auth.accountId) {
     headers['ChatGPT-Account-Id'] = auth.accountId

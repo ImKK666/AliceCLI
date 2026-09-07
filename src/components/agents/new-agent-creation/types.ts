@@ -1,5 +1,5 @@
-import type { CustomAgentDefinition } from '@claude-code-best/builtin-tools/tools/AgentTool/loadAgentsDir.js'
-import type { AgentMemoryScope } from '@claude-code-best/builtin-tools/tools/AgentTool/agentMemory.js'
+import type { CustomAgentDefinition } from '@alice-cli/builtin-tools/tools/AgentTool/loadAgentsDir.js'
+import type { AgentMemoryScope } from '@alice-cli/builtin-tools/tools/AgentTool/agentMemory.js'
 import type { SettingSource } from '../../../utils/settings/constants.js'
 
 /**

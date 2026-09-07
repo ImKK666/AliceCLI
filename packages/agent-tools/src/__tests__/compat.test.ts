@@ -7,7 +7,7 @@ import type {
   ToolResult,
   ValidationResult,
   PermissionResult,
-} from '@claude-code-best/agent-tools'
+} from '@alice-cli/agent-tools'
 import type { Tool as HostTool } from '../../../../src/Tool.js'
 
 describe('agent-tools compatibility', () => {

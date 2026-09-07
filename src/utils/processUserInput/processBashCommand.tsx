@@ -2,7 +2,7 @@ import type { ContentBlockParam } from '@anthropic-ai/sdk/resources';
 import * as React from 'react';
 import { BashModeProgress } from 'src/components/BashModeProgress.js';
 import type { SetToolJSXFn } from 'src/Tool.js';
-import { BashTool } from '@claude-code-best/builtin-tools/tools/BashTool/BashTool.js';
+import { BashTool } from '@alice-cli/builtin-tools/tools/BashTool/BashTool.js';
 import type { AttachmentMessage, SystemMessage, UserMessage } from 'src/types/message.js';
 import type { ShellProgress } from 'src/types/tools.js';
 import { logEvent } from '../../services/analytics/index.js';
@@ -83,11 +83,11 @@ export async function processBashCommand(
     // native, shouldUseSandbox() returns false regardless (unsupported platform).
     // Lazy-require PowerShellTool so its ~300KB chunk only loads when the
     // user has actually selected the powershell default shell.
-    type PSMod = typeof import('@claude-code-best/builtin-tools/tools/PowerShellTool/PowerShellTool.js');
+    type PSMod = typeof import('@alice-cli/builtin-tools/tools/PowerShellTool/PowerShellTool.js');
     let PowerShellTool: PSMod['PowerShellTool'] | null = null;
     if (usePowerShell) {
       /* eslint-disable @typescript-eslint/no-require-imports */
-      PowerShellTool = (require('@claude-code-best/builtin-tools/tools/PowerShellTool/PowerShellTool.js') as PSMod)
+      PowerShellTool = (require('@alice-cli/builtin-tools/tools/PowerShellTool/PowerShellTool.js') as PSMod)
         .PowerShellTool;
       /* eslint-enable @typescript-eslint/no-require-imports */
     }

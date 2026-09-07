@@ -58,7 +58,7 @@ import { getTools } from '../../tools.js'
 import {
   createSyntheticOutputTool,
   isSyntheticOutputToolEnabled,
-} from '@claude-code-best/builtin-tools/tools/SyntheticOutputTool/SyntheticOutputTool.js'
+} from '@alice-cli/builtin-tools/tools/SyntheticOutputTool/SyntheticOutputTool.js'
 import type { ToolInputJSONSchema } from '../../Tool.js'
 import type { Tool } from '../../Tool.js'
 import {
@@ -68,7 +68,7 @@ import {
   isCustomAgent,
   parseAgentsFromJson,
   type AgentDefinitionsResult,
-} from '@claude-code-best/builtin-tools/tools/AgentTool/loadAgentsDir.js'
+} from '@alice-cli/builtin-tools/tools/AgentTool/loadAgentsDir.js'
 import { filterCommandsForRemoteMode, getCommands } from '../../commands.js'
 import {
   cacheSessionTitle,
@@ -611,7 +611,7 @@ export async function initializeSession(
   ) {
     /* eslint-disable @typescript-eslint/no-require-imports */
     const { isBriefEntitled } =
-      require('@claude-code-best/builtin-tools/tools/BriefTool/BriefTool.js') as typeof import('@claude-code-best/builtin-tools/tools/BriefTool/BriefTool.js')
+      require('@alice-cli/builtin-tools/tools/BriefTool/BriefTool.js') as typeof import('@alice-cli/builtin-tools/tools/BriefTool/BriefTool.js')
     /* eslint-enable @typescript-eslint/no-require-imports */
     if (isBriefEntitled()) {
       setUserMsgOptIn(true)
@@ -628,7 +628,7 @@ export async function initializeSession(
     const briefVisibility =
       feature('KAIROS') || feature('KAIROS_BRIEF')
         ? (
-            require('@claude-code-best/builtin-tools/tools/BriefTool/BriefTool.js') as typeof import('@claude-code-best/builtin-tools/tools/BriefTool/BriefTool.js')
+            require('@alice-cli/builtin-tools/tools/BriefTool/BriefTool.js') as typeof import('@alice-cli/builtin-tools/tools/BriefTool/BriefTool.js')
           ).isBriefEnabled()
           ? 'Call SendUserMessage at checkpoints to mark where things stand.'
           : 'The user will see any text you output.'

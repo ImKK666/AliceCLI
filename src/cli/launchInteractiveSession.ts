@@ -117,8 +117,8 @@ import {
 } from '../utils/sessionStorage.js'
 import { computeInitialTeamContext } from '../utils/swarm/reconnection.js'
 import { profileCheckpoint } from '../utils/startupProfiler.js'
-import type { AgentColorName } from '@claude-code-best/builtin-tools/tools/AgentTool/agentColorManager.js'
-import { isCustomAgent } from '@claude-code-best/builtin-tools/tools/AgentTool/loadAgentsDir.js'
+import type { AgentColorName } from '@alice-cli/builtin-tools/tools/AgentTool/agentColorManager.js'
+import { isCustomAgent } from '@alice-cli/builtin-tools/tools/AgentTool/loadAgentsDir.js'
 import type { LogOption } from '../types/logs.js'
 import {
   logStartupTelemetry,

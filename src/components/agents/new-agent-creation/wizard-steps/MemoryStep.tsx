@@ -2,10 +2,7 @@ import { type ReactNode } from 'react';
 import { Box, Byline, KeyboardShortcutHint } from '@anthropic/ink';
 import { useKeybinding } from '../../../../keybindings/useKeybinding.js';
 import { isAutoMemoryEnabled } from '../../../../memdir/paths.js';
-import {
-  type AgentMemoryScope,
-  loadAgentMemoryPrompt,
-} from '@claude-code-best/builtin-tools/tools/AgentTool/agentMemory.js';
+import { type AgentMemoryScope, loadAgentMemoryPrompt } from '@alice-cli/builtin-tools/tools/AgentTool/agentMemory.js';
 import { ConfigurableShortcutHint } from '../../../ConfigurableShortcutHint.js';
 import { Select } from '../../../CustomSelect/select.js';
 import { useWizard } from '../../../wizard/index.js';

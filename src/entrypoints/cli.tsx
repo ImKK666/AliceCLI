@@ -79,7 +79,7 @@ async function main(): Promise<void> {
   // Fast-path for --version/-v: zero module loading needed
   if (args.length === 1 && (args[0] === '--version' || args[0] === '-v' || args[0] === '-V')) {
     // MACRO.VERSION is inlined at build time
-    console.log(`${MACRO.VERSION} (Claude Code)`);
+    console.log(`${MACRO.VERSION} (Alice CLI)`);
     return;
   }
 
@@ -130,7 +130,7 @@ async function main(): Promise<void> {
 
   if (args[0] === 'weixin') {
     profileCheckpoint('cli_weixin_path');
-    const { handleWeixinCli } = await import('@claude-code-best/weixin');
+    const { handleWeixinCli } = await import('@alice-cli/weixin');
     const { enableConfigs } = await import('../utils/config.js');
     const { initializeAnalyticsSink } = await import('../services/analytics/sink.js');
     const { shutdownDatadog } = await import('../services/analytics/datadog.js');

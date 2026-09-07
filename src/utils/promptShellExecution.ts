@@ -1,5 +1,5 @@
 import type { Tool, ToolUseContext } from '../Tool.js'
-import { BashTool } from '@claude-code-best/builtin-tools/tools/BashTool/BashTool.js'
+import { BashTool } from '@alice-cli/builtin-tools/tools/BashTool/BashTool.js'
 import { logForDebugging } from './debug.js'
 import { errorMessage, MalformedCommandError, ShellError } from './errors.js'
 import type { FrontmatterShell } from './frontmatterParser.js'
@@ -36,7 +36,7 @@ const getPowerShellTool = (() => {
   return (): PromptShellTool => {
     if (!cached) {
       cached = (
-        require('@claude-code-best/builtin-tools/tools/PowerShellTool/PowerShellTool.js') as typeof import('@claude-code-best/builtin-tools/tools/PowerShellTool/PowerShellTool.js')
+        require('@alice-cli/builtin-tools/tools/PowerShellTool/PowerShellTool.js') as typeof import('@alice-cli/builtin-tools/tools/PowerShellTool/PowerShellTool.js')
       ).PowerShellTool
     }
     return cached

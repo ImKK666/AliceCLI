@@ -58,6 +58,6 @@ credentials.json
 .git.*-backup
 
 # Compile output
-claude-code-bin
+alice
 compile-out/
 vendor/ripgrep/

@@ -5,7 +5,7 @@ import type { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import type { ListToolsResult } from '@modelcontextprotocol/sdk/types.js'
 import memoize from 'lodash-es/memoize.js'
 import { buildMcpToolName } from './strings.js'
-import type { CoreTool } from '@claude-code-best/agent-tools'
+import type { CoreTool } from '@alice-cli/agent-tools'
 import type {
   McpServerConfig,
   ScopedMcpServerConfig,

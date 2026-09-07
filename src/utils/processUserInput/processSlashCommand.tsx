@@ -33,9 +33,9 @@ import {
 import { getDumpPromptsPath } from '../../services/api/dumpPrompts.js';
 import { buildPostCompactMessages } from '../../services/compact/compact.js';
 import { resetMicrocompactState } from '../../services/compact/microCompact.js';
-import type { Progress as AgentProgress } from '@claude-code-best/builtin-tools/tools/AgentTool/AgentTool.js';
-import { runAgent } from '@claude-code-best/builtin-tools/tools/AgentTool/runAgent.js';
-import { renderToolUseProgressMessage } from '@claude-code-best/builtin-tools/tools/AgentTool/UI.js';
+import type { Progress as AgentProgress } from '@alice-cli/builtin-tools/tools/AgentTool/AgentTool.js';
+import { runAgent } from '@alice-cli/builtin-tools/tools/AgentTool/runAgent.js';
+import { renderToolUseProgressMessage } from '@alice-cli/builtin-tools/tools/AgentTool/UI.js';
 import type { CommandResultDisplay } from '../../types/command.js';
 import { createAbortController } from '../abortController.js';
 import { getAgentContext } from '../agentContext.js';

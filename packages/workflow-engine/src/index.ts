@@ -1,4 +1,4 @@
-// @claude-code-best/workflow-engine
+// @alice-cli/workflow-engine
 // Deterministic JS script orchestration engine. Zero core-layer runtime dependencies; talks to the world via port adapters.
 
 export * from './types.js'

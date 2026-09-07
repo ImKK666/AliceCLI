@@ -1,10 +1,10 @@
 {
-  "name": "@claude-code-best/workflow-engine",
+  "name": "@alice-cli/workflow-engine",
   "version": "0.1.0",
   "description": "Deterministic JS script orchestration engine for multi-agent workflows. Zero core-layer runtime dependencies; talks to the world via port adapters.",
   "type": "module",
   "license": "MIT",
-  "author": "claude-code-best <claude-code-best@proton.me>",
+  "author": "alice-cli",
   "homepage": "https://github.com/claude-code-best/claude-code/tree/main/packages/workflow-engine#readme",
   "repository": {
     "type": "git",

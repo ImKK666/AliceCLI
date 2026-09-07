@@ -6,15 +6,15 @@ import {
   type AgentRunParams,
   type AgentRunResult,
   WorkflowAbortedError,
-} from '@claude-code-best/workflow-engine'
+} from '@alice-cli/workflow-engine'
 import { assembleToolPool } from '../../tools.js'
-import { finalizeAgentTool } from '@claude-code-best/builtin-tools/tools/AgentTool/agentToolUtils.js'
-import { runAgent } from '@claude-code-best/builtin-tools/tools/AgentTool/runAgent.js'
+import { finalizeAgentTool } from '@alice-cli/builtin-tools/tools/AgentTool/agentToolUtils.js'
+import { runAgent } from '@alice-cli/builtin-tools/tools/AgentTool/runAgent.js'
 import {
   isBuiltInAgent,
   type AgentDefinition,
   type BuiltInAgentDefinition,
-} from '@claude-code-best/builtin-tools/tools/AgentTool/loadAgentsDir.js'
+} from '@alice-cli/builtin-tools/tools/AgentTool/loadAgentsDir.js'
 import { createUserMessage, extractTextContent } from '../../utils/messages.js'
 import { getTokenCountFromUsage } from '../../utils/tokens.js'
 import { createAgentId } from '../../utils/uuid.js'

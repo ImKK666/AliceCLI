@@ -8,14 +8,11 @@ import { useMergedTools } from '../../hooks/useMergedTools.js';
 import { Box, Text } from '@anthropic/ink';
 import { useAppState, useSetAppState } from '../../state/AppState.js';
 import type { Tools } from '../../Tool.js';
-import {
-  type ResolvedAgent,
-  resolveAgentOverrides,
-} from '@claude-code-best/builtin-tools/tools/AgentTool/agentDisplay.js';
+import { type ResolvedAgent, resolveAgentOverrides } from '@alice-cli/builtin-tools/tools/AgentTool/agentDisplay.js';
 import {
   type AgentDefinition,
   getActiveAgentsFromList,
-} from '@claude-code-best/builtin-tools/tools/AgentTool/loadAgentsDir.js';
+} from '@alice-cli/builtin-tools/tools/AgentTool/loadAgentsDir.js';
 import { toError } from '../../utils/errors.js';
 import { logError } from '../../utils/log.js';
 import { Select } from '../CustomSelect/select.js';

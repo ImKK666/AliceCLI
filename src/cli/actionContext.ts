@@ -6,8 +6,8 @@
  */
 
 import type { Root } from '@anthropic/ink'
-import type { AgentDefinitionsResult } from '@claude-code-best/builtin-tools/tools/AgentTool/loadAgentsDir.js'
-import type { AgentColorName } from '@claude-code-best/builtin-tools/tools/AgentTool/agentColorManager.js'
+import type { AgentDefinitionsResult } from '@alice-cli/builtin-tools/tools/AgentTool/loadAgentsDir.js'
+import type { AgentColorName } from '@alice-cli/builtin-tools/tools/AgentTool/agentColorManager.js'
 import type { DownloadResult } from '../services/api/filesApi.js'
 import type {
   MCPServerConnection,

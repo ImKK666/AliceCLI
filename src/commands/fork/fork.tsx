@@ -1,7 +1,7 @@
 import { feature } from 'bun:bundle';
 import React from 'react';
-import { AgentTool } from '@claude-code-best/builtin-tools/tools/AgentTool/AgentTool.js';
-import { isInForkChild } from '@claude-code-best/builtin-tools/tools/AgentTool/forkSubagent.js';
+import { AgentTool } from '@alice-cli/builtin-tools/tools/AgentTool/AgentTool.js';
+import { isInForkChild } from '@alice-cli/builtin-tools/tools/AgentTool/forkSubagent.js';
 import { logForDebugging } from '../../utils/debug.js';
 import type { LocalJSXCommandOnDone, LocalJSXCommandContext } from '../../types/command.js';
 

@@ -5,11 +5,11 @@ import type { StructuredIO } from 'src/cli/structuredIO.js'
 import type { Stream } from 'src/utils/stream.js'
 import type { Command } from 'src/commands.js'
 import { formatDescriptionWithSource, getCommandName } from 'src/commands.js'
-import type { AgentDefinition } from '@claude-code-best/builtin-tools/tools/AgentTool/loadAgentsDir.js'
+import type { AgentDefinition } from '@alice-cli/builtin-tools/tools/AgentTool/loadAgentsDir.js'
 import {
   isBuiltInAgent,
   parseAgentsFromJson,
-} from '@claude-code-best/builtin-tools/tools/AgentTool/loadAgentsDir.js'
+} from '@alice-cli/builtin-tools/tools/AgentTool/loadAgentsDir.js'
 import type {
   SDKControlInitializeRequest,
   SDKControlInitializeResponse,

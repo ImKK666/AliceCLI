@@ -1,5 +1,5 @@
 {
-  "name": "@claude-code-best/weixin",
+  "name": "@alice-cli/weixin",
   "version": "1.0.0",
   "private": true,
   "type": "module",

@@ -8,7 +8,7 @@ import {
   type WorkflowHostContext,
   type WorkflowInput,
   type WorkflowPorts,
-} from '@claude-code-best/workflow-engine'
+} from '@alice-cli/workflow-engine'
 import { join } from 'node:path'
 import { getProjectRoot } from '../bootstrap/state.js'
 import { logForDebugging } from '../utils/debug.js'

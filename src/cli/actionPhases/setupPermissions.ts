@@ -452,9 +452,9 @@ export async function setupPermissionsAndMcp(
   if ((feature('KAIROS') || feature('KAIROS_BRIEF')) && baseTools.length > 0) {
     /* eslint-disable @typescript-eslint/no-require-imports */
     const { BRIEF_TOOL_NAME, LEGACY_BRIEF_TOOL_NAME } =
-      require('@claude-code-best/builtin-tools/tools/BriefTool/prompt.js') as typeof import('@claude-code-best/builtin-tools/tools/BriefTool/prompt.js')
+      require('@alice-cli/builtin-tools/tools/BriefTool/prompt.js') as typeof import('@alice-cli/builtin-tools/tools/BriefTool/prompt.js')
     const { isBriefEntitled } =
-      require('@claude-code-best/builtin-tools/tools/BriefTool/BriefTool.js') as typeof import('@claude-code-best/builtin-tools/tools/BriefTool/BriefTool.js')
+      require('@alice-cli/builtin-tools/tools/BriefTool/BriefTool.js') as typeof import('@alice-cli/builtin-tools/tools/BriefTool/BriefTool.js')
     /* eslint-enable @typescript-eslint/no-require-imports */
     const toolsParsed = parseToolListFromCLI(baseTools)
     if (

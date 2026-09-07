@@ -6,11 +6,8 @@ import { isENOENT } from 'src/utils/errors.js';
 import { detectEncodingForResolvedPath } from 'src/utils/fileRead.js';
 import { getFsImplementation } from 'src/utils/fsOperations.js';
 import { Text } from '@anthropic/ink';
-import { BashTool } from '@claude-code-best/builtin-tools/tools/BashTool/BashTool.js';
-import {
-  applySedSubstitution,
-  type SedEditInfo,
-} from '@claude-code-best/builtin-tools/tools/BashTool/sedEditParser.js';
+import { BashTool } from '@alice-cli/builtin-tools/tools/BashTool/BashTool.js';
+import { applySedSubstitution, type SedEditInfo } from '@alice-cli/builtin-tools/tools/BashTool/sedEditParser.js';
 import { FilePermissionDialog } from '../FilePermissionDialog/FilePermissionDialog.js';
 import type { PermissionRequestProps } from '../PermissionRequest.js';
 

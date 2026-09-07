@@ -17,7 +17,7 @@ import { getTools } from '../../../tools.js'
 import { getEmptyToolPermissionContext } from '../../../Tool.js'
 import type { PermissionMode } from '../../../types/permissions.js'
 import { getCommands } from '../../../commands.js'
-import { getAgentDefinitionsWithOverrides } from '@claude-code-best/builtin-tools/tools/AgentTool/loadAgentsDir.js'
+import { getAgentDefinitionsWithOverrides } from '@alice-cli/builtin-tools/tools/AgentTool/loadAgentsDir.js'
 import {
   setOriginalCwd,
   switchSession,

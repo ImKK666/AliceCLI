@@ -1,19 +1,19 @@
 import { feature } from 'bun:bundle'
 import type { UUID } from 'crypto'
 import { findToolByName, type Tools } from '../Tool.js'
-import { extractBashCommentLabel } from '@claude-code-best/builtin-tools/tools/BashTool/commentLabel.js'
-import { BASH_TOOL_NAME } from '@claude-code-best/builtin-tools/tools/BashTool/toolName.js'
-import { FILE_EDIT_TOOL_NAME } from '@claude-code-best/builtin-tools/tools/FileEditTool/constants.js'
-import { FILE_WRITE_TOOL_NAME } from '@claude-code-best/builtin-tools/tools/FileWriteTool/prompt.js'
-import { REPL_TOOL_NAME } from '@claude-code-best/builtin-tools/tools/REPLTool/constants.js'
-import { getReplPrimitiveTools } from '@claude-code-best/builtin-tools/tools/REPLTool/primitiveTools.js'
+import { extractBashCommentLabel } from '@alice-cli/builtin-tools/tools/BashTool/commentLabel.js'
+import { BASH_TOOL_NAME } from '@alice-cli/builtin-tools/tools/BashTool/toolName.js'
+import { FILE_EDIT_TOOL_NAME } from '@alice-cli/builtin-tools/tools/FileEditTool/constants.js'
+import { FILE_WRITE_TOOL_NAME } from '@alice-cli/builtin-tools/tools/FileWriteTool/prompt.js'
+import { REPL_TOOL_NAME } from '@alice-cli/builtin-tools/tools/REPLTool/constants.js'
+import { getReplPrimitiveTools } from '@alice-cli/builtin-tools/tools/REPLTool/primitiveTools.js'
 import {
   type BranchAction,
   type CommitKind,
   detectGitOperation,
   type PrAction,
-} from '@claude-code-best/builtin-tools/tools/shared/gitOperationTracking.js'
-import { SEARCH_EXTRA_TOOLS_TOOL_NAME } from '@claude-code-best/builtin-tools/tools/SearchExtraToolsTool/prompt.js'
+} from '@alice-cli/builtin-tools/tools/shared/gitOperationTracking.js'
+import { SEARCH_EXTRA_TOOLS_TOOL_NAME } from '@alice-cli/builtin-tools/tools/SearchExtraToolsTool/prompt.js'
 import type {
   CollapsedReadSearchGroup,
   CollapsibleMessage,
@@ -58,7 +58,7 @@ const teamMemOps = feature('TEAMMEM')
   : null
 const SNIP_TOOL_NAME = feature('HISTORY_SNIP')
   ? (
-      require('@claude-code-best/builtin-tools/tools/SnipTool/prompt.js') as typeof import('@claude-code-best/builtin-tools/tools/SnipTool/prompt.js')
+      require('@alice-cli/builtin-tools/tools/SnipTool/prompt.js') as typeof import('@alice-cli/builtin-tools/tools/SnipTool/prompt.js')
     ).SNIP_TOOL_NAME
   : null
 /* eslint-enable @typescript-eslint/no-require-imports */

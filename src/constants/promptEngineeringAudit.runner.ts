@@ -122,78 +122,67 @@ const TOOL_NAMES = {
   Sleep: 'Sleep',
 }
 
-mock.module(
-  '@claude-code-best/builtin-tools/tools/BashTool/toolName.js',
-  () => ({ BASH_TOOL_NAME: TOOL_NAMES.Bash }),
-)
-mock.module(
-  '@claude-code-best/builtin-tools/tools/FileReadTool/prompt.js',
-  () => ({ FILE_READ_TOOL_NAME: TOOL_NAMES.Read }),
-)
-mock.module(
-  '@claude-code-best/builtin-tools/tools/FileEditTool/constants.js',
-  () => ({ FILE_EDIT_TOOL_NAME: TOOL_NAMES.Edit }),
-)
-mock.module(
-  '@claude-code-best/builtin-tools/tools/FileWriteTool/prompt.js',
-  () => ({ FILE_WRITE_TOOL_NAME: TOOL_NAMES.Write }),
-)
-mock.module('@claude-code-best/builtin-tools/tools/GlobTool/prompt.js', () => ({
+mock.module('@alice-cli/builtin-tools/tools/BashTool/toolName.js', () => ({
+  BASH_TOOL_NAME: TOOL_NAMES.Bash,
+}))
+mock.module('@alice-cli/builtin-tools/tools/FileReadTool/prompt.js', () => ({
+  FILE_READ_TOOL_NAME: TOOL_NAMES.Read,
+}))
+mock.module('@alice-cli/builtin-tools/tools/FileEditTool/constants.js', () => ({
+  FILE_EDIT_TOOL_NAME: TOOL_NAMES.Edit,
+}))
+mock.module('@alice-cli/builtin-tools/tools/FileWriteTool/prompt.js', () => ({
+  FILE_WRITE_TOOL_NAME: TOOL_NAMES.Write,
+}))
+mock.module('@alice-cli/builtin-tools/tools/GlobTool/prompt.js', () => ({
   GLOB_TOOL_NAME: TOOL_NAMES.Glob,
 }))
-mock.module('@claude-code-best/builtin-tools/tools/GrepTool/prompt.js', () => ({
+mock.module('@alice-cli/builtin-tools/tools/GrepTool/prompt.js', () => ({
   GREP_TOOL_NAME: TOOL_NAMES.Grep,
 }))
+mock.module('@alice-cli/builtin-tools/tools/AgentTool/constants.js', () => ({
+  AGENT_TOOL_NAME: TOOL_NAMES.Agent,
+  VERIFICATION_AGENT_TYPE: 'verification',
+}))
+mock.module('@alice-cli/builtin-tools/tools/AgentTool/forkSubagent.js', () => ({
+  isForkSubagentEnabled: () => false,
+}))
 mock.module(
-  '@claude-code-best/builtin-tools/tools/AgentTool/constants.js',
-  () => ({
-    AGENT_TOOL_NAME: TOOL_NAMES.Agent,
-    VERIFICATION_AGENT_TYPE: 'verification',
-  }),
-)
-mock.module(
-  '@claude-code-best/builtin-tools/tools/AgentTool/forkSubagent.js',
-  () => ({ isForkSubagentEnabled: () => false }),
-)
-mock.module(
-  '@claude-code-best/builtin-tools/tools/AgentTool/builtInAgents.js',
+  '@alice-cli/builtin-tools/tools/AgentTool/builtInAgents.js',
   () => ({ areExplorePlanAgentsEnabled: () => false }),
 )
 mock.module(
-  '@claude-code-best/builtin-tools/tools/AgentTool/built-in/exploreAgent.js',
+  '@alice-cli/builtin-tools/tools/AgentTool/built-in/exploreAgent.js',
   () => ({
     EXPLORE_AGENT: { agentType: 'explore' },
     EXPLORE_AGENT_MIN_QUERIES: 5,
   }),
 )
 mock.module(
-  '@claude-code-best/builtin-tools/tools/AskUserQuestionTool/prompt.js',
+  '@alice-cli/builtin-tools/tools/AskUserQuestionTool/prompt.js',
   () => ({ ASK_USER_QUESTION_TOOL_NAME: TOOL_NAMES.AskUserQuestion }),
 )
 mock.module(
-  '@claude-code-best/builtin-tools/tools/TodoWriteTool/constants.js',
+  '@alice-cli/builtin-tools/tools/TodoWriteTool/constants.js',
   () => ({ TODO_WRITE_TOOL_NAME: 'TodoWrite' }),
 )
 mock.module(
-  '@claude-code-best/builtin-tools/tools/TaskCreateTool/constants.js',
+  '@alice-cli/builtin-tools/tools/TaskCreateTool/constants.js',
   () => ({ TASK_CREATE_TOOL_NAME: TOOL_NAMES.TaskCreate }),
 )
 mock.module(
-  '@claude-code-best/builtin-tools/tools/DiscoverSkillsTool/prompt.js',
+  '@alice-cli/builtin-tools/tools/DiscoverSkillsTool/prompt.js',
   () => ({ DISCOVER_SKILLS_TOOL_NAME: TOOL_NAMES.DiscoverSkills }),
 )
-mock.module(
-  '@claude-code-best/builtin-tools/tools/SkillTool/constants.js',
-  () => ({ SKILL_TOOL_NAME: TOOL_NAMES.Skill }),
-)
-mock.module(
-  '@claude-code-best/builtin-tools/tools/SleepTool/prompt.js',
-  () => ({ SLEEP_TOOL_NAME: TOOL_NAMES.Sleep }),
-)
-mock.module(
-  '@claude-code-best/builtin-tools/tools/REPLTool/constants.js',
-  () => ({ isReplModeEnabled: () => false }),
-)
+mock.module('@alice-cli/builtin-tools/tools/SkillTool/constants.js', () => ({
+  SKILL_TOOL_NAME: TOOL_NAMES.Skill,
+}))
+mock.module('@alice-cli/builtin-tools/tools/SleepTool/prompt.js', () => ({
+  SLEEP_TOOL_NAME: TOOL_NAMES.Sleep,
+}))
+mock.module('@alice-cli/builtin-tools/tools/REPLTool/constants.js', () => ({
+  isReplModeEnabled: () => false,
+}))
 
 // --- 导入被测模块 ---
 

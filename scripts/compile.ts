@@ -1,13 +1,13 @@
 #!/usr/bin/env bun
 /**
- * Compile Claude Code into a standalone binary.
+ * Compile Alice CLI into a standalone binary.
  *
  * Pipeline:
  *   1. Bun.build() → single JS file (no splitting, with feature flags)
  *   2. bun build --compile → standalone executable
  *
  * Usage:
- *   bun run scripts/compile.ts                    # default output: claude-code-bin
+ *   bun run scripts/compile.ts                    # default output: alice
  *   bun run scripts/compile.ts --outfile=my-cli   # custom output name
  */
 import { statSync, rmSync } from 'fs'
@@ -16,8 +16,7 @@ import { join, dirname, resolve } from 'path'
 import { getMacroDefines, DEFAULT_BUILD_FEATURES } from './defines.ts'
 
 const outfile =
-  process.argv.find(a => a.startsWith('--outfile='))?.split('=')[1] ??
-  'claude-code-bin'
+  process.argv.find(a => a.startsWith('--outfile='))?.split('=')[1] ?? 'alice'
 
 const compileOutdir = 'compile-out'
 

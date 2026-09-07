@@ -72,37 +72,34 @@ mock.module('bun:bundle', () => ({
   feature: (name: string) => name === 'KAIROS',
 }))
 
-mock.module(
-  '@claude-code-best/builtin-tools/tools/AgentTool/runAgent.js',
-  () => ({
-    runAgent: async function* () {
-      runAgentStartCount += 1
-      if (runAgentBlocker) {
-        await runAgentBlocker
-      }
-      yield {
-        type: 'assistant',
-        uuid: 'assistant-1',
-        timestamp: new Date().toISOString(),
-        message: {
-          id: 'msg_1',
-          type: 'message',
-          role: 'assistant',
-          model: 'test-model',
-          content: [{ type: 'text', text: 'forked command done' }],
-          stop_reason: 'end_turn',
-          stop_sequence: null,
-          usage: {
-            input_tokens: 0,
-            output_tokens: 0,
-          },
+mock.module('@alice-cli/builtin-tools/tools/AgentTool/runAgent.js', () => ({
+  runAgent: async function* () {
+    runAgentStartCount += 1
+    if (runAgentBlocker) {
+      await runAgentBlocker
+    }
+    yield {
+      type: 'assistant',
+      uuid: 'assistant-1',
+      timestamp: new Date().toISOString(),
+      message: {
+        id: 'msg_1',
+        type: 'message',
+        role: 'assistant',
+        model: 'test-model',
+        content: [{ type: 'text', text: 'forked command done' }],
+        stop_reason: 'end_turn',
+        stop_sequence: null,
+        usage: {
+          input_tokens: 0,
+          output_tokens: 0,
         },
-      }
-    },
-  }),
-)
+      },
+    }
+  },
+}))
 
-mock.module('@claude-code-best/builtin-tools/tools/AgentTool/UI.js', () => ({
+mock.module('@alice-cli/builtin-tools/tools/AgentTool/UI.js', () => ({
   AgentPromptDisplay: () => null,
   AgentResponseDisplay: () => null,
   extractLastToolInfo: () => null,
