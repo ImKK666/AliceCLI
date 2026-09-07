@@ -20,9 +20,6 @@ import {
   logEvent,
 } from '../../services/analytics/index.js'
 
-import * as childProcess from 'node:child_process'
-import { promisify } from 'node:util'
-
 /**
  * Sanitizes an error message before surfacing it to the user:
  * - Replaces the home directory path with "~" to avoid leaking absolute paths.
@@ -38,15 +35,41 @@ function sanitizeErrorMessage(msg: string): string {
   return sanitized
 }
 
-// Re-resolved at call time via namespace import so that test runners using
-// mock.module('node:child_process') see the replacement (unlike module-load
-// promisify capture which binds the original reference permanently).
+type ExecFileFn = (
+  cmd: string,
+  args: string[],
+  opts: { timeout?: number },
+) => Promise<{ stdout: string; stderr: string }>
+
+const defaultExecFileAsync: ExecFileFn = async (cmd, args) => {
+  const proc = Bun.spawn([cmd, ...args], { stdout: 'pipe', stderr: 'pipe' })
+  const [exitCode, stdout, stderr] = await Promise.all([
+    proc.exited,
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+  ])
+  if (exitCode !== 0) {
+    const err = new Error(`${cmd} exited with code ${exitCode}`) as Error & {
+      stderr: string
+    }
+    err.stderr = stderr
+    throw err
+  }
+  return { stdout, stderr }
+}
+
+let _execFileAsync: ExecFileFn = defaultExecFileAsync
+
 function execFileAsync(
   cmd: string,
   args: string[],
   opts: { timeout?: number },
-): Promise<{ stdout: string; stderr: string }> {
-  return promisify(childProcess.execFile)(cmd, args, opts)
+) {
+  return _execFileAsync(cmd, args, opts)
+}
+
+export function _setExecFileImpl(fn: ExecFileFn | null) {
+  _execFileAsync = fn ?? defaultExecFileAsync
 }
 
 // Patterns to mask in shared content (API keys, tokens, passwords, secrets)

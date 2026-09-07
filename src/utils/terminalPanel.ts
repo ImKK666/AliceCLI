@@ -15,7 +15,6 @@
  * Uses the same suspend-Ink pattern as the external editor (promptEditor.ts).
  */
 
-import { spawn, spawnSync } from 'child_process'
 import { getSessionId } from '../bootstrap/state.js'
 import { instances } from '@anthropic/ink'
 import { registerCleanup } from './cleanupRegistry.js'
@@ -61,8 +60,8 @@ class TerminalPanel {
 
   private checkTmux(): boolean {
     if (this.hasTmux !== undefined) return this.hasTmux
-    const result = spawnSync('tmux', ['-V'], { encoding: 'utf-8' })
-    this.hasTmux = result.status === 0
+    const result = Bun.spawnSync(['tmux', '-V'])
+    this.hasTmux = result.exitCode === 0
     if (!this.hasTmux) {
       logForDebugging(
         'Terminal panel: tmux not found, falling back to non-persistent shell',
@@ -72,12 +71,15 @@ class TerminalPanel {
   }
 
   private hasSession(): boolean {
-    const result = spawnSync(
+    const result = Bun.spawnSync([
       'tmux',
-      ['-L', getTerminalPanelSocket(), 'has-session', '-t', TMUX_SESSION],
-      { encoding: 'utf-8' },
-    )
-    return result.status === 0
+      '-L',
+      getTerminalPanelSocket(),
+      'has-session',
+      '-t',
+      TMUX_SESSION,
+    ])
+    return result.exitCode === 0
   }
 
   private createSession(): boolean {
@@ -85,35 +87,33 @@ class TerminalPanel {
     const cwd = pwd()
     const socket = getTerminalPanelSocket()
 
-    const result = spawnSync(
+    const result = Bun.spawnSync([
       'tmux',
-      [
-        '-L',
-        socket,
-        'new-session',
-        '-d',
-        '-s',
-        TMUX_SESSION,
-        '-c',
-        cwd,
-        shell,
-        '-l',
-      ],
-      { encoding: 'utf-8' },
-    )
+      '-L',
+      socket,
+      'new-session',
+      '-d',
+      '-s',
+      TMUX_SESSION,
+      '-c',
+      cwd,
+      shell,
+      '-l',
+    ])
 
-    if (result.status !== 0) {
+    if (result.exitCode !== 0) {
       logForDebugging(
-        `Terminal panel: failed to create tmux session: ${result.stderr}`,
+        `Terminal panel: failed to create tmux session: ${result.stderr.toString()}`,
       )
       return false
     }
 
     // Bind Meta+J (toggles back to Claude Code from inside the terminal)
     // and configure the status bar hint. Chained with ';' to collapse
-    // 5 spawnSync calls into 1.
+    // multiple spawnSync calls into 1.
     // biome-ignore format: one tmux command per line
-    spawnSync('tmux', [
+    Bun.spawnSync([
+      'tmux',
       '-L', socket,
       'bind-key', '-n', 'M-j', 'detach-client', ';',
       'set-option', '-g', 'status-style', 'bg=default', ';',
@@ -125,16 +125,19 @@ class TerminalPanel {
     if (!this.cleanupRegistered) {
       this.cleanupRegistered = true
       registerCleanup(async () => {
-        // Detached async spawn — spawnSync here would block the event loop
-        // and serialize the entire cleanup Promise.all in gracefulShutdown.
-        // .on('error') swallows ENOENT if tmux disappears between session
+        // Fire-and-forget async spawn — spawnSync here would block the event
+        // loop and serialize the entire cleanup Promise.all in gracefulShutdown.
+        // try/catch swallows ENOENT if tmux disappears between session
         // creation and cleanup — prevents spurious uncaughtException noise.
-        spawn('tmux', ['-L', socket, 'kill-server'], {
-          detached: true,
-          stdio: 'ignore',
-        })
-          .on('error', () => {})
-          .unref()
+        try {
+          Bun.spawn(['tmux', '-L', socket, 'kill-server'], {
+            stdout: 'ignore',
+            stderr: 'ignore',
+            stdin: 'ignore',
+          })
+        } catch {
+          // Swallow errors (e.g., ENOENT if tmux disappeared)
+        }
       })
     }
 
@@ -142,11 +145,19 @@ class TerminalPanel {
   }
 
   private attachSession(): void {
-    spawnSync(
-      'tmux',
-      ['-L', getTerminalPanelSocket(), 'attach-session', '-t', TMUX_SESSION],
-      { stdio: 'inherit' },
-    )
+    Bun.spawnSync({
+      cmd: [
+        'tmux',
+        '-L',
+        getTerminalPanelSocket(),
+        'attach-session',
+        '-t',
+        TMUX_SESSION,
+      ],
+      stdout: 'inherit',
+      stderr: 'inherit',
+      stdin: 'inherit',
+    })
   }
 
   // ── show shell ────────────────────────────────────────────────────
@@ -182,8 +193,11 @@ class TerminalPanel {
   private runShellDirect(): void {
     const shell = process.env.SHELL || '/bin/bash'
     const cwd = pwd()
-    spawnSync(shell, ['-i', '-l'], {
-      stdio: 'inherit',
+    Bun.spawnSync({
+      cmd: [shell, '-i', '-l'],
+      stdout: 'inherit',
+      stderr: 'inherit',
+      stdin: 'inherit',
       cwd,
       env: process.env,
     })

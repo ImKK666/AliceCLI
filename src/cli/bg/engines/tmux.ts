@@ -1,4 +1,3 @@
-import { spawnSync } from 'child_process'
 import { execFileNoThrow } from '../../../utils/execFileNoThrow.js'
 import { buildCliLaunch, quoteCliLaunch } from '../../../utils/cliLaunch.js'
 import type {
@@ -30,13 +29,17 @@ export class TmuxEngine implements BgEngine {
 
     const cmd = quoteCliLaunch(launch)
 
-    const result = spawnSync(
-      'tmux',
-      ['new-session', '-d', '-s', opts.sessionName, cmd],
-      { stdio: 'inherit', env: launch.env },
+    const result = Bun.spawnSync(
+      ['tmux', 'new-session', '-d', '-s', opts.sessionName, cmd],
+      {
+        stdout: 'inherit',
+        stderr: 'inherit',
+        stdin: 'inherit',
+        env: launch.env,
+      },
     )
 
-    if (result.status !== 0) {
+    if (result.exitCode !== 0) {
       throw new Error('Failed to create tmux session.')
     }
 
@@ -55,13 +58,16 @@ export class TmuxEngine implements BgEngine {
       throw new Error(`Session ${session.sessionId} has no tmux session name.`)
     }
 
-    const result = spawnSync(
-      'tmux',
-      ['attach-session', '-t', session.tmuxSessionName],
-      { stdio: 'inherit' },
+    const result = Bun.spawnSync(
+      ['tmux', 'attach-session', '-t', session.tmuxSessionName],
+      {
+        stdout: 'inherit',
+        stderr: 'inherit',
+        stdin: 'inherit',
+      },
     )
 
-    if (result.status !== 0) {
+    if (result.exitCode !== 0) {
       throw new Error(
         `Failed to attach to tmux session '${session.tmuxSessionName}'.`,
       )

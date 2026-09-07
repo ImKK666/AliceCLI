@@ -11,7 +11,6 @@
  *   Windows — Windows Terminal (wt.exe), PowerShell, cmd.exe
  */
 
-import { spawn } from 'child_process'
 import { basename } from 'path'
 import { getGlobalConfig } from '../config.js'
 import { logForDebugging } from '../debug.js'
@@ -470,32 +469,32 @@ async function launchWindowsTerminal(
 
 /**
  * Spawn a terminal detached so the handler process can exit without
- * waiting for the terminal to close. Resolves false on spawn failure
+ * waiting for the terminal to close. Returns false on spawn failure
  * (ENOENT, EACCES) rather than crashing.
+ *
+ * Note: windowsVerbatimArguments is not supported by Bun.spawn;
+ * Windows callers should pre-escape args as needed.
  */
-function spawnDetached(
+async function spawnDetached(
   command: string,
   args: string[],
   opts: { cwd?: string; windowsVerbatimArguments?: boolean } = {},
 ): Promise<boolean> {
-  return new Promise<boolean>(resolve => {
-    const child = spawn(command, args, {
-      detached: true,
-      stdio: 'ignore',
+  try {
+    Bun.spawn([command, ...args], {
+      stdout: 'ignore',
+      stderr: 'ignore',
+      stdin: 'ignore',
       cwd: opts.cwd,
-      windowsVerbatimArguments: opts.windowsVerbatimArguments,
     })
-    child.once('error', err => {
-      logForDebugging(`Failed to spawn ${command}: ${err.message}`, {
-        level: 'error',
-      })
-      void resolve(false)
-    })
-    child.once('spawn', () => {
-      child.unref()
-      void resolve(true)
-    })
-  })
+    return true
+  } catch (err) {
+    logForDebugging(
+      `Failed to spawn ${command}: ${err instanceof Error ? err.message : err}`,
+      { level: 'error' },
+    )
+    return false
+  }
 }
 
 /**

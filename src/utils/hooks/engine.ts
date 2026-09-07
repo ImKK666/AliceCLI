@@ -2,7 +2,9 @@
  * Hook execution engine: subprocess spawning, output parsing, and JSON processing.
  * Depends on ./types.js for shared type definitions.
  */
-import { spawn, type ChildProcessWithoutNullStreams } from 'child_process'
+import type { ChildProcess } from 'child_process'
+import { EventEmitter } from 'events'
+import { Readable, Writable } from 'stream'
 import { pathExists } from '../file.js'
 import { wrapSpawn, type ShellCommand } from '../ShellCommand.js'
 import { TaskOutput } from '../task/TaskOutput.js'
@@ -857,7 +859,7 @@ export async function execCommandHook(
     }
   }
 
-  let child: ChildProcessWithoutNullStreams
+  let spawnArgs: string[]
   if (shellType === 'powershell') {
     const pwshPath = await getCachedPowerShellPath()
     if (!pwshPath) {
@@ -867,23 +869,87 @@ export async function execCommandHook(
           `PowerShell, or remove "shell": "powershell" to use bash.`,
       )
     }
-    child = spawn(pwshPath, buildPowerShellArgs(finalCommand), {
-      env: envVars,
-      cwd: safeCwd,
-      // Prevent visible console window on Windows (no-op on other platforms)
-      windowsHide: true,
-    }) as ChildProcessWithoutNullStreams
+    spawnArgs = [pwshPath, ...buildPowerShellArgs(finalCommand)]
   } else {
     // On Windows, use Git Bash explicitly (cmd.exe can't run bash syntax).
-    // On other platforms, shell: true uses /bin/sh.
-    const shell = isWindows ? findGitBashPath() : true
-    child = spawn(sandboxedCommand, [], {
-      env: envVars,
-      cwd: safeCwd,
-      shell,
-      // Prevent visible console window on Windows (no-op on other platforms)
-      windowsHide: true,
-    }) as ChildProcessWithoutNullStreams
+    // On other platforms, use /bin/sh -c (replaces shell: true).
+    const shellBin = isWindows ? findGitBashPath() : '/bin/sh'
+    spawnArgs = [shellBin, '-c', sandboxedCommand]
+  }
+
+  const proc = Bun.spawn(spawnArgs, {
+    env: envVars as Record<string, string | undefined>,
+    cwd: safeCwd,
+    stdin: 'pipe',
+    stdout: 'pipe',
+    stderr: 'pipe',
+  })
+
+  // Adapt Bun.Subprocess into ChildProcess-compatible interface for wrapSpawn
+  const emitter = new EventEmitter()
+  proc.exited.then(
+    code => {
+      emitter.emit('exit', code, null)
+      emitter.emit('close', code, null)
+    },
+    err => {
+      emitter.emit('error', err)
+    },
+  )
+  const adaptedStdout = Readable.fromWeb(
+    proc.stdout as unknown as import('stream/web').ReadableStream,
+  )
+  const adaptedStderr = Readable.fromWeb(
+    proc.stderr as unknown as import('stream/web').ReadableStream,
+  )
+  const fileSink = proc.stdin!
+  const adaptedStdin = new Writable({
+    write(chunk, _encoding, callback) {
+      try {
+        fileSink.write(typeof chunk === 'string' ? chunk : chunk)
+        callback()
+      } catch (err) {
+        callback(err as Error)
+      }
+    },
+    final(callback) {
+      try {
+        fileSink.end()
+        callback()
+      } catch (err) {
+        callback(err as Error)
+      }
+    },
+    destroy(err, callback) {
+      try {
+        fileSink.end()
+      } catch {
+        /* already closed */
+      }
+      callback(err)
+    },
+  })
+  let procKilled = false
+  const child = Object.assign(emitter, {
+    pid: proc.pid,
+    stdout: adaptedStdout,
+    stderr: adaptedStderr,
+    stdin: adaptedStdin,
+    get killed() {
+      return procKilled
+    },
+    set killed(v: boolean) {
+      procKilled = v
+    },
+    kill(signal?: NodeJS.Signals | number): boolean {
+      procKilled = true
+      proc.kill(signal as number)
+      return true
+    },
+  }) as unknown as ChildProcess & {
+    stdout: Readable
+    stderr: Readable
+    stdin: Writable
   }
 
   // Hooks use pipe mode — stdout must be streamed into JS so we can parse

@@ -1,11 +1,10 @@
 /**
  * Tests for share/index.ts
  *
- * share/index.ts now uses `import * as childProcess from 'node:child_process'`
- * with lazy promisify, so mock.module('node:child_process') is effective.
- * This file sets up a default mock where gh succeeds (so tests that exercise
- * the log-exists paths can proceed past the gh check). The share-gh.test.ts
- * file tests specific gh upload paths in detail.
+ * share/index.ts exports `_setExecFileImpl` for test mocking. This file sets
+ * up a default mock where gh succeeds (so tests that exercise the log-exists
+ * paths can proceed past the gh check). The share-gh.test.ts file tests
+ * specific gh upload paths in detail.
  */
 import {
   afterAll,
@@ -17,88 +16,19 @@ import {
   mock,
   test,
 } from 'bun:test'
-import { promisify } from 'node:util'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-// Default: gh --version succeeds, gist create fails (upload error is acceptable
-// for tests that only need to reach the content-preparation stage).
-let _execFileImplBase: (
+// Default: all commands succeed with empty stdout (gh check passes,
+// gist create will fail with "Unexpected gh gist output" which is acceptable
+// for tests that only exercise content-preparation paths).
+type ExecResult = { stdout: string; stderr: string }
+let _mockExecFile: (
   cmd: string,
   args: string[],
-  opts: unknown,
-  cb: (err: Error | null, stdout: string, stderr: string) => void,
-) => void = (_cmd, _args, _opts, cb) => cb(null, '', '')
-
-const execFileMockBase = (
-  cmd: string,
-  args: string[],
-  opts: unknown,
-  cb: (err: Error | null, stdout: string, stderr: string) => void,
-) => _execFileImplBase(cmd, args, opts, cb)
-
-;(execFileMockBase as unknown as Record<symbol, unknown>)[
-  promisify.custom as symbol
-] = (
-  cmd: string,
-  args: string[],
-  opts: unknown,
-): Promise<{ stdout: string; stderr: string }> =>
-  new Promise((resolve, reject) =>
-    _execFileImplBase(cmd, args, opts, (err, stdout, stderr) => {
-      if (err) reject(err)
-      else resolve({ stdout, stderr })
-    }),
-  )
-
-// Spread real child_process + flag-gated stub (see share-gh.test.ts for the
-// promisify.custom rationale). Default OFF; suite's beforeAll flips on,
-// afterAll flips off so projectContext.test and other child_process consumers
-// see the real impl outside this suite.
-let useShareCpStubs = false
-const wrappedShareExecFile = ((...args: unknown[]) =>
-  useShareCpStubs
-    ? (execFileMockBase as (...a: unknown[]) => unknown)(...args)
-    : // eslint-disable-next-line @typescript-eslint/no-require-imports
-      (require('node:child_process').execFile as (...a: unknown[]) => unknown)(
-        ...args,
-      )) as unknown as Record<symbol, unknown> & ((...a: unknown[]) => unknown)
-;(wrappedShareExecFile as Record<symbol, unknown>)[promisify.custom as symbol] =
-  (
-    cmd: string,
-    args: string[],
-    opts: unknown,
-  ): Promise<{ stdout: string; stderr: string }> => {
-    if (useShareCpStubs) {
-      return new Promise((resolve, reject) =>
-        _execFileImplBase(cmd, args, opts, (err, stdout, stderr) =>
-          err ? reject(err) : resolve({ stdout, stderr }),
-        ),
-      )
-    }
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const real = require('node:child_process') as Record<string, unknown>
-    return promisify(real.execFile as never)(cmd, args, opts) as Promise<{
-      stdout: string
-      stderr: string
-    }>
-  }
-mock.module('node:child_process', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const real = require('node:child_process') as Record<string, unknown>
-  return {
-    ...real,
-    default: real,
-    execFile: wrappedShareExecFile as typeof real.execFile,
-    execFileSync: ((...args: unknown[]) =>
-      useShareCpStubs
-        ? Buffer.from('')
-        : (real.execFileSync as (...a: unknown[]) => unknown)(
-            ...args,
-          )) as typeof real.execFileSync,
-  }
-})
+  opts: { timeout?: number },
+) => Promise<ExecResult> = async () => ({ stdout: '', stderr: '' })
 
 mock.module('bun:bundle', () => ({
   feature: (_name: string) => true,
@@ -122,10 +52,7 @@ beforeEach(() => {
   claudeDir = join(tmpDir, '.claude')
   mkdirSync(claudeDir, { recursive: true })
   process.env.CLAUDE_CONFIG_DIR = claudeDir
-  // Reset to gh-succeeds default (execFile returns empty stdout — gh check passes,
-  // gist create will fail with "Unexpected gh gist output" which is acceptable for
-  // tests that only exercise content-preparation paths).
-  _execFileImplBase = (_cmd, _args, _opts, cb) => cb(null, '', '')
+  _mockExecFile = async () => ({ stdout: '', stderr: '' })
 })
 
 afterEach(() => {
@@ -148,8 +75,6 @@ async function getCallFn(): Promise<CallFn> {
 }
 
 async function writeSessionLog(entries?: string[]): Promise<void> {
-  // Write the session log at the path share/index.ts will compute at runtime.
-  // We use the real state values (no mock) to match the actual path.
   const { sanitizePath } = await import('../../../utils/path.js')
   const { getSessionId, getOriginalCwd } = await import(
     '../../../bootstrap/state.js'
@@ -169,12 +94,14 @@ async function writeSessionLog(entries?: string[]): Promise<void> {
   writeFileSync(join(dir, `${sessionId}.jsonl`), content.join('\n') + '\n')
 }
 
-// Activate child_process stubs only for this suite.
-beforeAll(() => {
-  useShareCpStubs = true
+// Wire up the mock.
+beforeAll(async () => {
+  const { _setExecFileImpl } = await import('../index.js')
+  _setExecFileImpl((cmd, args, opts) => _mockExecFile(cmd, args, opts))
 })
-afterAll(() => {
-  useShareCpStubs = false
+afterAll(async () => {
+  const { _setExecFileImpl } = await import('../index.js')
+  _setExecFileImpl(null)
 })
 
 describe('share command — metadata', () => {
@@ -275,7 +202,6 @@ describe('share command — log exists', () => {
     const call = await getCallFn()
     const result = await call('--summary-only')
     expect(result.type).toBe('text')
-    // Either succeeds (if gh available) or fails (if not) — but passes the log check
     expect(typeof result.value).toBe('string')
     expect(result.value.length).toBeGreaterThan(0)
   })
@@ -307,11 +233,9 @@ describe('share command — log exists', () => {
   test('log exists + no fallback + gh not available → shows manual instructions OR fails if gh is installed', async () => {
     await writeSessionLog()
     const call = await getCallFn()
-    // Without controlling child_process, behavior depends on environment
     const result = await call('--private')
     expect(result.type).toBe('text')
     expect(typeof result.value).toBe('string')
-    // Accept any outcome — the log exists path is exercised
     expect(result.value.length).toBeGreaterThan(0)
   })
 

@@ -1,8 +1,6 @@
-import { type ChildProcess, spawn } from 'child_process'
 import { createWriteStream, type WriteStream } from 'fs'
 import { tmpdir } from 'os'
 import { dirname, join } from 'path'
-import { createInterface } from 'readline'
 import { jsonParse, jsonStringify } from '../utils/slowOperations.js'
 import { debugTruncate } from './debugUtils.js'
 import type {
@@ -332,11 +330,12 @@ export function createSessionSpawner(deps: SessionSpawnerDeps): SessionSpawner {
 
       // Pipe all three streams: stdin for control, stdout for NDJSON parsing,
       // stderr for error capture and diagnostics.
-      const child: ChildProcess = spawn(deps.execPath, args, {
+      const child = Bun.spawn([deps.execPath, ...args], {
         cwd: dir,
-        stdio: ['pipe', 'pipe', 'pipe'],
-        env,
-        windowsHide: true,
+        stdin: 'pipe',
+        stdout: 'pipe',
+        stderr: 'pipe',
+        env: env as Record<string, string | undefined>,
       })
 
       deps.onDebug(
@@ -349,135 +348,162 @@ export function createSessionSpawner(deps: SessionSpawnerDeps): SessionSpawner {
       let sigkillSent = false
       let firstUserMessageSeen = false
 
-      // Buffer stderr for error diagnostics
-      if (child.stderr) {
-        const stderrRl = createInterface({ input: child.stderr })
-        stderrRl.on('line', line => {
-          // Forward stderr to bridge's stderr in verbose mode
-          if (deps.verbose) {
-            process.stderr.write(line + '\n')
-          }
-          // Ring buffer of last N lines
-          if (lastStderr.length >= MAX_STDERR_LINES) {
-            lastStderr.shift()
-          }
-          lastStderr.push(line)
-        })
-      }
-
-      // Parse NDJSON from child stdout
-      if (child.stdout) {
-        const rl = createInterface({ input: child.stdout })
-        rl.on('line', line => {
-          // Write raw NDJSON to transcript file
-          if (transcriptStream) {
-            transcriptStream.write(line + '\n')
-          }
-
-          // Log all messages flowing from the child CLI to the bridge
-          deps.onDebug(
-            `[bridge:ws] sessionId=${opts.sessionId} <<< ${debugTruncate(line)}`,
-          )
-
-          // In verbose mode, forward raw output to stderr
-          if (deps.verbose) {
-            process.stderr.write(line + '\n')
-          }
-
-          const extracted = extractActivities(
-            line,
-            opts.sessionId,
-            deps.onDebug,
-          )
-          for (const activity of extracted) {
-            // Maintain ring buffer
-            if (activities.length >= MAX_ACTIVITIES) {
-              activities.shift()
+      // Stream stderr line-by-line for error diagnostics
+      void (async () => {
+        const reader = child.stderr.getReader()
+        const decoder = new TextDecoder()
+        let stderrBuf = ''
+        try {
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+            stderrBuf += decoder.decode(value, { stream: true })
+            const stLines = stderrBuf.split('\n')
+            stderrBuf = stLines.pop() ?? ''
+            for (const line of stLines) {
+              if (deps.verbose) {
+                process.stderr.write(line + '\n')
+              }
+              if (lastStderr.length >= MAX_STDERR_LINES) {
+                lastStderr.shift()
+              }
+              lastStderr.push(line)
             }
-            activities.push(activity)
-            currentActivity = activity
-
-            deps.onActivity?.(opts.sessionId, activity)
           }
+        } catch {
+          /* stream closed */
+        }
+      })()
 
-          // Detect control_request and replayed user messages.
-          // extractActivities parses the same line but swallows parse errors
-          // and skips 'user' type — re-parse here is cheap (NDJSON lines are
-          // small) and keeps each path self-contained.
-          {
-            let parsed: unknown
-            try {
-              parsed = jsonParse(line)
-            } catch {
-              // Non-JSON line, skip detection
-            }
-            if (parsed && typeof parsed === 'object') {
-              const msg = parsed as Record<string, unknown>
+      // Stream stdout line-by-line for NDJSON parsing
+      void (async () => {
+        const reader = child.stdout.getReader()
+        const decoder = new TextDecoder()
+        let stdoutBuf = ''
+        try {
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+            stdoutBuf += decoder.decode(value, { stream: true })
+            const outLines = stdoutBuf.split('\n')
+            stdoutBuf = outLines.pop() ?? ''
+            for (const line of outLines) {
+              // Write raw NDJSON to transcript file
+              if (transcriptStream) {
+                transcriptStream.write(line + '\n')
+              }
 
-              if (msg.type === 'control_request') {
-                const request = msg.request as
-                  | Record<string, unknown>
-                  | undefined
-                if (
-                  request?.subtype === 'can_use_tool' &&
-                  deps.onPermissionRequest
-                ) {
-                  deps.onPermissionRequest(
-                    opts.sessionId,
-                    parsed as PermissionRequest,
-                    opts.accessToken,
-                  )
+              // Log all messages flowing from the child CLI to the bridge
+              deps.onDebug(
+                `[bridge:ws] sessionId=${opts.sessionId} <<< ${debugTruncate(line)}`,
+              )
+
+              // In verbose mode, forward raw output to stderr
+              if (deps.verbose) {
+                process.stderr.write(line + '\n')
+              }
+
+              const extracted = extractActivities(
+                line,
+                opts.sessionId,
+                deps.onDebug,
+              )
+              for (const activity of extracted) {
+                // Maintain ring buffer
+                if (activities.length >= MAX_ACTIVITIES) {
+                  activities.shift()
                 }
-                // interrupt is turn-level; the child handles it internally (print.ts)
-              } else if (
-                msg.type === 'user' &&
-                !firstUserMessageSeen &&
-                opts.onFirstUserMessage
-              ) {
-                const text = extractUserMessageText(msg)
-                if (text) {
-                  firstUserMessageSeen = true
-                  opts.onFirstUserMessage(text)
+                activities.push(activity)
+                currentActivity = activity
+
+                deps.onActivity?.(opts.sessionId, activity)
+              }
+
+              // Detect control_request and replayed user messages.
+              // extractActivities parses the same line but swallows parse errors
+              // and skips 'user' type — re-parse here is cheap (NDJSON lines are
+              // small) and keeps each path self-contained.
+              {
+                let parsed: unknown
+                try {
+                  parsed = jsonParse(line)
+                } catch {
+                  // Non-JSON line, skip detection
+                }
+                if (parsed && typeof parsed === 'object') {
+                  const msg = parsed as Record<string, unknown>
+
+                  if (msg.type === 'control_request') {
+                    const request = msg.request as
+                      | Record<string, unknown>
+                      | undefined
+                    if (
+                      request?.subtype === 'can_use_tool' &&
+                      deps.onPermissionRequest
+                    ) {
+                      deps.onPermissionRequest(
+                        opts.sessionId,
+                        parsed as PermissionRequest,
+                        opts.accessToken,
+                      )
+                    }
+                    // interrupt is turn-level; the child handles it internally (print.ts)
+                  } else if (
+                    msg.type === 'user' &&
+                    !firstUserMessageSeen &&
+                    opts.onFirstUserMessage
+                  ) {
+                    const text = extractUserMessageText(msg)
+                    if (text) {
+                      firstUserMessageSeen = true
+                      opts.onFirstUserMessage(text)
+                    }
+                  }
                 }
               }
-            }
+            } // for line of outLines
+          } // while true
+          // Flush remainder
+          if (stdoutBuf.trim()) {
+            // remaining partial line — process as final NDJSON line
           }
-        })
-      }
+        } catch {
+          /* stream closed */
+        }
+      })()
 
-      const done = new Promise<SessionDoneStatus>(resolve => {
-        child.on('close', (code, signal) => {
-          // Close transcript stream on exit
+      let stdinClosed = false
+
+      const done = child.exited.then(
+        (code): SessionDoneStatus => {
           if (transcriptStream) {
             transcriptStream.end()
             transcriptStream = null
           }
-
-          if (signal === 'SIGTERM' || signal === 'SIGINT') {
+          if (child.signalCode === 'SIGTERM' || child.signalCode === 'SIGINT') {
             deps.onDebug(
-              `[bridge:session] sessionId=${opts.sessionId} interrupted signal=${signal} pid=${child.pid}`,
+              `[bridge:session] sessionId=${opts.sessionId} interrupted signal=${child.signalCode} pid=${child.pid}`,
             )
-            resolve('interrupted')
-          } else if (code === 0) {
+            return 'interrupted'
+          }
+          if (code === 0) {
             deps.onDebug(
               `[bridge:session] sessionId=${opts.sessionId} completed exit_code=0 pid=${child.pid}`,
             )
-            resolve('completed')
-          } else {
-            deps.onDebug(
-              `[bridge:session] sessionId=${opts.sessionId} failed exit_code=${code} pid=${child.pid}`,
-            )
-            resolve('failed')
+            return 'completed'
           }
-        })
-
-        child.on('error', err => {
+          deps.onDebug(
+            `[bridge:session] sessionId=${opts.sessionId} failed exit_code=${code} pid=${child.pid}`,
+          )
+          return 'failed'
+        },
+        (err: Error): SessionDoneStatus => {
           deps.onDebug(
             `[bridge:session] sessionId=${opts.sessionId} spawn error: ${err.message}`,
           )
-          resolve('failed')
-        })
-      })
+          return 'failed'
+        },
+      )
 
       const handle: SessionHandle = {
         sessionId: opts.sessionId,
@@ -517,11 +543,15 @@ export function createSessionSpawner(deps: SessionSpawnerDeps): SessionSpawner {
           }
         },
         writeStdin(data: string): void {
-          if (child.stdin && !child.stdin.destroyed) {
+          if (child.stdin && !stdinClosed) {
             deps.onDebug(
               `[bridge:ws] sessionId=${opts.sessionId} >>> ${debugTruncate(data)}`,
             )
-            child.stdin.write(data)
+            try {
+              child.stdin.write(data)
+            } catch {
+              stdinClosed = true
+            }
           }
         },
         updateAccessToken(token: string): void {

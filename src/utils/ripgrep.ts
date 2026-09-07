@@ -1,5 +1,4 @@
-import type { ChildProcess, ExecFileException } from 'child_process'
-import { execFile, spawn } from 'child_process'
+import type { ExecFileException } from 'child_process'
 import { existsSync } from 'fs'
 import memoize from 'lodash-es/memoize.js'
 import { homedir } from 'os'
@@ -167,7 +166,7 @@ function ripGrepRaw(
     stderr: string,
   ) => void,
   singleThread = false,
-): ChildProcess {
+): void {
   // NB: When running interactively, ripgrep does not require a path as its last
   // argument, but when run non-interactively, it will hang unless a path or file
   // pattern is provided
@@ -184,102 +183,105 @@ function ripGrepRaw(
     parseInt(process.env.CLAUDE_CODE_GLOB_TIMEOUT_SECONDS || '', 10) || 0
   const timeout = parsedSeconds > 0 ? parsedSeconds * 1000 : defaultTimeout
 
-  // For embedded ripgrep, use spawn with argv0 (execFile doesn't support argv0 properly)
-  if (argv0) {
-    const child = spawn(rgPath, fullArgs, {
-      argv0,
-      signal: abortSignal,
-      // Prevent visible console window on Windows (no-op on other platforms)
-      windowsHide: true,
-    })
+  const proc = Bun.spawn([rgPath, ...fullArgs], {
+    argv0,
+    stdout: 'pipe',
+    stderr: 'pipe',
+  })
 
-    let stdout = ''
-    let stderr = ''
-    let stdoutTruncated = false
-    let stderrTruncated = false
+  // Replicate AbortSignal behavior (child_process.spawn signal option)
+  let aborted = false
+  const onAbort = (): void => {
+    aborted = true
+    proc.kill()
+  }
+  if (abortSignal.aborted) {
+    aborted = true
+    proc.kill()
+  } else {
+    abortSignal.addEventListener('abort', onAbort, { once: true })
+  }
 
-    child.stdout?.on('data', (data: Buffer) => {
+  let stdout = ''
+  let stderr = ''
+  let stdoutTruncated = false
+  let stderrTruncated = false
+
+  // Read stdout with truncation at MAX_BUFFER_SIZE
+  const readStdout = (async () => {
+    const reader = proc.stdout.getReader()
+    const decoder = new TextDecoder()
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
       if (!stdoutTruncated) {
-        stdout += data.toString()
+        stdout += decoder.decode(value, { stream: true })
         if (stdout.length > MAX_BUFFER_SIZE) {
           stdout = stdout.slice(0, MAX_BUFFER_SIZE)
           stdoutTruncated = true
         }
       }
-    })
+    }
+  })()
 
-    child.stderr?.on('data', (data: Buffer) => {
+  // Read stderr with truncation at MAX_BUFFER_SIZE
+  const readStderr = (async () => {
+    const reader = proc.stderr.getReader()
+    const decoder = new TextDecoder()
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
       if (!stderrTruncated) {
-        stderr += data.toString()
+        stderr += decoder.decode(value, { stream: true })
         if (stderr.length > MAX_BUFFER_SIZE) {
           stderr = stderr.slice(0, MAX_BUFFER_SIZE)
           stderrTruncated = true
         }
       }
-    })
+    }
+  })()
 
-    // Set up timeout with SIGKILL escalation.
-    // SIGTERM alone may not kill ripgrep if it's blocked in uninterruptible I/O
-    // (e.g., deep filesystem traversal). If SIGTERM doesn't work within 5 seconds,
-    // escalate to SIGKILL which cannot be caught or ignored.
-    // On Windows, child.kill('SIGTERM') throws; use default signal.
-    let killTimeoutId: ReturnType<typeof setTimeout> | undefined
-    const timeoutId = setTimeout(() => {
-      if (process.platform === 'win32') {
-        child.kill()
-      } else {
-        child.kill('SIGTERM')
-        killTimeoutId = setTimeout(c => c.kill('SIGKILL'), 5_000, child)
-      }
-    }, timeout)
+  // Set up timeout with SIGKILL escalation.
+  // SIGTERM alone may not kill ripgrep if it's blocked in uninterruptible I/O.
+  let killTimeoutId: ReturnType<typeof setTimeout> | undefined
+  const timeoutId = setTimeout(() => {
+    if (process.platform === 'win32') {
+      proc.kill()
+    } else {
+      proc.kill('SIGTERM')
+      killTimeoutId = setTimeout(() => proc.kill('SIGKILL'), 5_000)
+    }
+  }, timeout)
 
-    // On Windows, both 'close' and 'error' can fire for the same process
-    // (e.g. when AbortSignal kills the child). Guard against double-callback.
-    let settled = false
-    child.on('close', (code, signal) => {
-      if (settled) return
-      settled = true
+  // Wait for streams and process exit, then invoke callback
+  void Promise.all([readStdout, readStderr, proc.exited]).then(
+    ([, , code]) => {
       clearTimeout(timeoutId)
       clearTimeout(killTimeoutId)
+      abortSignal.removeEventListener('abort', onAbort)
+
       if (code === 0 || code === 1) {
-        // 0 = matches found, 1 = no matches (both are success)
         callback(null, stdout, stderr)
+      } else if (aborted) {
+        const error: ExecFileException = new Error('ripgrep aborted')
+        error.code = 'ABORT_ERR'
+        callback(error, stdout, stderr)
       } else {
         const error: ExecFileException = new Error(
           `ripgrep exited with code ${code}`,
         )
         error.code = code ?? undefined
-        error.signal = signal ?? undefined
         callback(error, stdout, stderr)
       }
-    })
-
-    child.on('error', (err: NodeJS.ErrnoException) => {
-      if (settled) return
-      settled = true
+    },
+    (err: unknown) => {
       clearTimeout(timeoutId)
       clearTimeout(killTimeoutId)
-      const error: ExecFileException = err
+      abortSignal.removeEventListener('abort', onAbort)
+      const error: ExecFileException =
+        err instanceof Error ? err : new Error(String(err))
       callback(error, stdout, stderr)
-    })
-
-    return child
-  }
-
-  // For non-embedded ripgrep, use execFile
-  // Use SIGKILL as killSignal because SIGTERM may not terminate ripgrep
-  // when it's blocked in uninterruptible filesystem I/O.
-  // On Windows, SIGKILL throws; use default (undefined) which sends SIGTERM.
-  return execFile(
-    rgPath,
-    fullArgs,
-    {
-      maxBuffer: MAX_BUFFER_SIZE,
-      signal: abortSignal,
-      timeout,
-      killSignal: process.platform === 'win32' ? undefined : 'SIGKILL',
     },
-    callback,
   )
 }
 
@@ -303,33 +305,37 @@ async function ripGrepFileCount(
   await codesignRipgrepIfNecessary()
   const { rgPath, rgArgs, argv0 } = ripgrepCommand()
 
-  return new Promise<number>((resolve, reject) => {
-    const child = spawn(rgPath, [...rgArgs, ...args, target], {
-      argv0,
-      signal: abortSignal,
-      windowsHide: true,
-      stdio: ['ignore', 'pipe', 'ignore'],
-    })
-
-    let lines = 0
-    child.stdout?.on('data', (chunk: Buffer) => {
-      lines += countCharInString(chunk, '\n')
-    })
-
-    // On Windows, both 'close' and 'error' can fire for the same process.
-    let settled = false
-    child.on('close', code => {
-      if (settled) return
-      settled = true
-      if (code === 0 || code === 1) resolve(lines)
-      else reject(new Error(`rg --files exited ${code}`))
-    })
-    child.on('error', err => {
-      if (settled) return
-      settled = true
-      reject(err)
-    })
+  const proc = Bun.spawn([rgPath, ...rgArgs, ...args, target], {
+    argv0,
+    stdin: 'ignore',
+    stdout: 'pipe',
+    stderr: 'ignore',
   })
+
+  const onAbort = (): void => {
+    proc.kill()
+  }
+  if (abortSignal.aborted) {
+    proc.kill()
+  } else {
+    abortSignal.addEventListener('abort', onAbort, { once: true })
+  }
+
+  let lines = 0
+  const reader = proc.stdout.getReader()
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      lines += countCharInString(Buffer.from(value), '\n')
+    }
+  } finally {
+    abortSignal.removeEventListener('abort', onAbort)
+  }
+
+  const code = await proc.exited
+  if (code === 0 || code === 1) return lines
+  throw new Error(`rg --files exited ${code}`)
 }
 
 /**
@@ -353,45 +359,48 @@ export async function ripGrepStream(
   await codesignRipgrepIfNecessary()
   const { rgPath, rgArgs, argv0 } = ripgrepCommand()
 
-  return new Promise<void>((resolve, reject) => {
-    const child = spawn(rgPath, [...rgArgs, ...args, target], {
-      argv0,
-      signal: abortSignal,
-      windowsHide: true,
-      stdio: ['ignore', 'pipe', 'ignore'],
-    })
+  const proc = Bun.spawn([rgPath, ...rgArgs, ...args, target], {
+    argv0,
+    stdin: 'ignore',
+    stdout: 'pipe',
+    stderr: 'ignore',
+  })
 
-    const stripCR = (l: string) => (l.endsWith('\r') ? l.slice(0, -1) : l)
-    let remainder = ''
-    child.stdout?.on('data', (chunk: Buffer) => {
-      const data = remainder + chunk.toString()
+  const onAbort = (): void => {
+    proc.kill()
+  }
+  if (abortSignal.aborted) {
+    proc.kill()
+  } else {
+    abortSignal.addEventListener('abort', onAbort, { once: true })
+  }
+
+  const stripCR = (l: string): string => (l.endsWith('\r') ? l.slice(0, -1) : l)
+  let remainder = ''
+  const decoder = new TextDecoder()
+  const reader = proc.stdout.getReader()
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      const data = remainder + decoder.decode(value, { stream: true })
       const lines = data.split('\n')
       remainder = lines.pop() ?? ''
       if (lines.length) onLines(lines.map(stripCR))
-    })
+    }
+  } finally {
+    abortSignal.removeEventListener('abort', onAbort)
+  }
 
-    // On Windows, both 'close' and 'error' can fire for the same process.
-    let settled = false
-    child.on('close', code => {
-      if (settled) return
-      // Abort races close — don't flush a torn tail from a killed process.
-      // Promise still settles: spawn's signal option fires 'error' with
-      // AbortError → reject below.
-      if (abortSignal.aborted) return
-      settled = true
-      if (code === 0 || code === 1) {
-        if (remainder) onLines([stripCR(remainder)])
-        resolve()
-      } else {
-        reject(new Error(`ripgrep exited with code ${code}`))
-      }
-    })
-    child.on('error', err => {
-      if (settled) return
-      settled = true
-      reject(err)
-    })
-  })
+  const code = await proc.exited
+  if (abortSignal.aborted) return
+
+  if (code === 0 || code === 1) {
+    if (remainder) onLines([stripCR(remainder)])
+  } else {
+    throw new Error(`ripgrep exited with code ${code}`)
+  }
 }
 
 export async function ripGrep(

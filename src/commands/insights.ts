@@ -1,4 +1,3 @@
-import { execFileSync } from 'child_process'
 import { diffLines } from 'diff'
 import { constants as fsConstants, type Dirent } from 'fs'
 import {
@@ -2999,10 +2998,12 @@ const usageReport: Command = {
 
       reportUrl = s3Url
       try {
-        execFileSync('ff', ['cp', htmlPath, s3Path], {
-          timeout: 60000,
-          stdio: 'pipe', // Suppress output
+        const ffResult = Bun.spawnSync({
+          cmd: ['ff', 'cp', htmlPath, s3Path],
+          stdout: 'pipe',
+          stderr: 'pipe',
         })
+        if (ffResult.exitCode !== 0) throw new Error('ff cp failed')
       } catch {
         // Upload failed - fall back to local file and show upload command
         reportUrl = `file://${htmlPath}`

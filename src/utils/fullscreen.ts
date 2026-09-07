@@ -1,4 +1,3 @@
-import { spawnSync } from 'child_process'
 import { getIsInteractive } from '../bootstrap/state.js'
 import { logForDebugging } from './debug.js'
 import { isEnvDefinedFalsy, isEnvTruthy } from './envUtils.js'
@@ -68,21 +67,17 @@ function probeTmuxControlModeSync(): void {
   if (process.env.TERM_PROGRAM) return
   let result
   try {
-    result = spawnSync(
+    result = Bun.spawnSync([
       'tmux',
-      ['display-message', '-p', '#{client_control_mode}'],
-      { encoding: 'utf8', timeout: 2000 },
-    )
+      'display-message',
+      '-p',
+      '#{client_control_mode}',
+    ])
   } catch {
-    // spawnSync can throw on some platforms (e.g. ENOENT on Windows if tmux
-    // is absent and the runtime surfaces it as an exception rather than in
-    // result.error). Treat the same as a non-zero exit.
     return
   }
-  // Non-zero exit / spawn error: tmux too old (format var added in 2.4) or
-  // unavailable. Keep the heuristic result cached.
-  if (result.status !== 0) return
-  tmuxControlModeProbed = result.stdout.trim() === '1'
+  if (result.exitCode !== 0) return
+  tmuxControlModeProbed = result.stdout.toString().trim() === '1'
 }
 
 /**

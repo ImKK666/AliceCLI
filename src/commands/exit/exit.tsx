@@ -1,5 +1,4 @@
 import { feature } from 'bun:bundle';
-import { spawnSync } from 'child_process';
 import sample from 'lodash-es/sample.js';
 import * as React from 'react';
 import { ExitFlow } from '../../components/ExitFlow.js';
@@ -20,7 +19,7 @@ export async function call(onDone: LocalJSXCommandOnDone): Promise<React.ReactNo
   // ctrl+c, ctrl+d — all funnel through here via REPL's handleExit.
   if (feature('BG_SESSIONS') && isBgSession()) {
     onDone();
-    spawnSync('tmux', ['detach-client'], { stdio: 'ignore' });
+    Bun.spawnSync(['tmux', 'detach-client'], { stdout: 'ignore', stderr: 'ignore', stdin: 'ignore' });
     return null;
   }
 

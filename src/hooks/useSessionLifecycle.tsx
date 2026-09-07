@@ -1,5 +1,4 @@
 import { feature } from 'bun:bundle';
-import { spawnSync } from 'child_process';
 import * as React from 'react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useStdin } from '@anthropic/ink';
@@ -96,7 +95,7 @@ export function useSessionLifecycle({ messages, addNotification }: SessionLifecy
     // active. Without this guard, the worktree branch below short-circuits into
     // ExitFlow (which calls gracefulShutdown) before exit.tsx is ever loaded.
     if (feature('BG_SESSIONS') && isBgSession()) {
-      spawnSync('tmux', ['detach-client'], { stdio: 'ignore' });
+      Bun.spawnSync(['tmux', 'detach-client'], { stdout: 'ignore', stderr: 'ignore', stdin: 'ignore' });
       setIsExiting(false);
       return;
     }

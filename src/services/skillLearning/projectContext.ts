@@ -1,4 +1,3 @@
-import { execFileSync } from 'child_process'
 import { createHash } from 'crypto'
 import {
   existsSync,
@@ -250,11 +249,13 @@ function writeJson(path: string, value: unknown): void {
 
 function git(args: string[], cwd: string): string | null {
   try {
-    const output = execFileSync('git', ['-C', cwd, ...args], {
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore'],
+    const result = Bun.spawnSync({
+      cmd: ['git', '-C', cwd, ...args],
+      stdin: 'ignore',
+      stderr: 'ignore',
     })
-    const trimmed = output.trim()
+    if (result.exitCode !== 0) throw new Error('git failed')
+    const trimmed = result.stdout.toString().trim()
     return trimmed ? trimmed : null
   } catch {
     return null

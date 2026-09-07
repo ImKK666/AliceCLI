@@ -1,4 +1,3 @@
-import { execFile } from 'child_process'
 import { execa } from 'execa'
 import { mkdir, stat } from 'fs/promises'
 import * as os from 'os'
@@ -454,122 +453,113 @@ export const createAndSaveSnapshot = async (
       )
       logForDebugging(`Creating snapshot at: ${shellSnapshotPath}`)
       logForDebugging(`Execution timeout: ${SNAPSHOT_CREATION_TIMEOUT}ms`)
-      execFile(
-        binShell,
-        ['-c', '-l', snapshotScript],
-        {
-          env: {
-            ...((process.env.CLAUDE_CODE_DONT_INHERIT_ENV
-              ? {}
-              : subprocessEnv()) as typeof process.env),
-            SHELL: binShell,
-            GIT_EDITOR: 'true',
-            CLAUDECODE: '1',
-          },
-          timeout: SNAPSHOT_CREATION_TIMEOUT,
-          maxBuffer: 1024 * 1024, // 1MB buffer
-          encoding: 'utf8',
+
+      const snapshotProc = Bun.spawn([binShell, '-c', '-l', snapshotScript], {
+        env: {
+          ...((process.env.CLAUDE_CODE_DONT_INHERIT_ENV
+            ? {}
+            : subprocessEnv()) as Record<string, string | undefined>),
+          SHELL: binShell,
+          GIT_EDITOR: 'true',
+          CLAUDECODE: '1',
         },
-        async (error, stdout, stderr) => {
-          if (error) {
-            const execError = error as Error & {
-              killed?: boolean
-              signal?: string
-              code?: number
-            }
-            logForDebugging(`Shell snapshot creation failed: ${error.message}`)
-            logForDebugging(`Error details:`)
-            logForDebugging(`  - Error code: ${execError?.code}`)
-            logForDebugging(`  - Error signal: ${execError?.signal}`)
-            logForDebugging(`  - Error killed: ${execError?.killed}`)
-            logForDebugging(`  - Shell path: ${binShell}`)
-            logForDebugging(`  - Config file: ${getConfigFile(binShell)}`)
-            logForDebugging(`  - Config file exists: ${configFileExists}`)
-            logForDebugging(`  - Working directory: ${getCwd()}`)
-            logForDebugging(`  - Claude home: ${getClaudeConfigHomeDir()}`)
-            logForDebugging(`Full snapshot script:\n${snapshotScript}`)
-            if (stdout) {
-              logForDebugging(
-                `stdout output (${stdout.length} chars):\n${stdout}`,
-              )
-            } else {
-              logForDebugging(`No stdout output captured`)
-            }
-            if (stderr) {
-              logForDebugging(
-                `stderr output (${stderr.length} chars): ${stderr}`,
-              )
-            } else {
-              logForDebugging(`No stderr output captured`)
-            }
-            logError(
-              new Error(`Failed to create shell snapshot: ${error.message}`),
-            )
-            // Convert signal name to number if present
-            const signalNumber = execError?.signal
-              ? os.constants.signals[
-                  execError.signal as keyof typeof os.constants.signals
-                ]
-              : undefined
-            logEvent('tengu_shell_snapshot_failed', {
-              stderr_length: stderr?.length || 0,
-              has_error_code: !!execError?.code,
-              error_signal_number: signalNumber,
-              error_killed: execError?.killed,
-            })
-            resolve(undefined)
-          } else {
-            let snapshotSize: number | undefined
+        stdout: 'pipe',
+        stderr: 'pipe',
+      })
+      let snapshotKilled = false
+      const snapshotTimer = setTimeout(() => {
+        snapshotKilled = true
+        snapshotProc.kill()
+      }, SNAPSHOT_CREATION_TIMEOUT)
+      const [snapshotStdout, snapshotStderr, snapshotCode] = await Promise.all([
+        new Response(snapshotProc.stdout).text(),
+        new Response(snapshotProc.stderr).text(),
+        snapshotProc.exited,
+      ])
+      clearTimeout(snapshotTimer)
+
+      if (snapshotCode !== 0 || snapshotKilled) {
+        const errorMsg = snapshotKilled
+          ? `Shell snapshot creation timed out after ${SNAPSHOT_CREATION_TIMEOUT}ms`
+          : `Shell snapshot creation failed with exit code ${snapshotCode}`
+        logForDebugging(errorMsg)
+        logForDebugging(`Error details:`)
+        logForDebugging(`  - Exit code: ${snapshotCode}`)
+        logForDebugging(`  - Killed: ${snapshotKilled}`)
+        logForDebugging(`  - Shell path: ${binShell}`)
+        logForDebugging(`  - Config file: ${getConfigFile(binShell)}`)
+        logForDebugging(`  - Config file exists: ${configFileExists}`)
+        logForDebugging(`  - Working directory: ${getCwd()}`)
+        logForDebugging(`  - Claude home: ${getClaudeConfigHomeDir()}`)
+        logForDebugging(`Full snapshot script:\n${snapshotScript}`)
+        if (snapshotStdout) {
+          logForDebugging(
+            `stdout output (${snapshotStdout.length} chars):\n${snapshotStdout}`,
+          )
+        } else {
+          logForDebugging(`No stdout output captured`)
+        }
+        if (snapshotStderr) {
+          logForDebugging(
+            `stderr output (${snapshotStderr.length} chars): ${snapshotStderr}`,
+          )
+        } else {
+          logForDebugging(`No stderr output captured`)
+        }
+        logError(new Error(`Failed to create shell snapshot: ${errorMsg}`))
+        logEvent('tengu_shell_snapshot_failed', {
+          stderr_length: snapshotStderr?.length || 0,
+          has_error_code: snapshotCode !== 0,
+          error_signal_number: undefined,
+          error_killed: snapshotKilled,
+        })
+        resolve(undefined)
+      } else {
+        let snapshotSize: number | undefined
+        try {
+          snapshotSize = (await stat(shellSnapshotPath)).size
+        } catch {
+          // Snapshot file not found
+        }
+
+        if (snapshotSize !== undefined) {
+          logForDebugging(
+            `Shell snapshot created successfully (${snapshotSize} bytes)`,
+          )
+
+          // Register cleanup to remove snapshot on graceful shutdown
+          registerCleanup(async () => {
             try {
-              snapshotSize = (await stat(shellSnapshotPath)).size
-            } catch {
-              // Snapshot file not found
+              await getFsImplementation().unlink(shellSnapshotPath)
+              logForDebugging(
+                `Cleaned up session snapshot: ${shellSnapshotPath}`,
+              )
+            } catch (error) {
+              logForDebugging(`Error cleaning up session snapshot: ${error}`)
             }
+          })
 
-            if (snapshotSize !== undefined) {
-              logForDebugging(
-                `Shell snapshot created successfully (${snapshotSize} bytes)`,
-              )
-
-              // Register cleanup to remove snapshot on graceful shutdown
-              registerCleanup(async () => {
-                try {
-                  await getFsImplementation().unlink(shellSnapshotPath)
-                  logForDebugging(
-                    `Cleaned up session snapshot: ${shellSnapshotPath}`,
-                  )
-                } catch (error) {
-                  logForDebugging(
-                    `Error cleaning up session snapshot: ${error}`,
-                  )
-                }
-              })
-
-              resolve(shellSnapshotPath)
-            } else {
-              logForDebugging(
-                `Shell snapshot file not found after creation: ${shellSnapshotPath}`,
-              )
-              logForDebugging(
-                `Checking if parent directory still exists: ${snapshotsDir}`,
-              )
-              try {
-                const dirContents =
-                  await getFsImplementation().readdir(snapshotsDir)
-                logForDebugging(
-                  `Directory contains ${dirContents.length} files`,
-                )
-              } catch {
-                logForDebugging(
-                  `Parent directory does not exist or is not accessible: ${snapshotsDir}`,
-                )
-              }
-              logEvent('tengu_shell_unknown_error', {})
-              resolve(undefined)
-            }
+          resolve(shellSnapshotPath)
+        } else {
+          logForDebugging(
+            `Shell snapshot file not found after creation: ${shellSnapshotPath}`,
+          )
+          logForDebugging(
+            `Checking if parent directory still exists: ${snapshotsDir}`,
+          )
+          try {
+            const dirContents =
+              await getFsImplementation().readdir(snapshotsDir)
+            logForDebugging(`Directory contains ${dirContents.length} files`)
+          } catch {
+            logForDebugging(
+              `Parent directory does not exist or is not accessible: ${snapshotsDir}`,
+            )
           }
-        },
-      )
+          logEvent('tengu_shell_unknown_error', {})
+          resolve(undefined)
+        }
+      }
     } catch (error) {
       logForDebugging(`Unexpected error during snapshot creation: ${error}`)
       if (error instanceof Error) {

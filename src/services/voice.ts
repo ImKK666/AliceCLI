@@ -4,7 +4,7 @@
 // for in-process mic access. Falls back to SoX `rec` or arecord (ALSA)
 // on Linux if the native module is unavailable.
 
-import { type ChildProcess, spawn, spawnSync } from 'child_process'
+// child_process replaced by Bun.spawn / Bun.spawnSync
 import { readFile } from 'fs/promises'
 import { logForDebugging } from '../utils/debug.js'
 import { isEnvTruthy, isRunningOnHomespace } from '../utils/envUtils.js'
@@ -47,17 +47,18 @@ const SILENCE_THRESHOLD = '3%'
 // ─── Dependency check ────────────────────────────────────────────────
 
 function hasCommand(cmd: string): boolean {
-  // Spawn the target directly instead of `which cmd`. On Termux/Android
-  // `which` is a shell builtin — the external binary is absent or
-  // kernel-blocked (EPERM) when spawned from Node. Only reached on
-  // non-Windows (win32 returns early from all callers), no PATHEXT issue.
-  // result.error is set iff the spawn itself fails (ENOENT/EACCES); exit
-  // code is irrelevant — an unrecognized --version still means cmd exists.
-  const result = spawnSync(cmd, ['--version'], {
-    stdio: 'ignore',
-    timeout: 3000,
-  })
-  return result.error === undefined
+  // Bun.spawnSync throws if the command is not found (ENOENT).
+  // Any successful spawn (regardless of exit code) means cmd exists.
+  try {
+    Bun.spawnSync([cmd, '--version'], {
+      stdout: 'ignore',
+      stderr: 'ignore',
+      stdin: 'ignore',
+    })
+    return true
+  } catch {
+    return false
+  }
 }
 
 // Probe whether arecord can actually open a capture device. hasCommand()
@@ -74,44 +75,43 @@ let arecordProbe: Promise<ArecordProbeResult> | null = null
 
 function probeArecord(): Promise<ArecordProbeResult> {
   arecordProbe ??= new Promise(resolve => {
-    const child = spawn(
-      'arecord',
-      [
-        '-f',
-        'S16_LE',
-        '-r',
-        String(RECORDING_SAMPLE_RATE),
-        '-c',
-        String(RECORDING_CHANNELS),
-        '-t',
-        'raw',
-        '/dev/null',
-      ],
-      { stdio: ['ignore', 'ignore', 'pipe'] },
-    )
-    let stderr = ''
-    child.stderr?.on('data', (chunk: Buffer) => {
-      stderr += chunk.toString()
-    })
-    const timer = setTimeout(
-      (c: ChildProcess, r: (v: ArecordProbeResult) => void) => {
-        c.kill('SIGTERM')
-        r({ ok: true, stderr: '' })
-      },
-      150,
-      child,
-      resolve,
-    )
-    child.once('close', code => {
+    let settled = false
+    let proc: ReturnType<typeof Bun.spawn>
+    try {
+      proc = Bun.spawn(
+        [
+          'arecord',
+          '-f',
+          'S16_LE',
+          '-r',
+          String(RECORDING_SAMPLE_RATE),
+          '-c',
+          String(RECORDING_CHANNELS),
+          '-t',
+          'raw',
+          '/dev/null',
+        ],
+        { stdin: 'ignore', stdout: 'ignore', stderr: 'pipe' },
+      )
+    } catch {
+      resolve({ ok: false, stderr: 'arecord: command not found' })
+      return
+    }
+    const stderrPromise = new Response(proc.stderr as ReadableStream).text()
+    const timer = setTimeout(() => {
+      if (!settled) {
+        settled = true
+        proc.kill()
+        resolve({ ok: true, stderr: '' })
+      }
+    }, 150)
+    void proc.exited.then(async code => {
       clearTimeout(timer)
-      // SIGTERM close (code=null) after timer fired is already resolved.
-      // Early close with code=0 is unusual (arecord shouldn't exit on its
-      // own) but treat as ok.
-      void resolve({ ok: code === 0, stderr: stderr.trim() })
-    })
-    child.once('error', () => {
-      clearTimeout(timer)
-      void resolve({ ok: false, stderr: 'arecord: command not found' })
+      if (!settled) {
+        settled = true
+        const stderr = (await stderrPromise).trim()
+        resolve({ ok: code === 0, stderr })
+      }
     })
   })
   return arecordProbe
@@ -329,7 +329,8 @@ export async function checkRecordingAvailability(): Promise<RecordingAvailabilit
 
 // ─── Recording (native audio on macOS/Linux/Windows, SoX/arecord fallback on Linux) ─────────────
 
-let activeRecorder: ChildProcess | null = null
+let activeRecorder: { kill(signal?: number | NodeJS.Signals): void } | null =
+  null
 let nativeRecordingActive = false
 
 export async function startRecording(
@@ -438,29 +439,37 @@ function startSoxRecording(
     )
   }
 
-  const child = spawn('rec', args, {
-    stdio: ['pipe', 'pipe', 'pipe'],
+  const proc = Bun.spawn(['rec', ...args], {
+    stdin: 'pipe',
+    stdout: 'pipe',
+    stderr: 'pipe',
   })
+  activeRecorder = proc
 
-  activeRecorder = child
-
-  child.stdout?.on('data', (chunk: Buffer) => {
-    onData(chunk)
-  })
-
-  // Consume stderr to prevent backpressure
-  child.stderr?.on('data', () => {})
-
-  child.on('close', () => {
-    activeRecorder = null
-    onEnd()
-  })
-
-  child.on('error', err => {
-    logError(err)
-    activeRecorder = null
-    onEnd()
-  })
+  void (async () => {
+    try {
+      const reader = proc.stdout.getReader()
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        onData(Buffer.from(value))
+      }
+    } catch {
+      /* stream closed */
+    }
+  })()
+  void new Response(proc.stderr).text()
+  void proc.exited.then(
+    () => {
+      activeRecorder = null
+      onEnd()
+    },
+    (err: unknown) => {
+      logError(err)
+      activeRecorder = null
+      onEnd()
+    },
+  )
 
   return true
 }
@@ -485,29 +494,37 @@ function startArecordRecording(
     '-', // write to stdout
   ]
 
-  const child = spawn('arecord', args, {
-    stdio: ['pipe', 'pipe', 'pipe'],
+  const proc = Bun.spawn(['arecord', ...args], {
+    stdin: 'pipe',
+    stdout: 'pipe',
+    stderr: 'pipe',
   })
+  activeRecorder = proc
 
-  activeRecorder = child
-
-  child.stdout?.on('data', (chunk: Buffer) => {
-    onData(chunk)
-  })
-
-  // Consume stderr to prevent backpressure
-  child.stderr?.on('data', () => {})
-
-  child.on('close', () => {
-    activeRecorder = null
-    onEnd()
-  })
-
-  child.on('error', err => {
-    logError(err)
-    activeRecorder = null
-    onEnd()
-  })
+  void (async () => {
+    try {
+      const reader = proc.stdout.getReader()
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        onData(Buffer.from(value))
+      }
+    } catch {
+      /* stream closed */
+    }
+  })()
+  void new Response(proc.stderr).text()
+  void proc.exited.then(
+    () => {
+      activeRecorder = null
+      onEnd()
+    },
+    (err: unknown) => {
+      logError(err)
+      activeRecorder = null
+      onEnd()
+    },
+  )
 
   return true
 }

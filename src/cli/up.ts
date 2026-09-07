@@ -1,6 +1,5 @@
 import { readFileSync } from 'fs'
 import { join } from 'path'
-import { spawnSync } from 'child_process'
 import { findGitRoot } from '../utils/git.js'
 
 /**
@@ -49,14 +48,16 @@ export async function up(): Promise<void> {
   console.log(upSection)
   console.log()
 
-  const result = spawnSync('bash', ['-c', upSection], {
+  const result = Bun.spawnSync(['bash', '-c', upSection], {
     cwd,
-    stdio: 'inherit',
+    stdout: 'inherit',
+    stderr: 'inherit',
+    stdin: 'inherit',
   })
 
-  if (result.status !== 0) {
-    console.error(`\nclaude up failed with exit code ${result.status}`)
-    process.exitCode = result.status ?? 1
+  if (result.exitCode !== 0) {
+    console.error(`\nclaude up failed with exit code ${result.exitCode}`)
+    process.exitCode = result.exitCode ?? 1
   } else {
     console.log('\nclaude up completed successfully.')
   }

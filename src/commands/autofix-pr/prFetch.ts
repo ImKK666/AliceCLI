@@ -1,10 +1,9 @@
 // gh CLI integration for autofix-pr: fetches PR snapshots and feeds them
 // through the pure decision matrix in prOutcomeCheck.ts. Kept separate so
-// tests of the decision matrix never have to mock node:child_process — and
+// tests of the decision matrix never have to mock child_process — and
 // tests of callAutofixPr can mock this module without polluting the pure
 // decision matrix module (Bun mock.module is process-global).
 
-import { spawn } from 'node:child_process'
 import {
   type AutofixOutcomeProbeResult,
   type PrViewPayload,
@@ -81,75 +80,56 @@ export async function fetchPrHeadSha(
   }
 }
 
-interface SpawnError extends Error {
-  code?: string
-}
-
 /**
  * Spawn `gh pr view {n} --repo {owner}/{repo} --json ...` and parse the
  * result. Rejects on non-zero exit, timeout, or JSON parse failure.
  */
-function runGhPrView(
+async function runGhPrView(
   owner: string,
   repo: string,
   prNumber: number,
   timeoutMs: number,
 ): Promise<PrViewPayload> {
-  return new Promise((resolve, reject) => {
-    const proc = spawn(
+  const proc = Bun.spawn(
+    [
       'gh',
-      [
-        'pr',
-        'view',
-        String(prNumber),
-        '--repo',
-        `${owner}/${repo}`,
-        '--json',
-        'headRefOid,state,statusCheckRollup',
-      ],
-      { stdio: ['ignore', 'pipe', 'pipe'] },
+      'pr',
+      'view',
+      String(prNumber),
+      '--repo',
+      `${owner}/${repo}`,
+      '--json',
+      'headRefOid,state,statusCheckRollup',
+    ],
+    { stdout: 'pipe', stderr: 'pipe', stdin: 'ignore' },
+  )
+
+  let timedOut = false
+  const timer = setTimeout(() => {
+    timedOut = true
+    proc.kill(9)
+  }, timeoutMs)
+
+  const [exitCode, stdout, stderr] = await Promise.all([
+    proc.exited,
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+  ])
+  clearTimeout(timer)
+
+  if (timedOut) {
+    throw new Error(`gh pr view timed out after ${timeoutMs}ms`)
+  }
+
+  if (exitCode !== 0) {
+    throw new Error(
+      `gh pr view exited ${exitCode}: ${stderr.trim() || '<no stderr>'}`,
     )
-    const stdoutChunks: Buffer[] = []
-    const stderrChunks: Buffer[] = []
-    let settled = false
+  }
 
-    const timer = setTimeout(() => {
-      if (settled) return
-      settled = true
-      proc.kill('SIGKILL')
-      reject(new Error(`gh pr view timed out after ${timeoutMs}ms`))
-    }, timeoutMs)
-
-    proc.stdout.on('data', chunk => stdoutChunks.push(chunk as Buffer))
-    proc.stderr.on('data', chunk => stderrChunks.push(chunk as Buffer))
-
-    proc.on('error', (err: SpawnError) => {
-      if (settled) return
-      settled = true
-      clearTimeout(timer)
-      reject(err)
-    })
-
-    proc.on('close', code => {
-      if (settled) return
-      settled = true
-      clearTimeout(timer)
-      if (code !== 0) {
-        const stderr = Buffer.concat(stderrChunks).toString('utf8').trim()
-        reject(
-          new Error(`gh pr view exited ${code}: ${stderr || '<no stderr>'}`),
-        )
-        return
-      }
-      const stdout = Buffer.concat(stdoutChunks).toString('utf8').trim()
-      try {
-        const parsed = JSON.parse(stdout) as PrViewPayload
-        resolve(parsed)
-      } catch (e) {
-        reject(
-          new Error(`gh pr view JSON parse failed: ${(e as Error).message}`),
-        )
-      }
-    })
-  })
+  try {
+    return JSON.parse(stdout.trim()) as PrViewPayload
+  } catch (e) {
+    throw new Error(`gh pr view JSON parse failed: ${(e as Error).message}`)
+  }
 }

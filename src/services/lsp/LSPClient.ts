@@ -1,3 +1,6 @@
+// TODO: Migrate to Bun.spawn once vscode-jsonrpc supports Web ReadableStream/WritableStream.
+// vscode-jsonrpc's StreamMessageReader/StreamMessageWriter require Node.js Readable/Writable
+// streams, which are incompatible with Bun.spawn's ReadableStream stdout and FileSink stdin.
 import { type ChildProcess, spawn } from 'child_process'
 import {
   createMessageConnection,

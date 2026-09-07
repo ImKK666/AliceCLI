@@ -1,13 +1,8 @@
 /**
  * Coverage tests for share/index.ts gh-CLI paths.
  *
- * share/index.ts uses `import * as childProcess from 'node:child_process'` and
- * calls `promisify(childProcess.execFile)(...)` at call time. This means
- * mock.module('node:child_process') replaces the namespace properties before
- * each invocation, allowing us to control execFile behavior.
- *
- * We attach util.promisify.custom to the mock execFile so that promisify
- * returns { stdout, stderr } (matching the real execFile contract).
+ * share/index.ts exports `_setExecFileImpl` to allow tests to swap the
+ * command execution layer (Bun.spawn) with a controllable mock.
  */
 import {
   afterAll,
@@ -19,116 +14,20 @@ import {
   mock,
   test,
 } from 'bun:test'
-import { promisify } from 'node:util'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 // ── Mock control state ──
-// We use a single shared callback variable that each test can replace.
-let _execFileImpl: (
+// Each test sets _mockExecFile to control what commands return.
+type ExecResult = { stdout: string; stderr: string }
+type MockExecFn = (
   cmd: string,
   args: string[],
-  opts: unknown,
-  cb: (err: Error | null, stdout: string, stderr: string) => void,
-) => void = (_cmd, _args, _opts, cb) => cb(null, '', '')
+  opts: { timeout?: number },
+) => Promise<ExecResult>
 
-let _execFileSyncImpl: (cmd: string, args: string[], opts?: unknown) => Buffer =
-  () => Buffer.from('')
-
-// The actual mock function objects (must stay the same reference in mock.module)
-const execFileMockCore = (
-  cmd: string,
-  args: string[],
-  opts: unknown,
-  cb: (err: Error | null, stdout: string, stderr: string) => void,
-) => _execFileImpl(cmd, args, opts, cb)
-
-// Attach promisify.custom so promisify returns { stdout, stderr }
-;(execFileMockCore as unknown as Record<symbol, unknown>)[
-  promisify.custom as symbol
-] = (
-  cmd: string,
-  args: string[],
-  opts: unknown,
-): Promise<{ stdout: string; stderr: string }> => {
-  return new Promise((resolve, reject) => {
-    _execFileImpl(cmd, args, opts, (err, stdout, stderr) => {
-      if (err) reject(err)
-      else resolve({ stdout, stderr })
-    })
-  })
-}
-
-const execFileSyncMockCore = (
-  cmd: string,
-  args: string[],
-  opts?: unknown,
-): Buffer => _execFileSyncImpl(cmd, args, opts)
-
-// Spread real child_process + flag-gated stub. Default OFF; suite's
-// beforeAll flips on, afterAll flips off so projectContext.test and other
-// child_process consumers see the real impl outside this suite.
-//
-// CRITICAL: util.promisify(execFile) reads `[util.promisify.custom]` from the
-// callee. Our wrapper must forward that symbol so promisify returns the
-// proper { stdout, stderr } shape. If we just return a plain arrow, the
-// wrapper has no custom symbol and promisify falls back to the cb adapter,
-// which our test stub doesn't support.
-let useShareGhCpStubs = false
-const wrappedExecFile = ((...args: unknown[]) =>
-  useShareGhCpStubs
-    ? (execFileMockCore as (...a: unknown[]) => unknown)(...args)
-    : // eslint-disable-next-line @typescript-eslint/no-require-imports
-      (require('node:child_process').execFile as (...a: unknown[]) => unknown)(
-        ...args,
-      )) as unknown as Record<symbol, unknown> & ((...a: unknown[]) => unknown)
-;(wrappedExecFile as Record<symbol, unknown>)[promisify.custom as symbol] = (
-  cmd: string,
-  args: string[],
-  opts: unknown,
-): Promise<{ stdout: string; stderr: string }> => {
-  if (useShareGhCpStubs) {
-    return ((execFileMockCore as unknown as Record<symbol, unknown>)[
-      promisify.custom as symbol
-    ] as never)
-      ? (
-          (execFileMockCore as unknown as Record<symbol, unknown>)[
-            promisify.custom as symbol
-          ] as (
-            c: string,
-            a: string[],
-            o: unknown,
-          ) => Promise<{ stdout: string; stderr: string }>
-        )(cmd, args, opts)
-      : new Promise((resolve, reject) =>
-          execFileMockCore(cmd, args, opts, (err, stdout, stderr) =>
-            err ? reject(err) : resolve({ stdout, stderr }),
-          ),
-        )
-  }
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const real = require('node:child_process') as Record<string, unknown>
-  return promisify(real.execFile as never)(cmd, args, opts) as Promise<{
-    stdout: string
-    stderr: string
-  }>
-}
-mock.module('node:child_process', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const real = require('node:child_process') as Record<string, unknown>
-  return {
-    ...real,
-    default: real,
-    execFile: wrappedExecFile as typeof real.execFile,
-    execFileSync: ((...args: unknown[]) =>
-      useShareGhCpStubs
-        ? (execFileSyncMockCore as (...a: unknown[]) => unknown)(...args)
-        : (real.execFileSync as (...a: unknown[]) => unknown)(
-            ...args,
-          )) as typeof real.execFileSync,
-  }
-})
+let _mockExecFile: MockExecFn = async () => ({ stdout: '', stderr: '' })
 
 mock.module('bun:bundle', () => ({
   feature: (_name: string) => true,
@@ -148,10 +47,7 @@ beforeEach(() => {
   claudeDir = join(tmpDir, '.claude')
   mkdirSync(claudeDir, { recursive: true })
   process.env.CLAUDE_CONFIG_DIR = claudeDir
-  // Reset to a neutral default (succeeds with empty output) so adjacent test files
-  // that don't explicitly set up this mock see a passable gh check.
-  _execFileImpl = (_cmd, _args, _opts, cb) => cb(null, '', '')
-  _execFileSyncImpl = () => Buffer.from('')
+  _mockExecFile = async () => ({ stdout: '', stderr: '' })
 })
 
 afterEach(() => {
@@ -190,41 +86,40 @@ async function writeSessionLog(entries?: string[]): Promise<void> {
   writeFileSync(join(dir, `${sessionId}.jsonl`), content.join('\n') + '\n')
 }
 
-// Helper: make execFile always succeed with given stdout
 function setExecFileSuccess(getStdout: (callCount: number) => string): void {
   let n = 0
-  _execFileImpl = (_cmd, _args, _opts, cb) => {
+  _mockExecFile = async () => {
     n++
-    cb(null, getStdout(n), '')
+    return { stdout: getStdout(n), stderr: '' }
   }
 }
 
-// Helper: make execFile always fail with given error
 function setExecFileFail(msg: string): void {
-  _execFileImpl = (_cmd, _args, _opts, cb) => cb(new Error(msg), '', msg)
+  _mockExecFile = async () => {
+    throw new Error(msg)
+  }
 }
 
-// Helper: sequence of behaviors per call index
 function setExecFileSequence(
   behaviors: Array<{ ok: true; stdout: string } | { ok: false; msg: string }>,
 ): void {
   let n = 0
-  _execFileImpl = (_cmd, _args, _opts, cb) => {
+  _mockExecFile = async () => {
     const b = behaviors[n] ?? behaviors[behaviors.length - 1]
     n++
-    if (b.ok) cb(null, b.stdout, '')
-    else cb(new Error(b.msg), '', b.msg)
+    if (b.ok) return { stdout: b.stdout, stderr: '' }
+    throw new Error(b.msg)
   }
 }
 
-// Activate child_process stubs only for this suite.
-beforeAll(() => {
-  useShareGhCpStubs = true
-  console.error('[share-gh beforeAll] stubs ON')
+// Wire up the mock via the test hook exported by share/index.ts.
+beforeAll(async () => {
+  const { _setExecFileImpl } = await import('../index.js')
+  _setExecFileImpl((cmd, args, opts) => _mockExecFile(cmd, args, opts))
 })
-afterAll(() => {
-  useShareGhCpStubs = false
-  console.error('[share-gh afterAll] stubs OFF')
+afterAll(async () => {
+  const { _setExecFileImpl } = await import('../index.js')
+  _setExecFileImpl(null)
 })
 
 describe('share command — gh not available paths', () => {
@@ -360,14 +255,6 @@ describe('share command — gh available paths', () => {
 
 describe('share command — getTranscriptPath projectDir branch', () => {
   test('getSessionProjectDir returns non-null → uses projectDir path', async () => {
-    // To exercise the projectDir branch of getTranscriptPath,
-    // we need getSessionProjectDir() to return a non-null path.
-    // We use a fresh state mock only in this describe block.
-    // However, since we can't re-mock state per test without interference,
-    // we test the fallback path (null projectDir) which is already covered.
-    // The projectDir=true branch (line 126) is covered via state that provides a non-null dir.
-    // This test documents the limitation: state mock would interfere with other tests.
-    // Coverage note: line 126 covered when CLAUDE_HOME / state is set to return projectDir.
     setExecFileFail('ENOENT')
     const call = await getCallFn()
     const result = await call('--summary-only')
@@ -378,16 +265,10 @@ describe('share command — getTranscriptPath projectDir branch', () => {
 
 describe('share command — buildSummaryContent outer catch', () => {
   test('buildSummaryContent when readFileSync throws (defensive TOCTOU catch)', async () => {
-    // Lines 117-118: outer catch in buildSummaryContent (file disappears after existsSync)
-    // This is a TOCTOU race — not reachable via normal test flow.
-    // Covered by: the function returns '' when readFileSync throws.
-    // We verify the command handles empty summary by testing no-session-log path.
     setExecFileFail('ENOENT')
-    // Don't write session log → existsSync returns false → log_not_found (not buildSummaryContent)
     const call = await getCallFn()
     const result = await call('--summary-only')
     expect(result.type).toBe('text')
-    // When no log → shows Session log not found
     expect(result.value).toContain('Session log not found')
   })
 })

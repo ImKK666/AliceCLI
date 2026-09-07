@@ -12,7 +12,6 @@
  *
  * Only runs on macOS - no-op on other platforms.
  */
-import { type ChildProcess, spawn } from 'child_process'
 import { registerCleanup } from '../utils/cleanupRegistry.js'
 import { logForDebugging } from '../utils/debug.js'
 
@@ -24,7 +23,10 @@ const CAFFEINATE_TIMEOUT_SECONDS = 300 // 5 minutes
 // Use 4 minutes to give plenty of buffer before the 5 minute timeout.
 const RESTART_INTERVAL_MS = 4 * 60 * 1000
 
-let caffeinateProcess: ChildProcess | null = null
+let caffeinateProcess: {
+  kill(signal?: number): void
+  readonly exited: Promise<number>
+} | null = null
 let restartInterval: ReturnType<typeof setInterval> | null = null
 let refCount = 0
 let cleanupRegistered = false
@@ -122,26 +124,23 @@ function spawnCaffeinate(): void {
     //     This is the least aggressive option - display can still sleep
     // -t: Timeout in seconds - caffeinate exits automatically after this
     //     This provides self-healing if Node is killed with SIGKILL
-    caffeinateProcess = spawn(
-      'caffeinate',
-      ['-i', '-t', String(CAFFEINATE_TIMEOUT_SECONDS)],
-      {
-        stdio: 'ignore',
-      },
+    const proc = Bun.spawn(
+      ['caffeinate', '-i', '-t', String(CAFFEINATE_TIMEOUT_SECONDS)],
+      { stdout: 'ignore', stderr: 'ignore', stdin: 'ignore' },
     )
+    caffeinateProcess = proc
 
-    // Don't let caffeinate keep the Node process alive
-    caffeinateProcess.unref()
-
-    const thisProc = caffeinateProcess
-    caffeinateProcess.on('error', err => {
-      logForDebugging(`caffeinate spawn error: ${err.message}`)
-      if (caffeinateProcess === thisProc) caffeinateProcess = null
-    })
-
-    caffeinateProcess.on('exit', () => {
-      if (caffeinateProcess === thisProc) caffeinateProcess = null
-    })
+    // Handle process exit and errors via the exited promise
+    proc.exited
+      .then(() => {
+        if (caffeinateProcess === proc) caffeinateProcess = null
+      })
+      .catch(err => {
+        logForDebugging(
+          `caffeinate spawn error: ${err instanceof Error ? err.message : err}`,
+        )
+        if (caffeinateProcess === proc) caffeinateProcess = null
+      })
 
     logForDebugging('Started caffeinate to prevent sleep')
   } catch {
@@ -155,8 +154,8 @@ function killCaffeinate(): void {
     const proc = caffeinateProcess
     caffeinateProcess = null
     try {
-      // SIGKILL for immediate termination - SIGTERM could be delayed
-      proc.kill('SIGKILL')
+      // SIGKILL (9) for immediate termination - SIGTERM could be delayed
+      proc.kill(9)
       logForDebugging('Stopped caffeinate, allowing sleep')
     } catch {
       // Process may have already exited

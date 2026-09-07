@@ -1,4 +1,5 @@
-import { execFileSync, spawn } from 'child_process'
+import type { ChildProcess } from 'child_process'
+import { EventEmitter } from 'events'
 import { constants as fsConstants, readFileSync, unlinkSync } from 'fs'
 import { type FileHandle, mkdir, open, realpath } from 'fs/promises'
 import memoize from 'lodash-es/memoize.js'
@@ -30,6 +31,7 @@ import { which } from './which.js'
 export type { ExecResult } from './ShellCommand.js'
 
 import { accessSync } from 'fs'
+import { Readable } from 'stream'
 import { onCwdChangedForHooks } from './hooks/fileChangedWatcher.js'
 import { getClaudeTempDirName } from './permissions/filesystem.js'
 import { getPlatform } from './platform.js'
@@ -57,9 +59,10 @@ function isExecutable(shellPath: string): boolean {
     try {
       // Try to execute the shell with --version, which should exit quickly
       // Use execFileSync to avoid shell injection vulnerabilities
-      execFileSync(shellPath, ['--version'], {
-        timeout: 1000,
-        stdio: 'ignore',
+      Bun.spawnSync([shellPath, '--version'], {
+        stdout: 'ignore',
+        stderr: 'ignore',
+        stdin: 'ignore',
       })
       return true
     } catch {
@@ -82,10 +85,12 @@ export async function findSuitableShell(): Promise<string> {
     !process.env.CLAUDE_CODE_GIT_BASH_PATH_WARNED
   ) {
     try {
-      const whereResult = execFileSync('where.exe', ['bash'], {
-        stdio: ['ignore', 'pipe', 'ignore'],
-        encoding: 'utf8',
+      const whereProc = Bun.spawnSync(['where.exe', 'bash'], {
+        stdin: 'ignore',
+        stdout: 'pipe',
+        stderr: 'ignore',
       })
+      const whereResult = whereProc.stdout.toString('utf8')
       const lines = whereResult
         .split(/\r?\n/)
         .map(l => l.trim().toLowerCase())
@@ -351,28 +356,66 @@ export async function exec(
   }
 
   try {
-    const childProcess = spawn(spawnBinary, shellArgs, {
-      env: {
-        ...subprocessEnv(),
-        SHELL: shellType === 'bash' ? binShell : undefined,
-        GIT_EDITOR: 'true',
-        CLAUDECODE: '1',
-        ...envOverrides,
-        ...(process.env.USER_TYPE === 'ant'
-          ? {
-              CLAUDE_CODE_SESSION_ID: getSessionId(),
-            }
-          : {}),
-      },
+    const spawnEnv = {
+      ...subprocessEnv(),
+      SHELL: shellType === 'bash' ? binShell : undefined,
+      GIT_EDITOR: 'true',
+      CLAUDECODE: '1',
+      ...envOverrides,
+      ...(process.env.USER_TYPE === 'ant'
+        ? { CLAUDE_CODE_SESSION_ID: getSessionId() }
+        : {}),
+    } as Record<string, string | undefined>
+
+    const proc = Bun.spawn([spawnBinary, ...shellArgs], {
+      env: spawnEnv,
       cwd,
-      stdio: usePipeMode
-        ? ['pipe', 'pipe', 'pipe']
-        : ['pipe', outputHandle?.fd, outputHandle?.fd],
-      // Don't pass the signal - we'll handle termination ourselves with tree-kill
-      detached: provider.detached,
-      // Prevent visible console window on Windows (no-op on other platforms)
-      windowsHide: true,
+      stdin: 'pipe',
+      stdout: usePipeMode ? 'pipe' : outputHandle!.fd,
+      stderr: usePipeMode ? 'pipe' : outputHandle!.fd,
     })
+
+    // Adapt Bun.Subprocess for wrapSpawn (needs ChildProcess interface)
+    const emitter = new EventEmitter()
+    proc.exited.then(
+      code => {
+        emitter.emit('exit', code, null)
+        emitter.emit('close', code, null)
+      },
+      err => {
+        emitter.emit('error', err)
+      },
+    )
+    const adaptedStdout =
+      proc.stdout instanceof ReadableStream
+        ? Readable.fromWeb(
+            proc.stdout as unknown as import('stream/web').ReadableStream,
+          )
+        : null
+    const adaptedStderr =
+      proc.stderr instanceof ReadableStream
+        ? Readable.fromWeb(
+            proc.stderr as unknown as import('stream/web').ReadableStream,
+          )
+        : null
+    let procKilled = false
+    const childProcess = Object.assign(emitter, {
+      pid: proc.pid,
+      get killed() {
+        return procKilled
+      },
+      set killed(v: boolean) {
+        procKilled = v
+      },
+      stdout: adaptedStdout,
+      stderr: adaptedStderr,
+      stdin: null,
+      kill(signal?: NodeJS.Signals | number): boolean {
+        procKilled = true
+        proc.kill(signal as number)
+        return true
+      },
+    }) as unknown as ChildProcess
 
     const shellCommand = wrapSpawn(
       childProcess,
@@ -399,8 +442,8 @@ export async function exec(
     // Both listeners receive the same data chunks (Node.js ReadableStream supports
     // multiple 'data' listeners). StreamWrapper feeds TaskOutput for persistence;
     // these callbacks give the caller real-time access.
-    if (childProcess.stdout && onStdout) {
-      childProcess.stdout.on('data', (chunk: string | Buffer) => {
+    if (adaptedStdout && onStdout) {
+      adaptedStdout.on('data', (chunk: string | Buffer) => {
         onStdout(typeof chunk === 'string' ? chunk : chunk.toString())
       })
     }

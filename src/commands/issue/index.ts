@@ -20,29 +20,35 @@ import {
 import { getClaudeConfigHomeDir } from '../../utils/envUtils.js'
 import { sanitizePath } from '../../utils/path.js'
 
-import * as childProcess from 'node:child_process'
-import { promisify } from 'node:util'
-
-// Re-resolved at call time via namespace import so that test runners using
-// mock.module('node:child_process') see the replacement.
-function execFileAsync(
+async function execFileAsync(
   cmd: string,
   args: string[],
   opts: { timeout?: number },
 ): Promise<{ stdout: string; stderr: string }> {
-  return promisify(childProcess.execFile)(cmd, args, opts)
+  const proc = Bun.spawn([cmd, ...args], { stdout: 'pipe', stderr: 'pipe' })
+  const [exitCode, stdout, stderr] = await Promise.all([
+    proc.exited,
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+  ])
+  if (exitCode !== 0) {
+    const err = new Error(`${cmd} exited with code ${exitCode}`) as Error & {
+      stderr: string
+    }
+    err.stderr = stderr
+    throw err
+  }
+  return { stdout, stderr }
 }
 
 function execFileSyncFn(
   cmd: string,
   args: string[],
-  opts?: { stdio?: unknown; timeout?: number },
+  _opts?: { stdio?: unknown; timeout?: number },
 ): Buffer {
-  return childProcess.execFileSync(
-    cmd,
-    args,
-    opts as Parameters<typeof childProcess.execFileSync>[2],
-  ) as Buffer
+  const result = Bun.spawnSync({ cmd: [cmd, ...args], stderr: 'ignore' })
+  if (result.exitCode !== 0) throw new Error(`${cmd} failed`)
+  return Buffer.from(result.stdout)
 }
 
 function tryDetectGitRemoteUrl(): string | null {

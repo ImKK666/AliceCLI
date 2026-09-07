@@ -1,6 +1,6 @@
 /**
  * Minimal module for firing MDM subprocess reads without blocking the event loop.
- * Has minimal imports — only child_process, fs, and mdmConstants (which only imports os).
+ * Has minimal imports — only fs, Bun.spawn, and mdmConstants (which only imports os).
  *
  * Two usage patterns:
  * 1. Startup: startMdmRawRead() fires at main.tsx module evaluation, results consumed later via getMdmRawReadPromise()
@@ -9,7 +9,6 @@
  * Raw stdout is consumed by mdmSettings.ts via consumeRawReadResult().
  */
 
-import { execFile } from 'child_process'
 import { existsSync } from 'fs'
 import {
   getMacOSPlistPaths,
@@ -29,20 +28,26 @@ export type RawReadResult = {
 
 let rawReadPromise: Promise<RawReadResult> | null = null
 
-function execFilePromise(
+async function execFilePromise(
   cmd: string,
   args: string[],
 ): Promise<{ stdout: string; code: number | null }> {
-  return new Promise(resolve => {
-    execFile(
-      cmd,
-      args,
-      { encoding: 'utf-8', timeout: MDM_SUBPROCESS_TIMEOUT_MS },
-      (err, stdout) => {
-        resolve({ stdout: stdout ?? '', code: err ? 1 : 0 })
-      },
-    )
-  })
+  try {
+    const proc = Bun.spawn([cmd, ...args], {
+      stdout: 'pipe',
+      stderr: 'pipe',
+      stdin: 'ignore',
+    })
+    const timer = setTimeout(() => proc.kill(), MDM_SUBPROCESS_TIMEOUT_MS)
+    const [exitCode, stdout] = await Promise.all([
+      proc.exited,
+      new Response(proc.stdout).text(),
+    ])
+    clearTimeout(timer)
+    return { stdout: stdout ?? '', code: exitCode }
+  } catch {
+    return { stdout: '', code: 1 }
+  }
 }
 
 /**

@@ -14,14 +14,13 @@
  * subprocesses finish during import evaluation. Sync read() and
  * getApiKeyFromConfigOrMacOSKeychain() then hit their caches.
  *
- * Imports stay minimal: child_process + macOsKeychainHelpers.ts (NOT
+ * Imports stay minimal: Bun.spawn + macOsKeychainHelpers.ts (NOT
  * macOsKeychainStorage.ts — that pulls in execa → human-signals →
  * cross-spawn, ~58ms of synchronous module init). The helpers file's own
  * import chain (envUtils, oauth constants, crypto) is already evaluated by
  * startupProfiler.ts at main.tsx:5, so no new module-init cost lands here.
  */
 
-import { execFile } from 'child_process'
 import { isBareMode } from '../envUtils.js'
 import {
   CREDENTIALS_SERVICE_SUFFIX,
@@ -42,23 +41,40 @@ let prefetchPromise: Promise<void> | null = null
 
 type SpawnResult = { stdout: string | null; timedOut: boolean }
 
-function spawnSecurity(serviceName: string): Promise<SpawnResult> {
-  return new Promise(resolve => {
-    execFile(
-      'security',
-      ['find-generic-password', '-a', getUsername(), '-w', '-s', serviceName],
-      { encoding: 'utf-8', timeout: KEYCHAIN_PREFETCH_TIMEOUT_MS },
-      (err, stdout) => {
-        // Exit 44 (entry not found) is a valid "no key" result and safe to
-        // prime as null. But timeout (err.killed) means the keychain MAY have
-        // a key we couldn't fetch — don't prime, let sync spawn retry.
-        resolve({
-          stdout: err ? null : stdout?.trim() || null,
-          timedOut: Boolean(err && 'killed' in err && err.killed),
-        })
-      },
+async function spawnSecurity(serviceName: string): Promise<SpawnResult> {
+  try {
+    const proc = Bun.spawn(
+      [
+        'security',
+        'find-generic-password',
+        '-a',
+        getUsername(),
+        '-w',
+        '-s',
+        serviceName,
+      ],
+      { stdout: 'pipe', stderr: 'pipe', stdin: 'ignore' },
     )
-  })
+    let timedOut = false
+    const timer = setTimeout(() => {
+      timedOut = true
+      proc.kill()
+    }, KEYCHAIN_PREFETCH_TIMEOUT_MS)
+    const [exitCode, stdout] = await Promise.all([
+      proc.exited,
+      new Response(proc.stdout).text(),
+    ])
+    clearTimeout(timer)
+    // Exit 44 (entry not found) is a valid "no key" result and safe to
+    // prime as null. But timeout means the keychain MAY have a key we
+    // couldn't fetch — don't prime, let sync spawn retry.
+    return {
+      stdout: exitCode !== 0 ? null : stdout?.trim() || null,
+      timedOut,
+    }
+  } catch {
+    return { stdout: null, timedOut: false }
+  }
 }
 
 /**

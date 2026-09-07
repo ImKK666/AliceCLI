@@ -3,8 +3,6 @@
  * Handles conversions between Claude's environment and the IDE's environment
  */
 
-import { execFileSync } from 'child_process'
-
 export interface IDEPathConverter {
   /**
    * Convert path from IDE format to Claude's local format
@@ -41,10 +39,12 @@ export class WindowsToWSLConverter implements IDEPathConverter {
 
     try {
       // Use wslpath to convert Windows paths to WSL paths
-      const result = execFileSync('wslpath', ['-u', windowsPath], {
-        encoding: 'utf8',
-        stdio: ['pipe', 'pipe', 'ignore'], // wslpath writes "wslpath: <errortext>" to stderr
-      }).trim()
+      const proc = Bun.spawnSync({
+        cmd: ['wslpath', '-u', windowsPath],
+        stderr: 'ignore',
+      })
+      if (proc.exitCode !== 0) throw new Error('wslpath failed')
+      const result = proc.stdout.toString().trim()
 
       return result
     } catch {
@@ -60,10 +60,12 @@ export class WindowsToWSLConverter implements IDEPathConverter {
 
     try {
       // Use wslpath to convert WSL paths to Windows paths
-      const result = execFileSync('wslpath', ['-w', wslPath], {
-        encoding: 'utf8',
-        stdio: ['pipe', 'pipe', 'ignore'], // wslpath writes "wslpath: <errortext>" to stderr
-      }).trim()
+      const proc = Bun.spawnSync({
+        cmd: ['wslpath', '-w', wslPath],
+        stderr: 'ignore',
+      })
+      if (proc.exitCode !== 0) throw new Error('wslpath failed')
+      const result = proc.stdout.toString().trim()
 
       return result
     } catch {

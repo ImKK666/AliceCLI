@@ -1,6 +1,5 @@
 import { feature } from 'bun:bundle'
 import chalk from 'chalk'
-import { spawnSync } from 'child_process'
 import {
   copyFile,
   mkdir,
@@ -1192,8 +1191,8 @@ export async function execIntoTmuxWorktree(args: string[]): Promise<{
   }
 
   // Check if tmux is available
-  const tmuxCheck = spawnSync('tmux', ['-V'], { encoding: 'utf-8' })
-  if (tmuxCheck.status !== 0) {
+  const tmuxCheck = Bun.spawnSync(['tmux', '-V'])
+  if (tmuxCheck.exitCode !== 0) {
     const installHint =
       process.platform === 'darwin'
         ? 'Install tmux with: brew install tmux'
@@ -1329,11 +1328,9 @@ export async function execIntoTmuxWorktree(args: string[]): Promise<{
 
   // Get tmux prefix for user guidance
   let tmuxPrefix = 'C-b' // default
-  const prefixResult = spawnSync('tmux', ['show-options', '-g', 'prefix'], {
-    encoding: 'utf-8',
-  })
-  if (prefixResult.status === 0 && prefixResult.stdout) {
-    const match = prefixResult.stdout.match(/prefix\s+(\S+)/)
+  const prefixResult = Bun.spawnSync(['tmux', 'show-options', '-g', 'prefix'])
+  if (prefixResult.exitCode === 0 && prefixResult.stdout.length > 0) {
+    const match = prefixResult.stdout.toString().match(/prefix\s+(\S+)/)
     if (match?.[1]) {
       tmuxPrefix = match[1]
     }
@@ -1363,12 +1360,13 @@ export async function execIntoTmuxWorktree(args: string[]): Promise<{
   }
 
   // Check if session already exists
-  const hasSessionResult = spawnSync(
+  const hasSessionResult = Bun.spawnSync([
     'tmux',
-    ['has-session', '-t', tmuxSessionName],
-    { encoding: 'utf-8' },
-  )
-  const sessionExists = hasSessionResult.status === 0
+    'has-session',
+    '-t',
+    tmuxSessionName,
+  ])
+  const sessionExists = hasSessionResult.exitCode === 0
 
   // Check if we're already inside a tmux session
   const isAlreadyInTmux = Boolean(process.env.TMUX)
@@ -1398,9 +1396,9 @@ export async function execIntoTmuxWorktree(args: string[]): Promise<{
 
   if (shouldSetupDevPanes) {
     // Create detached session with Claude in first pane
-    spawnSync(
-      'tmux',
-      [
+    Bun.spawnSync({
+      cmd: [
+        'tmux',
         'new-session',
         '-d', // detached
         '-s',
@@ -1411,52 +1409,83 @@ export async function execIntoTmuxWorktree(args: string[]): Promise<{
         process.execPath,
         ...newArgs,
       ],
-      { cwd: worktreeDir, env: tmuxEnv },
-    )
+      cwd: worktreeDir,
+      env: tmuxEnv,
+    })
 
     // Split horizontally and run watch
-    spawnSync(
-      'tmux',
-      ['split-window', '-h', '-t', tmuxSessionName, '-c', worktreeDir],
-      { cwd: worktreeDir },
-    )
-    spawnSync(
-      'tmux',
-      ['send-keys', '-t', tmuxSessionName, 'bun run watch', 'Enter'],
-      { cwd: worktreeDir },
-    )
+    Bun.spawnSync({
+      cmd: [
+        'tmux',
+        'split-window',
+        '-h',
+        '-t',
+        tmuxSessionName,
+        '-c',
+        worktreeDir,
+      ],
+      cwd: worktreeDir,
+    })
+    Bun.spawnSync({
+      cmd: [
+        'tmux',
+        'send-keys',
+        '-t',
+        tmuxSessionName,
+        'bun run watch',
+        'Enter',
+      ],
+      cwd: worktreeDir,
+    })
 
     // Split vertically and run start
-    spawnSync(
-      'tmux',
-      ['split-window', '-v', '-t', tmuxSessionName, '-c', worktreeDir],
-      { cwd: worktreeDir },
-    )
-    spawnSync('tmux', ['send-keys', '-t', tmuxSessionName, 'bun run start'], {
+    Bun.spawnSync({
+      cmd: [
+        'tmux',
+        'split-window',
+        '-v',
+        '-t',
+        tmuxSessionName,
+        '-c',
+        worktreeDir,
+      ],
+      cwd: worktreeDir,
+    })
+    Bun.spawnSync({
+      cmd: ['tmux', 'send-keys', '-t', tmuxSessionName, 'bun run start'],
       cwd: worktreeDir,
     })
 
     // Select the first pane (Claude)
-    spawnSync('tmux', ['select-pane', '-t', `${tmuxSessionName}:0.0`], {
+    Bun.spawnSync({
+      cmd: ['tmux', 'select-pane', '-t', `${tmuxSessionName}:0.0`],
       cwd: worktreeDir,
     })
 
     // Attach or switch to the session
     if (isAlreadyInTmux) {
       // Switch to sibling session (avoid nesting)
-      spawnSync('tmux', ['switch-client', '-t', tmuxSessionName], {
-        stdio: 'inherit',
+      Bun.spawnSync({
+        cmd: ['tmux', 'switch-client', '-t', tmuxSessionName],
+        stdout: 'inherit',
+        stderr: 'inherit',
+        stdin: 'inherit',
       })
     } else {
       // Attach to the session
-      spawnSync(
-        'tmux',
-        [...tmuxGlobalArgs, 'attach-session', '-t', tmuxSessionName],
-        {
-          stdio: 'inherit',
-          cwd: worktreeDir,
-        },
-      )
+      Bun.spawnSync({
+        cmd: [
+          'tmux',
+          ...tmuxGlobalArgs,
+          'attach-session',
+          '-t',
+          tmuxSessionName,
+        ],
+        stdout: 'inherit',
+        stderr: 'inherit',
+        stdin: 'inherit',
+        cwd: worktreeDir,
+      })
     }
   } else {
     // Standard behavior: create or attach
@@ -1465,14 +1494,17 @@ export async function execIntoTmuxWorktree(args: string[]): Promise<{
       // Check if session already exists first
       if (sessionExists) {
         // Just switch to existing session
-        spawnSync('tmux', ['switch-client', '-t', tmuxSessionName], {
-          stdio: 'inherit',
+        Bun.spawnSync({
+          cmd: ['tmux', 'switch-client', '-t', tmuxSessionName],
+          stdout: 'inherit',
+          stderr: 'inherit',
+          stdin: 'inherit',
         })
       } else {
         // Create new detached session
-        spawnSync(
-          'tmux',
-          [
+        Bun.spawnSync({
+          cmd: [
+            'tmux',
             'new-session',
             '-d', // detached
             '-s',
@@ -1483,12 +1515,16 @@ export async function execIntoTmuxWorktree(args: string[]): Promise<{
             process.execPath,
             ...newArgs,
           ],
-          { cwd: worktreeDir, env: tmuxEnv },
-        )
+          cwd: worktreeDir,
+          env: tmuxEnv,
+        })
 
         // Switch to the new session
-        spawnSync('tmux', ['switch-client', '-t', tmuxSessionName], {
-          stdio: 'inherit',
+        Bun.spawnSync({
+          cmd: ['tmux', 'switch-client', '-t', tmuxSessionName],
+          stdout: 'inherit',
+          stderr: 'inherit',
+          stdin: 'inherit',
         })
       }
     } else {
@@ -1506,8 +1542,11 @@ export async function execIntoTmuxWorktree(args: string[]): Promise<{
         ...newArgs,
       ]
 
-      spawnSync('tmux', tmuxArgs, {
-        stdio: 'inherit',
+      Bun.spawnSync({
+        cmd: ['tmux', ...tmuxArgs],
+        stdout: 'inherit',
+        stderr: 'inherit',
+        stdin: 'inherit',
         cwd: worktreeDir,
         env: tmuxEnv,
       })

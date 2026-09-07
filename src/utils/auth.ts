@@ -1,5 +1,4 @@
 import chalk from 'chalk'
-import { exec } from 'child_process'
 import { execa } from 'execa'
 import { mkdir, stat } from 'fs/promises'
 import memoize from 'lodash-es/memoize.js'
@@ -652,47 +651,72 @@ export function refreshAwsAuth(awsAuthRefresh: string): Promise<boolean> {
   const authStatusManager = AwsAuthStatusManager.getInstance()
   authStatusManager.startAuthentication()
 
-  return new Promise(resolve => {
-    const refreshProc = exec(awsAuthRefresh, {
-      timeout: AWS_AUTH_REFRESH_TIMEOUT_MS,
-    })
-    refreshProc.stdout!.on('data', data => {
-      const output = data.toString().trim()
-      if (output) {
-        // Add output to status manager for UI display
-        authStatusManager.addOutput(output)
-        // Also log for debugging
-        logForDebugging(output, { level: 'debug' })
-      }
-    })
+  const proc = Bun.spawn(['sh', '-c', awsAuthRefresh], {
+    stdout: 'pipe',
+    stderr: 'pipe',
+    stdin: 'ignore',
+  })
+  let timedOut = false
+  const timer = setTimeout(() => {
+    timedOut = true
+    proc.kill()
+  }, AWS_AUTH_REFRESH_TIMEOUT_MS)
 
-    refreshProc.stderr!.on('data', data => {
-      const error = data.toString().trim()
-      if (error) {
-        authStatusManager.setError(error)
-        logForDebugging(error, { level: 'error' })
+  // Stream stdout in background
+  void (async () => {
+    const reader = (proc.stdout as ReadableStream<Uint8Array>).getReader()
+    const decoder = new TextDecoder()
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        const output = decoder.decode(value, { stream: true }).trim()
+        if (output) {
+          authStatusManager.addOutput(output)
+          logForDebugging(output, { level: 'debug' })
+        }
       }
-    })
+    } catch {
+      // Stream closed
+    }
+  })()
 
-    refreshProc.on('close', (code, signal) => {
-      if (code === 0) {
-        logForDebugging('AWS auth refresh completed successfully')
-        authStatusManager.endAuthentication(true)
-        void resolve(true)
-      } else {
-        const timedOut = signal === 'SIGTERM'
-        const message = timedOut
-          ? chalk.red(
-              'AWS auth refresh timed out after 3 minutes. Run your auth command manually in a separate terminal.',
-            )
-          : chalk.red(
-              'Error running awsAuthRefresh (in settings or ~/.claude.json):',
-            )
-        console.error(message)
-        authStatusManager.endAuthentication(false)
-        void resolve(false)
+  // Stream stderr in background
+  void (async () => {
+    const reader = (proc.stderr as ReadableStream<Uint8Array>).getReader()
+    const decoder = new TextDecoder()
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        const error = decoder.decode(value, { stream: true }).trim()
+        if (error) {
+          authStatusManager.setError(error)
+          logForDebugging(error, { level: 'error' })
+        }
       }
-    })
+    } catch {
+      // Stream closed
+    }
+  })()
+
+  return proc.exited.then(code => {
+    clearTimeout(timer)
+    if (code === 0 && !timedOut) {
+      logForDebugging('AWS auth refresh completed successfully')
+      authStatusManager.endAuthentication(true)
+      return true
+    }
+    const message = timedOut
+      ? chalk.red(
+          'AWS auth refresh timed out after 3 minutes. Run your auth command manually in a separate terminal.',
+        )
+      : chalk.red(
+          'Error running awsAuthRefresh (in settings or ~/.claude.json):',
+        )
+    console.error(message)
+    authStatusManager.endAuthentication(false)
+    return false
   })
 }
 
@@ -917,47 +941,72 @@ export function refreshGcpAuth(gcpAuthRefresh: string): Promise<boolean> {
   const authStatusManager = AwsAuthStatusManager.getInstance()
   authStatusManager.startAuthentication()
 
-  return new Promise(resolve => {
-    const refreshProc = exec(gcpAuthRefresh, {
-      timeout: GCP_AUTH_REFRESH_TIMEOUT_MS,
-    })
-    refreshProc.stdout!.on('data', data => {
-      const output = data.toString().trim()
-      if (output) {
-        // Add output to status manager for UI display
-        authStatusManager.addOutput(output)
-        // Also log for debugging
-        logForDebugging(output, { level: 'debug' })
-      }
-    })
+  const proc = Bun.spawn(['sh', '-c', gcpAuthRefresh], {
+    stdout: 'pipe',
+    stderr: 'pipe',
+    stdin: 'ignore',
+  })
+  let timedOut = false
+  const timer = setTimeout(() => {
+    timedOut = true
+    proc.kill()
+  }, GCP_AUTH_REFRESH_TIMEOUT_MS)
 
-    refreshProc.stderr!.on('data', data => {
-      const error = data.toString().trim()
-      if (error) {
-        authStatusManager.setError(error)
-        logForDebugging(error, { level: 'error' })
+  // Stream stdout in background
+  void (async () => {
+    const reader = (proc.stdout as ReadableStream<Uint8Array>).getReader()
+    const decoder = new TextDecoder()
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        const output = decoder.decode(value, { stream: true }).trim()
+        if (output) {
+          authStatusManager.addOutput(output)
+          logForDebugging(output, { level: 'debug' })
+        }
       }
-    })
+    } catch {
+      // Stream closed
+    }
+  })()
 
-    refreshProc.on('close', (code, signal) => {
-      if (code === 0) {
-        logForDebugging('GCP auth refresh completed successfully')
-        authStatusManager.endAuthentication(true)
-        void resolve(true)
-      } else {
-        const timedOut = signal === 'SIGTERM'
-        const message = timedOut
-          ? chalk.red(
-              'GCP auth refresh timed out after 3 minutes. Run your auth command manually in a separate terminal.',
-            )
-          : chalk.red(
-              'Error running gcpAuthRefresh (in settings or ~/.claude.json):',
-            )
-        console.error(message)
-        authStatusManager.endAuthentication(false)
-        void resolve(false)
+  // Stream stderr in background
+  void (async () => {
+    const reader = (proc.stderr as ReadableStream<Uint8Array>).getReader()
+    const decoder = new TextDecoder()
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        const error = decoder.decode(value, { stream: true }).trim()
+        if (error) {
+          authStatusManager.setError(error)
+          logForDebugging(error, { level: 'error' })
+        }
       }
-    })
+    } catch {
+      // Stream closed
+    }
+  })()
+
+  return proc.exited.then(code => {
+    clearTimeout(timer)
+    if (code === 0 && !timedOut) {
+      logForDebugging('GCP auth refresh completed successfully')
+      authStatusManager.endAuthentication(true)
+      return true
+    }
+    const message = timedOut
+      ? chalk.red(
+          'GCP auth refresh timed out after 3 minutes. Run your auth command manually in a separate terminal.',
+        )
+      : chalk.red(
+          'Error running gcpAuthRefresh (in settings or ~/.claude.json):',
+        )
+    console.error(message)
+    authStatusManager.endAuthentication(false)
+    return false
   })
 }
 

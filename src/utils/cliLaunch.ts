@@ -144,6 +144,12 @@ export function buildCliLaunch(
  * `windowsHide` to pass CREATE_NO_WINDOW, but Bun may not implement it.
  * As a fallback, we always set both `windowsHide: true` and keep
  * `detached` as-is — the child needs `detached` to outlive the parent.
+ *
+ * NOTE: This function still uses child_process.spawn because callers depend
+ * on the ChildProcess EventEmitter API (.on('data'), .on('exit'),
+ * .on('error')). Migrating to Bun.spawn requires updating all callers
+ * (daemon/main.ts, assistant.tsx, remoteControlServer.tsx, detached.ts)
+ * to use ReadableStream and .exited promise instead.
  */
 export function spawnCli(
   spec: CliLaunchSpec,

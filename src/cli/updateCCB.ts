@@ -6,7 +6,6 @@
  *  2. Otherwise → use `npm install -g`
  */
 import chalk from 'chalk'
-import { execSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
@@ -33,12 +32,7 @@ function getCurrentVersion(): string {
 }
 
 function isCommandAvailable(cmd: string): boolean {
-  try {
-    execSync(`which ${cmd} 2>/dev/null`, { stdio: 'pipe' })
-    return true
-  } catch {
-    return false
-  }
+  return Bun.which(cmd) !== null
 }
 
 /**
@@ -125,18 +119,20 @@ export async function updateCCB(): Promise<void> {
   writeToStdout(`Installing update via ${pkgManager}...\n`)
 
   try {
-    if (pkgManager === 'bun') {
-      execSync(`bun install -g ${PACKAGE_NAME}@latest`, {
-        stdio: 'inherit',
-        cwd: homedir(),
-        timeout: 120_000,
-      })
-    } else {
-      execSync(`npm install -g ${PACKAGE_NAME}@latest`, {
-        stdio: 'inherit',
-        cwd: homedir(),
-        timeout: 120_000,
-      })
+    const cmd =
+      pkgManager === 'bun'
+        ? ['bun', 'install', '-g', `${PACKAGE_NAME}@latest`]
+        : ['npm', 'install', '-g', `${PACKAGE_NAME}@latest`]
+    const result = Bun.spawnSync(cmd, {
+      stdout: 'inherit',
+      stderr: 'inherit',
+      stdin: 'inherit',
+      cwd: homedir(),
+    })
+    if (result.exitCode !== 0) {
+      throw new Error(
+        `${pkgManager} install failed with exit code ${result.exitCode}`,
+      )
     }
 
     writeToStdout(

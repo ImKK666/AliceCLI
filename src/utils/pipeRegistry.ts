@@ -75,21 +75,24 @@ export async function getMachineId(): Promise<string> {
   if (process.platform === 'win32') {
     // Windows: HKLM\SOFTWARE\Microsoft\Cryptography\MachineGuid (async)
     try {
-      const { execFile } =
-        require('child_process') as typeof import('child_process')
-      raw = await new Promise<string>((resolve, reject) => {
-        execFile(
+      const proc = Bun.spawn(
+        [
           'reg',
-          [
-            'query',
-            'HKLM\\SOFTWARE\\Microsoft\\Cryptography',
-            '/v',
-            'MachineGuid',
-          ],
-          { timeout: 3000 },
-          (err, stdout) => (err ? reject(err) : resolve(stdout)),
-        )
-      })
+          'query',
+          'HKLM\\SOFTWARE\\Microsoft\\Cryptography',
+          '/v',
+          'MachineGuid',
+        ],
+        { stdout: 'pipe', stderr: 'pipe', stdin: 'ignore' },
+      )
+      const timer = setTimeout(() => proc.kill(), 3000)
+      const [exitCode, stdout] = await Promise.all([
+        proc.exited,
+        new Response(proc.stdout).text(),
+      ])
+      clearTimeout(timer)
+      if (exitCode !== 0) throw new Error('reg query failed')
+      raw = stdout
       const match = raw.match(/MachineGuid\s+REG_SZ\s+(\S+)/)
       if (match) {
         _cachedMachineId = match[1]!
@@ -109,19 +112,22 @@ export async function getMachineId(): Promise<string> {
   } else if (process.platform === 'darwin') {
     // macOS: IOPlatformSerialNumber (async)
     try {
-      const { execFile } =
-        require('child_process') as typeof import('child_process')
-      raw = await new Promise<string>((resolve, reject) => {
-        execFile(
+      const proc = Bun.spawn(
+        [
           'bash',
-          [
-            '-c',
-            'ioreg -rd1 -c IOPlatformExpertDevice | grep IOPlatformSerialNumber',
-          ],
-          { timeout: 3000 },
-          (err, stdout) => (err ? reject(err) : resolve(stdout)),
-        )
-      })
+          '-c',
+          'ioreg -rd1 -c IOPlatformExpertDevice | grep IOPlatformSerialNumber',
+        ],
+        { stdout: 'pipe', stderr: 'pipe', stdin: 'ignore' },
+      )
+      const timer = setTimeout(() => proc.kill(), 3000)
+      const [exitCode, stdout] = await Promise.all([
+        proc.exited,
+        new Response(proc.stdout).text(),
+      ])
+      clearTimeout(timer)
+      if (exitCode !== 0) throw new Error('ioreg failed')
+      raw = stdout
       const match = raw.match(/"IOPlatformSerialNumber"\s*=\s*"(\S+)"/)
       if (match) {
         _cachedMachineId = match[1]!
