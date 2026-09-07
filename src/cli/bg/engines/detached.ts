@@ -32,8 +32,9 @@ export class DetachedEngine implements BgEngine {
     })
 
     const child = spawnCli(launch, {
-      detached: true,
-      stdio: ['ignore', logFd, logFd],
+      stdin: 'ignore',
+      stdout: logFd,
+      stderr: logFd,
       cwd: opts.cwd,
     })
 

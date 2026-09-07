@@ -69,14 +69,18 @@ export function NewInstallWizard({ defaultDir, onInstalled, onCancel, onError }:
 
       const child = spawnCli(launch, {
         cwd: dir,
-        stdio: 'ignore',
-        detached: true,
+        stdin: 'ignore',
+        stdout: 'ignore',
+        stderr: 'ignore',
       });
 
       child.unref();
 
-      child.on('error', err => {
-        onError(`Failed to start daemon: ${err.message}`);
+      // Bun.spawn throws synchronously for most spawn failures (caught
+      // by the try/catch above). This catch handles any deferred errors.
+      void child.exited.catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        onError(`Failed to start daemon: ${msg}`);
       });
 
       // Give the daemon a moment to initialize, then report success.

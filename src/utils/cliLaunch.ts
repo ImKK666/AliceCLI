@@ -1,4 +1,3 @@
-import { type ChildProcess, spawn, type SpawnOptions } from 'child_process'
 import { isInBundledMode } from './bundledMode.js'
 import { quote } from './bash/shellQuote.js'
 
@@ -88,6 +87,58 @@ const EXEC_PATH: string = process.execPath
 const IS_WINDOWS = process.platform === 'win32'
 
 // ---------------------------------------------------------------------------
+// Signal constants — avoids string-to-number conversion issues with Bun.spawn
+// ---------------------------------------------------------------------------
+
+/** POSIX SIGTERM signal number. */
+export const SIGTERM = 15
+/** POSIX SIGKILL signal number. */
+export const SIGKILL = 9
+
+// ---------------------------------------------------------------------------
+// CliProcess — thin abstraction over Bun.spawn's Subprocess
+// ---------------------------------------------------------------------------
+
+/**
+ * Minimal process handle returned by spawnCli.
+ *
+ * Wraps Bun.spawn's Subprocess, exposing only the surface area
+ * that CLI process callers actually need. Stream properties are
+ * normalized: they are ReadableStream when the fd was piped, or
+ * null otherwise (ignore / inherit / raw fd).
+ */
+export interface CliProcess {
+  /** OS process ID. */
+  readonly pid: number
+  /** Whether kill() has been called on this handle. */
+  readonly killed: boolean
+  /** Resolves with the exit code when the process exits. */
+  readonly exited: Promise<number>
+  /** Piped stdout stream, or null if stdout was not piped. */
+  readonly stdout: ReadableStream<Uint8Array> | null
+  /** Piped stderr stream, or null if stderr was not piped. */
+  readonly stderr: ReadableStream<Uint8Array> | null
+  /** Send a signal to the process (numeric POSIX signal). */
+  kill(signal?: number): void
+  /** Allow the parent process to exit without waiting for this child. */
+  unref(): void
+}
+
+/**
+ * Spawn options for spawnCli, mapped to Bun.spawn options.
+ *
+ * Unlike Node's SpawnOptions, stdio is specified per-fd rather than
+ * as a combined array.
+ */
+export interface CliSpawnOptions {
+  cwd?: string
+  env?: Record<string, string | undefined>
+  stdin?: 'pipe' | 'inherit' | 'ignore' | number
+  stdout?: 'pipe' | 'inherit' | 'ignore' | number
+  stderr?: 'pipe' | 'inherit' | 'ignore' | number
+}
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -134,32 +185,93 @@ export function buildCliLaunch(
 }
 
 /**
- * Spawn a child CLI process from a launch spec.
+ * Spawn a child CLI process from a launch spec using Bun.spawn.
  *
- * Callers provide transport-level options (stdio, detached, cwd) while the
- * spec handles bootstrap concerns (execPath, args, env, windowsHide).
+ * Callers provide transport-level options (stdin/stdout/stderr, cwd)
+ * while the spec handles bootstrap concerns (execPath, args, env,
+ * windowsHide).
  *
- * Windows note: `detached: true` on Windows creates a new console window
- * (unlike Unix where it only creates a new process group). Node.js uses
- * `windowsHide` to pass CREATE_NO_WINDOW, but Bun may not implement it.
- * As a fallback, we always set both `windowsHide: true` and keep
- * `detached` as-is — the child needs `detached` to outlive the parent.
- *
- * NOTE: This function still uses child_process.spawn because callers depend
- * on the ChildProcess EventEmitter API (.on('data'), .on('exit'),
- * .on('error')). Migrating to Bun.spawn requires updating all callers
- * (daemon/main.ts, assistant.tsx, remoteControlServer.tsx, detached.ts)
- * to use ReadableStream and .exited promise instead.
+ * The returned CliProcess wraps Bun's Subprocess. Callers use:
+ * - `.exited` promise instead of `.on('exit', ...)`
+ * - `readStreamChunks()` instead of `.stdout.on('data', ...)`
+ * - `.unref()` to allow the parent to exit (replaces detached + unref)
  */
 export function spawnCli(
   spec: CliLaunchSpec,
-  spawnOpts: Omit<SpawnOptions, 'windowsHide'>,
-): ChildProcess {
-  return spawn(spec.execPath, spec.args, {
-    ...spawnOpts,
-    env: { ...spec.env, ...(spawnOpts.env as NodeJS.ProcessEnv) },
+  spawnOpts: CliSpawnOptions,
+): CliProcess {
+  const mergedEnv = {
+    ...spec.env,
+    ...(spawnOpts.env ?? {}),
+  } as Record<string, string | undefined>
+
+  const proc = Bun.spawn([spec.execPath, ...spec.args], {
+    cwd: spawnOpts.cwd,
+    env: mergedEnv,
+    stdin: spawnOpts.stdin ?? 'ignore',
+    stdout: spawnOpts.stdout ?? 'inherit',
+    stderr: spawnOpts.stderr ?? 'inherit',
     windowsHide: spec.windowsHide,
   })
+
+  return {
+    get pid() {
+      return proc.pid
+    },
+    get killed() {
+      return proc.killed
+    },
+    get exited() {
+      return proc.exited
+    },
+    get stdout() {
+      const s = proc.stdout
+      return s instanceof ReadableStream
+        ? (s as ReadableStream<Uint8Array>)
+        : null
+    },
+    get stderr() {
+      const s = proc.stderr
+      return s instanceof ReadableStream
+        ? (s as ReadableStream<Uint8Array>)
+        : null
+    },
+    kill(signal?: number) {
+      proc.kill(signal)
+    },
+    unref() {
+      proc.unref()
+    },
+  }
+}
+
+/**
+ * Read chunks from a ReadableStream and pass each decoded text chunk
+ * to the callback. Runs in the background (returns immediately).
+ *
+ * This is the Bun.spawn equivalent of Node.js `stream.on('data', cb)`
+ * for child_process streams.
+ */
+export function readStreamChunks(
+  stream: ReadableStream<Uint8Array> | null,
+  onChunk: (text: string) => void,
+): void {
+  if (!stream) return
+  const reader = stream.getReader()
+  const decoder = new TextDecoder()
+  void (async () => {
+    try {
+      for (;;) {
+        const { done, value } = await reader.read()
+        if (done) break
+        onChunk(decoder.decode(value, { stream: true }))
+      }
+    } catch {
+      // Stream closed or errored — stop reading
+    } finally {
+      reader.releaseLock()
+    }
+  })()
 }
 
 /**

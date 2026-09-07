@@ -1,4 +1,3 @@
-import { type ChildProcess } from 'child_process';
 import { resolve } from 'path';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
@@ -10,7 +9,14 @@ import { ListItem } from '../../components/design-system/ListItem.js';
 import { useRegisterOverlay } from '../../context/overlayContext.js';
 import { Box, Text } from '@anthropic/ink';
 import { useKeybindings } from '../../keybindings/useKeybinding.js';
-import { buildCliLaunch, spawnCli } from '../../utils/cliLaunch.js';
+import {
+  type CliProcess,
+  SIGKILL,
+  SIGTERM,
+  buildCliLaunch,
+  readStreamChunks,
+  spawnCli,
+} from '../../utils/cliLaunch.js';
 import type { ToolUseContext } from '../../Tool.js';
 import type { LocalJSXCommandContext, LocalJSXCommandOnDone } from '../../types/command.js';
 import { errorMessage } from '../../utils/errors.js';
@@ -33,7 +39,7 @@ type Props = {
  */
 
 // Module-level state to track the daemon process across invocations
-let daemonProcess: ChildProcess | null = null;
+let daemonProcess: CliProcess | null = null;
 let daemonStatus: ServerStatus = 'stopped';
 let daemonLogs: string[] = [];
 const MAX_LOG_LINES = 50;
@@ -207,15 +213,16 @@ function startDaemon(): void {
 
   const child = spawnCli(launch, {
     cwd: dir,
-    stdio: ['ignore', 'pipe', 'pipe'],
-    detached: false,
+    stdin: 'ignore',
+    stdout: 'pipe',
+    stderr: 'pipe',
   });
 
   daemonProcess = child;
   daemonLogs = [];
 
-  child.stdout?.on('data', (data: Buffer) => {
-    const lines = data.toString().trimEnd().split('\n');
+  readStreamChunks(child.stdout, data => {
+    const lines = data.trimEnd().split('\n');
     for (const line of lines) {
       daemonLogs.push(line);
       if (daemonLogs.length > MAX_LOG_LINES) {
@@ -224,8 +231,8 @@ function startDaemon(): void {
     }
   });
 
-  child.stderr?.on('data', (data: Buffer) => {
-    const lines = data.toString().trimEnd().split('\n');
+  readStreamChunks(child.stderr, data => {
+    const lines = data.trimEnd().split('\n');
     for (const line of lines) {
       daemonLogs.push(`[err] ${line}`);
       if (daemonLogs.length > MAX_LOG_LINES) {
@@ -234,17 +241,18 @@ function startDaemon(): void {
     }
   });
 
-  child.on('exit', (code: number | null, signal: NodeJS.Signals | null) => {
-    daemonProcess = null;
-    daemonStatus = 'stopped';
-    daemonLogs.push(`[daemon] exited (code=${code ?? 'unknown'}, signal=${signal})`);
-  });
-
-  child.on('error', (err: Error) => {
-    daemonProcess = null;
-    daemonStatus = 'error';
-    daemonLogs.push(`[daemon] error: ${err.message}`);
-  });
+  void child.exited
+    .then((code: number) => {
+      daemonProcess = null;
+      daemonStatus = 'stopped';
+      daemonLogs.push(`[daemon] exited (code=${code})`);
+    })
+    .catch((err: unknown) => {
+      daemonProcess = null;
+      daemonStatus = 'error';
+      const msg = err instanceof Error ? err.message : String(err);
+      daemonLogs.push(`[daemon] error: ${msg}`);
+    });
 }
 
 /**
@@ -252,14 +260,14 @@ function startDaemon(): void {
  */
 function stopDaemon(): void {
   if (daemonProcess && !daemonProcess.killed) {
-    daemonProcess.kill('SIGTERM');
+    daemonProcess.kill(SIGTERM);
     // Force kill after 10s grace
     const pid = daemonProcess.pid;
     setTimeout(() => {
       try {
         if (pid) process.kill(pid, 0); // Check if still alive
         if (daemonProcess && !daemonProcess.killed) {
-          daemonProcess.kill('SIGKILL');
+          daemonProcess.kill(SIGKILL);
         }
       } catch {
         // Process already gone

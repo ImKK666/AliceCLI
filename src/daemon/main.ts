@@ -1,6 +1,12 @@
-import { type ChildProcess } from 'child_process'
 import { resolve } from 'path'
-import { buildCliLaunch, spawnCli } from '../utils/cliLaunch.js'
+import {
+  type CliProcess,
+  SIGKILL,
+  SIGTERM,
+  buildCliLaunch,
+  readStreamChunks,
+  spawnCli,
+} from '../utils/cliLaunch.js'
 import {
   writeDaemonState,
   removeDaemonState,
@@ -24,7 +30,7 @@ const MAX_RAPID_FAILURES = 5 // Park worker after this many fast crashes
 
 interface WorkerState {
   kind: string
-  process: ChildProcess | null
+  process: CliProcess | null
   backoffMs: number
   failureCount: number
   parked: boolean
@@ -267,7 +273,7 @@ async function runSupervisor(args: string[]): Promise<void> {
         w.restartTimer = null
       }
       if (w.process && !w.process.killed) {
-        w.process.kill('SIGTERM')
+        w.process.kill(SIGTERM)
       }
     }
   }
@@ -293,16 +299,13 @@ async function runSupervisor(args: string[]): Promise<void> {
   // Wait for all workers to exit
   await Promise.all(
     workers
-      .filter(w => w.process && w.process.exitCode === null)
+      .filter(w => w.process != null)
       .map(
         w =>
           new Promise<void>(resolve => {
-            if (!w.process || w.process.exitCode !== null) {
-              resolve()
-              return
-            }
+            const proc = w.process!
             let killTimer: ReturnType<typeof setTimeout> | null = null
-            w.process.on('exit', () => {
+            void proc.exited.then(() => {
               if (killTimer) {
                 clearTimeout(killTimer)
                 killTimer = null
@@ -311,8 +314,8 @@ async function runSupervisor(args: string[]): Promise<void> {
             })
             // Force kill after grace period
             killTimer = setTimeout(() => {
-              if (w.process && w.process.exitCode === null) {
-                w.process.kill('SIGKILL')
+              if (!proc.killed) {
+                proc.kill(SIGKILL)
               }
               resolve()
             }, 30_000)
@@ -355,26 +358,28 @@ function spawnWorker(
 
   const child = spawnCli(launch, {
     cwd: dir,
-    stdio: ['ignore', 'pipe', 'pipe'],
+    stdin: 'ignore',
+    stdout: 'pipe',
+    stderr: 'pipe',
   })
 
   worker.process = child
 
   // Pipe worker stdout/stderr to supervisor with prefix
-  child.stdout?.on('data', (data: Buffer) => {
-    const lines = data.toString().trimEnd().split('\n')
+  readStreamChunks(child.stdout, data => {
+    const lines = data.trimEnd().split('\n')
     for (const line of lines) {
       console.log(`  ${line}`)
     }
   })
-  child.stderr?.on('data', (data: Buffer) => {
-    const lines = data.toString().trimEnd().split('\n')
+  readStreamChunks(child.stderr, data => {
+    const lines = data.trimEnd().split('\n')
     for (const line of lines) {
       console.error(`  ${line}`)
     }
   })
 
-  child.on('exit', (code, sig) => {
+  void child.exited.then(code => {
     worker.process = null
 
     if (signal.aborted) {
@@ -408,7 +413,7 @@ function spawnWorker(
     }
 
     console.log(
-      `[daemon] worker '${worker.kind}' exited (code=${code}, signal=${sig}), restarting in ${worker.backoffMs}ms`,
+      `[daemon] worker '${worker.kind}' exited (code=${code}), restarting in ${worker.backoffMs}ms`,
     )
 
     worker.restartTimer = setTimeout(() => {
