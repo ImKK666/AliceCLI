@@ -49,33 +49,16 @@ export default function featureFlagsPlugin(): Plugin {
       }
     },
 
-    // Replace feature('X') calls with true/false literals at transform time,
-    // and transpile `using` declarations for Node.js compatibility.
     transform(code, id) {
-      // Skip node_modules
       if (id.includes('node_modules')) return null
 
-      let modified = false
-
-      // 1. Replace feature('X') calls with boolean literals
       let matchCount = 0
-      let transformed = code.replace(FEATURE_CALL_RE, (match, flagName) => {
+      const transformed = code.replace(FEATURE_CALL_RE, (match, flagName) => {
         matchCount++
         return features.has(flagName) ? 'true' : 'false'
       })
-      if (matchCount > 0) modified = true
 
-      // 2. Transpile `using _ = expr;` to `const _ = expr;` for Node.js compat.
-      //    Node.js v22 does not support `using` declarations (Explicit Resource Management).
-      //    Safe because: SLOW_OPERATION_LOGGING is not enabled, so slowLogging returns
-      //    a no-op disposable whose [Symbol.dispose]() is empty.
-      if (transformed.includes('using _')) {
-        transformed = transformed.replace(/\busing\s+(_\w*)\s*=/g, 'const $1 =')
-        modified = true
-      }
-
-      if (!modified) return null
-
+      if (matchCount === 0) return null
       return { code: transformed, map: null }
     },
   }

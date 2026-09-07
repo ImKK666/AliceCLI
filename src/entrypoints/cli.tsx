@@ -360,4 +360,7 @@ async function main(): Promise<void> {
 }
 
 // eslint-disable-next-line custom-rules/no-top-level-side-effects
-await main();
+main().catch(e => {
+  console.error(e);
+  process.exit(1);
+});

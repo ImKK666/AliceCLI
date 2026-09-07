@@ -3,53 +3,81 @@
  * Compile Claude Code into a standalone binary.
  *
  * Pipeline:
- *   1. Vite build → dist/cli.js + dist/chunks/ (code-split ESM)
- *   2. Patch top-level await in entry → .catch() (bun --compile limitation)
- *   3. bun build --compile --bytecode → single executable
+ *   1. Bun.build() → single JS file (no splitting, with feature flags)
+ *   2. bun build --compile → standalone executable
  *
  * Usage:
  *   bun run scripts/compile.ts                    # default output: claude-code-bin
  *   bun run scripts/compile.ts --outfile=my-cli   # custom output name
  */
-import { execSync } from 'child_process'
-import { statSync, chmodSync } from 'fs'
-import { readFile, writeFile, rm } from 'fs/promises'
-import { join } from 'path'
+import { statSync, rmSync } from 'fs'
+import { cp } from 'fs/promises'
+import { join, dirname, resolve } from 'path'
+import { getMacroDefines, DEFAULT_BUILD_FEATURES } from './defines.ts'
 
 const outfile =
   process.argv.find(a => a.startsWith('--outfile='))?.split('=')[1] ??
   'claude-code-bin'
 
-// Step 1: Vite build (code-split ESM output)
-console.log('[1/3] Building with Vite (code splitting)...')
-execSync('bun run build:vite', { stdio: 'inherit' })
+const compileOutdir = 'compile-out'
 
-// Step 2: Patch top-level await in entry file
-// bun build --compile does not support top-level await (ESM module semantics).
-// Vite's entry cli.js ends with `await m();export{};` — replace with .catch().
-console.log('[2/3] Patching top-level await for --compile compatibility...')
-const entryPath = join('dist', 'cli.js')
-let entry = await readFile(entryPath, 'utf-8')
-const TLA_PATTERN = /await\s+(\w+)\(\s*\)\s*;?\s*(export\s*\{[^}]*\}\s*;?\s*)$/
-if (TLA_PATTERN.test(entry)) {
-  entry = entry.replace(
-    TLA_PATTERN,
-    '$1().catch(e=>{console.error(e);process.exit(1)});$2',
-  )
-  await writeFile(entryPath, entry)
-  console.log('  Patched: await m() → m().catch(...)')
-} else {
-  console.warn(
-    '  Warning: top-level await pattern not found — entry may already be patched',
-  )
+rmSync(compileOutdir, { recursive: true, force: true })
+
+// Step 1: Bundle into single JS file
+console.log('[1/3] Bundling with Bun.build() (single file)...')
+
+const envFeatures = Object.keys(process.env)
+  .filter(k => k.startsWith('FEATURE_'))
+  .map(k => k.replace('FEATURE_', ''))
+const features = [...new Set([...DEFAULT_BUILD_FEATURES, ...envFeatures])]
+
+const result = await Bun.build({
+  entrypoints: ['src/entrypoints/cli.tsx'],
+  outdir: compileOutdir,
+  target: 'bun',
+  splitting: false,
+  sourcemap: 'none',
+  minify: true,
+  define: {
+    ...getMacroDefines(),
+    'process.env.NODE_ENV': JSON.stringify('production'),
+  },
+  features,
+})
+
+if (!result.success) {
+  console.error('Bundle failed:')
+  for (const log of result.logs) {
+    console.error(log)
+  }
+  process.exit(1)
 }
 
-// Step 3: Compile to standalone binary
-console.log(`[3/3] Compiling to standalone binary: ${outfile}...`)
-execSync(`bun build --compile --bytecode --outfile=${outfile} ${entryPath}`, {
-  stdio: 'inherit',
-  timeout: 300_000,
-})
+const entryPath = join(compileOutdir, 'cli.js')
+console.log(`  Bundled → ${entryPath}`)
+
+// Step 2: Compile to standalone binary
+// Note: --bytecode is omitted because JSC bytecode compiler doesn't support
+// some patterns in the bundled output. Source-mode compile still works well.
+console.log(`[2/3] Compiling to standalone binary: ${outfile}...`)
+const proc = Bun.spawnSync(
+  ['bun', 'build', '--compile', `--outfile=${outfile}`, entryPath],
+  { stdio: ['inherit', 'inherit', 'inherit'] },
+)
+
+if (proc.exitCode !== 0) {
+  console.error('Compilation failed')
+  process.exit(1)
+}
+
+// Step 3: Copy vendor files alongside the binary
+console.log('[3/3] Copying vendor files...')
+const outDir = dirname(resolve(outfile))
+const vendorRipgrep = join(outDir, 'vendor', 'ripgrep')
+await cp('src/utils/vendor/ripgrep', vendorRipgrep, { recursive: true })
+console.log(`  Copied vendor/ripgrep/ → ${vendorRipgrep}/`)
+
+rmSync(compileOutdir, { recursive: true, force: true })
 
 const size = statSync(outfile).size
 const sizeMB = Math.round(size / 1024 / 1024)

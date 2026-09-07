@@ -1,4 +1,4 @@
-import { readdir, readFile, writeFile, cp } from 'fs/promises'
+import { writeFile, cp } from 'fs/promises'
 import { join } from 'path'
 import { getMacroDefines } from './scripts/defines.ts'
 import { DEFAULT_BUILD_FEATURES } from './scripts/defines.ts'
@@ -40,48 +40,7 @@ if (!result.success) {
   process.exit(1)
 }
 
-// Step 3: Post-process — replace Bun-only `import.meta.require` with Node.js compatible version
-const files = await readdir(outdir)
-const IMPORT_META_REQUIRE = 'var __require = import.meta.require;'
-const COMPAT_REQUIRE = `var __require = typeof import.meta.require === "function" ? import.meta.require : (await import("module")).createRequire(import.meta.url);`
-
-let patched = 0
-for (const file of files) {
-  if (!file.endsWith('.js')) continue
-  const filePath = join(outdir, file)
-  const content = await readFile(filePath, 'utf-8')
-  if (content.includes(IMPORT_META_REQUIRE)) {
-    await writeFile(
-      filePath,
-      content.replace(IMPORT_META_REQUIRE, COMPAT_REQUIRE),
-    )
-    patched++
-  }
-}
-
-// Also patch unguarded globalThis.Bun destructuring from third-party deps
-// (e.g. @anthropic-ai/sandbox-runtime) so Node.js doesn't crash at import time.
-let bunPatched = 0
-const BUN_DESTRUCTURE = /var \{([^}]+)\} = globalThis\.Bun;?/g
-const BUN_DESTRUCTURE_SAFE =
-  'var {$1} = typeof globalThis.Bun !== "undefined" ? globalThis.Bun : {};'
-for (const file of files) {
-  if (!file.endsWith('.js')) continue
-  const filePath = join(outdir, file)
-  const content = await readFile(filePath, 'utf-8')
-  if (BUN_DESTRUCTURE.test(content)) {
-    await writeFile(
-      filePath,
-      content.replace(BUN_DESTRUCTURE, BUN_DESTRUCTURE_SAFE),
-    )
-    bunPatched++
-  }
-}
-BUN_DESTRUCTURE.lastIndex = 0
-
-console.log(
-  `Bundled ${result.outputs.length} files to ${outdir}/ (patched ${patched} for import.meta.require, ${bunPatched} for Bun destructure)`,
-)
+console.log(`Bundled ${result.outputs.length} files to ${outdir}/`)
 
 // Step 4: Copy native .node addon files (audio-capture) and vendored binaries (ripgrep)
 const audioCaptureDir = join(outdir, 'vendor', 'audio-capture')
@@ -92,17 +51,9 @@ const ripgrepDir = join(outdir, 'vendor', 'ripgrep')
 await cp('src/utils/vendor/ripgrep', ripgrepDir, { recursive: true })
 console.log(`Copied src/utils/vendor/ripgrep/ → ${ripgrepDir}/`)
 
-// Step 5: Generate cli-bun and cli-node executable entry points
+// Step 5: Generate executable entry point (Bun only)
 const cliBun = join(outdir, 'cli-bun.js')
-const cliNode = join(outdir, 'cli-node.js')
-
 await writeFile(cliBun, '#!/usr/bin/env bun\nimport "./cli.js"\n')
-
-await writeFile(cliNode, '#!/usr/bin/env node\nimport "./cli.js"\n')
-
-// Make both executable
 const { chmodSync } = await import('fs')
 chmodSync(cliBun, 0o755)
-chmodSync(cliNode, 0o755)
-
-console.log(`Generated ${cliBun} (shebang: bun) and ${cliNode} (shebang: node)`)
+console.log(`Generated ${cliBun} (shebang: bun)`)

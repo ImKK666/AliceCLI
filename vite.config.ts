@@ -4,7 +4,6 @@ import { fileURLToPath } from 'url'
 import { readFileSync } from 'fs'
 import { getMacroDefines } from './scripts/defines'
 import featureFlagsPlugin from './scripts/vite-plugin-feature-flags'
-import importMetaRequirePlugin from './scripts/vite-plugin-import-meta-require'
 
 const projectRoot = dirname(fileURLToPath(import.meta.url))
 
@@ -104,7 +103,6 @@ export default defineConfig({
       plugins: [
         rawAssetPlugin(['.md', '.txt', '.html', '.css']),
         featureFlagsPlugin(),
-        importMetaRequirePlugin(),
       ],
 
       onwarn(warning, defaultHandler) {

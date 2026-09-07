@@ -1,3 +1,4 @@
+import { isCompiledBinary } from '../bundledMode.js'
 import { memoizeWithLRU } from '../memoize.js'
 import specs from './specs/index.js'
 
@@ -30,6 +31,7 @@ export type Option = {
 export async function loadFigSpec(
   command: string,
 ): Promise<CommandSpec | null> {
+  if (isCompiledBinary()) return null
   if (!command || command.includes('/') || command.includes('\\')) return null
   if (command.includes('..')) return null
   if (command.startsWith('-') && command !== '-') return null

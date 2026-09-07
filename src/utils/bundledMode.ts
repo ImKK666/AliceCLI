@@ -20,3 +20,11 @@ export function isInBundledMode(): boolean {
     Bun.embeddedFiles.length > 0
   )
 }
+
+/**
+ * Detects if running inside a Bun compiled binary (bun build --compile).
+ * Checks for the /$bunfs/ virtual filesystem prefix in import.meta.url.
+ */
+export function isCompiledBinary(): boolean {
+  return import.meta.url.includes('/$bunfs/')
+}
