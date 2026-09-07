@@ -13,7 +13,7 @@
  */
 
 import { unwatchFile, watchFile } from 'fs'
-import { readdir, readFile, stat } from 'fs/promises'
+import { readdir, stat } from 'fs/promises'
 import { join, resolve } from 'path'
 import { waitForScrollIdle } from '../../bootstrap/state.js'
 import { registerCleanup } from '../cleanupRegistry.js'
@@ -58,7 +58,7 @@ export async function resolveGitDir(
     if (st.isFile()) {
       // Worktree or submodule: .git is a file with `gitdir: <path>`
       // Git strips trailing \n and \r (setup.c read_gitfile_gently).
-      const content = (await readFile(gitPath, 'utf-8')).trim()
+      const content = (await Bun.file(gitPath).text()).trim()
       if (content.startsWith('gitdir:')) {
         const rawDir = content.slice('gitdir:'.length).trim()
         const resolved = resolve(root, rawDir)
@@ -152,7 +152,7 @@ export async function readGitHead(
   { type: 'branch'; name: string } | { type: 'detached'; sha: string } | null
 > {
   try {
-    const content = (await readFile(join(gitDir, 'HEAD'), 'utf-8')).trim()
+    const content = (await Bun.file(join(gitDir, 'HEAD')).text()).trim()
     if (content.startsWith('ref:')) {
       const ref = content.slice('ref:'.length).trim()
       if (ref.startsWith('refs/heads/')) {
@@ -224,7 +224,7 @@ async function resolveRefInDir(
 ): Promise<string | null> {
   // Try loose ref file
   try {
-    const content = (await readFile(join(dir, ref), 'utf-8')).trim()
+    const content = (await Bun.file(join(dir, ref)).text()).trim()
     if (content.startsWith('ref:')) {
       const target = content.slice('ref:'.length).trim()
       // Reject path traversal in a tampered symref chain.
@@ -244,7 +244,7 @@ async function resolveRefInDir(
   }
 
   try {
-    const packed = await readFile(join(dir, 'packed-refs'), 'utf-8')
+    const packed = await Bun.file(join(dir, 'packed-refs')).text()
     for (const line of packed.split('\n')) {
       if (line.startsWith('#') || line.startsWith('^')) {
         continue
@@ -272,7 +272,7 @@ async function resolveRefInDir(
  */
 export async function getCommonDir(gitDir: string): Promise<string | null> {
   try {
-    const content = (await readFile(join(gitDir, 'commondir'), 'utf-8')).trim()
+    const content = (await Bun.file(join(gitDir, 'commondir')).text()).trim()
     return resolve(gitDir, content)
   } catch {
     return null
@@ -290,7 +290,7 @@ export async function readRawSymref(
   branchPrefix: string,
 ): Promise<string | null> {
   try {
-    const content = (await readFile(join(gitDir, refPath), 'utf-8')).trim()
+    const content = (await Bun.file(join(gitDir, refPath)).text()).trim()
     if (content.startsWith('ref:')) {
       const target = content.slice('ref:'.length).trim()
       if (target.startsWith(branchPrefix)) {
@@ -621,7 +621,7 @@ export async function readWorktreeHeadSha(
 ): Promise<string | null> {
   let gitDir: string
   try {
-    const ptr = (await readFile(join(worktreePath, '.git'), 'utf-8')).trim()
+    const ptr = (await Bun.file(join(worktreePath, '.git')).text()).trim()
     if (!ptr.startsWith('gitdir:')) {
       return null
     }

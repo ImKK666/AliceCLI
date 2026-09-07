@@ -30,16 +30,7 @@
  */
 
 import { randomBytes } from 'crypto'
-import {
-  chmod,
-  lstat,
-  readdir,
-  readFile,
-  rename,
-  rm,
-  stat,
-  writeFile,
-} from 'fs/promises'
+import { chmod, lstat, readdir, rename, rm, stat } from 'fs/promises'
 import { tmpdir } from 'os'
 import { basename, dirname, join } from 'path'
 import { logForDebugging } from '../debug.js'
@@ -184,9 +175,9 @@ export async function atomicWriteToZipCache(
 
   try {
     if (typeof data === 'string') {
-      await writeFile(tmpPath, data, { encoding: 'utf-8' })
+      await Bun.write(tmpPath, data)
     } else {
-      await writeFile(tmpPath, data)
+      await Bun.write(tmpPath, data)
     }
     await rename(tmpPath, targetPath)
   } catch (error) {
@@ -307,7 +298,7 @@ async function collectFilesForZip(
       await collectFilesForZip(baseDir, relPath, files, visited)
     } else if (fileStat.isFile()) {
       try {
-        const content = await readFile(fullPath)
+        const content = Buffer.from(await Bun.file(fullPath).arrayBuffer())
         // os=3 (Unix) + st_mode in high 16 bits of external_attr — this is
         // what parseZipModes reads back on extraction. fileStat is already
         // in hand from the lstat/stat above, so no extra syscall.
@@ -349,7 +340,7 @@ export async function extractZipToDirectory(
 
     const fullPath = join(targetDir, relPath)
     await getFsImplementation().mkdir(dirname(fullPath))
-    await writeFile(fullPath, data)
+    await Bun.write(fullPath, data)
     const mode = modes[relPath]
     if (mode && mode & 0o111) {
       // Swallow EPERM/ENOTSUP (NFS root_squash, some FUSE mounts) — losing +x

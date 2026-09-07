@@ -35,7 +35,6 @@ import {
   renameSync,
   rmSync,
 } from 'node:fs'
-import { readFile, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { logError } from '../../utils/log.js'
@@ -273,7 +272,7 @@ async function readVaultFile(): Promise<VaultFile> {
   if (!existsSync(filePath)) return {}
   let raw: string
   try {
-    raw = await readFile(filePath, 'utf8')
+    raw = await Bun.file(filePath).text()
   } catch (err: unknown) {
     const code = (err as NodeJS.ErrnoException).code
     if (code === 'ENOENT') return {}
@@ -310,7 +309,7 @@ async function writeVaultFile(data: VaultFile): Promise<void> {
     `.local-vault-${randomBytes(8).toString('hex')}.tmp`,
   )
   try {
-    await writeFile(tmpPath, JSON.stringify(data, null, 2), 'utf8')
+    await Bun.write(tmpPath, JSON.stringify(data, null, 2))
     renameSync(tmpPath, filePath)
   } catch (err) {
     // Clean up tmp on failure

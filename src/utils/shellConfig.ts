@@ -3,7 +3,7 @@
  * Used for managing claude aliases and PATH entries
  */
 
-import { open, readFile, stat } from 'fs/promises'
+import { open, stat } from 'fs/promises'
 import { homedir as osHomedir } from 'os'
 import { join } from 'path'
 import { isFsInaccessible } from './errors.js'
@@ -82,7 +82,7 @@ export async function readFileLines(
   filePath: string,
 ): Promise<string[] | null> {
   try {
-    const content = await readFile(filePath, { encoding: 'utf8' })
+    const content = await Bun.file(filePath).text()
     return content.split('\n')
   } catch (e: unknown) {
     if (isFsInaccessible(e)) return null

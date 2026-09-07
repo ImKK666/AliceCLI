@@ -1,5 +1,5 @@
 import { feature } from 'bun:bundle'
-import { chmod, mkdir, readdir, readFile, unlink, writeFile } from 'fs/promises'
+import { chmod, mkdir, readdir, unlink } from 'fs/promises'
 import { join } from 'path'
 import {
   getOriginalCwd,
@@ -74,7 +74,7 @@ export async function registerSession(): Promise<boolean> {
   try {
     await mkdir(dir, { recursive: true, mode: 0o700 })
     await chmod(dir, 0o700)
-    await writeFile(
+    await Bun.write(
       pidFile,
       jsonStringify({
         pid: process.pid,
@@ -116,11 +116,11 @@ export async function registerSession(): Promise<boolean> {
 async function updatePidFile(patch: Record<string, unknown>): Promise<void> {
   const pidFile = join(getSessionsDir(), `${process.pid}.json`)
   try {
-    const data = jsonParse(await readFile(pidFile, 'utf8')) as Record<
+    const data = jsonParse(await Bun.file(pidFile).text()) as Record<
       string,
       unknown
     >
-    await writeFile(pidFile, jsonStringify({ ...data, ...patch }))
+    await Bun.write(pidFile, jsonStringify({ ...data, ...patch }))
   } catch (e) {
     logForDebugging(
       `[concurrentSessions] updatePidFile failed: ${errorMessage(e)}`,

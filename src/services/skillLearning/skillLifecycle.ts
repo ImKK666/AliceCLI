@@ -1,11 +1,4 @@
-import {
-  mkdir,
-  readdir,
-  readFile,
-  rename,
-  rm,
-  writeFile,
-} from 'node:fs/promises'
+import { mkdir, readdir, rename, rm } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { basename, dirname, join } from 'node:path'
 import { clearSkillIndexCache } from '../skillSearch/localSearch.js'
@@ -312,7 +305,7 @@ export async function deleteSkill(
 
   const skillDir = dirname(skill.path)
   const content = existsSync(skill.path)
-    ? await readFile(skill.path, 'utf8')
+    ? await Bun.file(skill.path).text()
     : ''
   const manifestRoot =
     options.manifestRoot ?? join(dirname(skillDir), '.tombstones')
@@ -330,10 +323,9 @@ export async function deleteSkill(
     manifestRoot,
     `${skill.name}-${timestamp(options.now)}.tombstone.json`,
   )
-  await writeFile(
+  await Bun.write(
     tombstonePath,
     `${JSON.stringify({ deletedSkill: skill.name, oldPath: skill.path, content }, null, 2)}\n`,
-    'utf8',
   )
   await rm(skillDir, { recursive: true, force: true })
   clearSkillIndexCache()
@@ -346,11 +338,7 @@ export async function writeReplacementManifest(
 ): Promise<string> {
   await mkdir(directory, { recursive: true })
   const manifestPath = join(directory, 'replacement-manifest.json')
-  await writeFile(
-    manifestPath,
-    `${JSON.stringify(manifest, null, 2)}\n`,
-    'utf8',
-  )
+  await Bun.write(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
   return manifestPath
 }
 
@@ -359,7 +347,7 @@ async function writeMergePatch(
   patch: string,
 ): Promise<string> {
   const patchPath = join(dirname(skill.path), 'learned-skill.patch.md')
-  await writeFile(patchPath, patch, 'utf8')
+  await Bun.write(patchPath, patch)
   clearSkillIndexCache()
   return patchPath
 }
@@ -413,7 +401,7 @@ async function collectSkillFiles(
       continue
     }
     if (entry.isFile() && entry.name === 'SKILL.md') {
-      const content = await readFile(full, 'utf8')
+      const content = await Bun.file(full).text()
       results.push({
         name: parseFrontmatter(content, 'name') ?? basename(dirname(full)),
         description: parseFrontmatter(content, 'description') ?? '',
@@ -437,7 +425,7 @@ async function collectArtifactFiles(
       continue
     }
     if (entry.isFile() && entry.name.endsWith('.md')) {
-      const content = await readFile(full, 'utf8')
+      const content = await Bun.file(full).text()
       results.push({
         name:
           parseFrontmatter(content, 'name') ?? entry.name.replace(/\.md$/, ''),

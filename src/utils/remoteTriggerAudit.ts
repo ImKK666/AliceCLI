@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto'
-import { mkdir, readFile, appendFile } from 'fs/promises'
+import { mkdir, appendFile } from 'fs/promises'
 import { dirname, join } from 'path'
 import { getProjectRoot } from '../bootstrap/state.js'
 
@@ -49,7 +49,7 @@ export async function listRemoteTriggerAuditRecords(
 ): Promise<RemoteTriggerAuditRecord[]> {
   let raw: string
   try {
-    raw = await readFile(resolveRemoteTriggerAuditPath(rootDir), 'utf-8')
+    raw = await Bun.file(resolveRemoteTriggerAuditPath(rootDir)).text()
   } catch {
     return []
   }

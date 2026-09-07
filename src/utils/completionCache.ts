@@ -1,5 +1,5 @@
 import chalk from 'chalk'
-import { mkdir, readFile, writeFile } from 'fs/promises'
+import { mkdir } from 'fs/promises'
 import { homedir } from 'os'
 import { dirname, join } from 'path'
 import { pathToFileURL } from 'url'
@@ -103,7 +103,7 @@ export async function setupShellCompletion(theme: ThemeName): Promise<string> {
   // Check if rc file already sources completions
   let existing = ''
   try {
-    existing = await readFile(shell.rcFile, { encoding: 'utf-8' })
+    existing = await Bun.file(shell.rcFile).text()
     if (
       existing.includes('claude completion') ||
       existing.includes(shell.cacheFile)
@@ -124,7 +124,7 @@ export async function setupShellCompletion(theme: ThemeName): Promise<string> {
 
     const separator = existing && !existing.endsWith('\n') ? '\n' : ''
     const content = `${existing}${separator}\n# Claude Code shell completions\n${shell.completionLine}\n`
-    await writeFile(shell.rcFile, content, { encoding: 'utf-8' })
+    await Bun.write(shell.rcFile, content)
 
     return `${EOL}${color('success', theme)(`Installed ${shell.name} shell completions`)}${EOL}${chalk.dim(`Added to ${formatPathLink(shell.rcFile)}`)}${EOL}${chalk.dim(`Run: source ${shell.rcFile}`)}${EOL}`
   } catch (error) {

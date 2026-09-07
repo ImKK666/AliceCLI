@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from 'fs/promises'
+import { mkdir, writeFile } from 'fs/promises'
 import { dirname, join } from 'path'
 import { coerce } from 'semver'
 import { getIsNonInteractiveSession } from '../bootstrap/state.js'
@@ -108,7 +108,7 @@ export async function fetchAndStoreChangelog(): Promise<void> {
     await mkdir(dirname(cachePath), { recursive: true })
 
     // Write changelog to cache file
-    await writeFile(cachePath, changelogContent, { encoding: 'utf-8' })
+    await Bun.write(cachePath, changelogContent)
     changelogMemoryCache = changelogContent
 
     // Update timestamp in config
@@ -131,7 +131,7 @@ export async function getStoredChangelog(): Promise<string> {
   }
   const cachePath = getChangelogCachePath()
   try {
-    const content = await readFile(cachePath, 'utf-8')
+    const content = await Bun.file(cachePath).text()
     changelogMemoryCache = content
     return content
   } catch {

@@ -1,4 +1,3 @@
-import { writeFile } from 'fs/promises'
 import { join } from 'path'
 import {
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -155,7 +154,7 @@ export async function persistBinaryContent(
   const filepath = join(getToolResultsDir(), `${persistId}.${ext}`)
 
   try {
-    await writeFile(filepath, bytes)
+    await Bun.write(filepath, bytes)
   } catch (error) {
     const err = toError(error)
     logError(err)

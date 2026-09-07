@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto'
-import { copyFile, writeFile } from 'fs/promises'
+import { copyFile } from 'fs/promises'
 import memoize from 'lodash-es/memoize.js'
 import { join, resolve, sep } from 'path'
 import type { AgentId, SessionId } from 'src/types/ids.js'
@@ -220,7 +220,7 @@ export async function copyPlanForResume(
 
     if (recovered) {
       try {
-        await writeFile(planPath, recovered, { encoding: 'utf-8' })
+        await Bun.write(planPath, recovered)
         return true
       } catch (writeError) {
         logError(writeError)

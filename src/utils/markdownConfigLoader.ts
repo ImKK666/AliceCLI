@@ -1,6 +1,6 @@
 import { feature } from 'bun:bundle'
 import { statSync } from 'fs'
-import { lstat, readdir, readFile, realpath, stat } from 'fs/promises'
+import { lstat, readdir, realpath, stat } from 'fs/promises'
 import memoize from 'lodash-es/memoize.js'
 import { homedir } from 'os'
 import { dirname, join, resolve, sep } from 'path'
@@ -577,7 +577,7 @@ async function loadMarkdownFiles(dir: string): Promise<
   const results = await Promise.all(
     files.map(async filePath => {
       try {
-        const rawContent = await readFile(filePath, { encoding: 'utf-8' })
+        const rawContent = await Bun.file(filePath).text()
         const { frontmatter, content } = parseFrontmatter(rawContent, filePath)
 
         return {

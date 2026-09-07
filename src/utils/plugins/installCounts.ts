@@ -9,7 +9,7 @@
  */
 
 import { randomBytes } from 'crypto'
-import { readFile, rename, unlink, writeFile } from 'fs/promises'
+import { rename, unlink, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { logForDebugging } from '../debug.js'
 import { errorMessage, getErrnoCode } from '../errors.js'
@@ -63,7 +63,7 @@ async function loadInstallCountsCache(): Promise<InstallCountsCache | null> {
   const cachePath = getInstallCountsCachePath()
 
   try {
-    const content = await readFile(cachePath, { encoding: 'utf-8' })
+    const content = await Bun.file(cachePath).text()
     const parsed = jsonParse(content) as unknown
 
     // Validate basic structure

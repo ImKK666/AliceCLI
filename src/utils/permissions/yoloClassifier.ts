@@ -1,7 +1,7 @@
 import { feature } from 'bun:bundle'
 import type Anthropic from '@anthropic-ai/sdk'
 import type { BetaToolUnion } from '@anthropic-ai/sdk/resources/beta/messages.js'
-import { mkdir, writeFile } from 'fs/promises'
+import { mkdir } from 'fs/promises'
 import { dirname, join } from 'path'
 import { z } from 'zod/v4'
 import {
@@ -163,15 +163,13 @@ async function maybeDumpAutoMode(
   const base = suffix ? `${timestamp}.${suffix}` : `${timestamp}`
   try {
     await mkdir(getAutoModeDumpDir(), { recursive: true })
-    await writeFile(
+    await Bun.write(
       join(getAutoModeDumpDir(), `${base}.req.json`),
       jsonStringify(request, null, 2),
-      'utf-8',
     )
-    await writeFile(
+    await Bun.write(
       join(getAutoModeDumpDir(), `${base}.res.json`),
       jsonStringify(response, null, 2),
-      'utf-8',
     )
     logForDebugging(
       `Dumped auto mode req/res to ${getAutoModeDumpDir()}/${base}.{req,res}.json`,
@@ -243,7 +241,7 @@ async function dumpErrorPrompts(
       `=== ACTION BEING CLASSIFIED ===\n${contextInfo.action}\n\n` +
       `=== SYSTEM PROMPT ===\n${systemPrompt}\n\n` +
       `=== USER PROMPT (transcript) ===\n${userPrompt}\n`
-    await writeFile(path, content, 'utf-8')
+    await Bun.write(path, content)
     logForDebugging(`Dumped auto mode classifier error prompts to ${path}`)
     return path
   } catch {

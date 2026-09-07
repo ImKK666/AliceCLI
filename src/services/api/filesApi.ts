@@ -242,7 +242,7 @@ export async function downloadAndSaveFile(
     await fs.mkdir(parentDir, { recursive: true })
 
     // Write the file
-    await fs.writeFile(fullPath, content)
+    await Bun.write(fullPath, content)
 
     logDebug(`Saved file ${fileId} to ${fullPath} (${content.length} bytes)`)
 
@@ -396,7 +396,7 @@ export async function uploadFile(
   // Read file content first (outside retry loop since it's not a network operation)
   let content: Buffer
   try {
-    content = await fs.readFile(filePath)
+    content = Buffer.from(await Bun.file(filePath).arrayBuffer())
   } catch (error) {
     logEvent('tengu_file_upload_failed', {
       error_type:

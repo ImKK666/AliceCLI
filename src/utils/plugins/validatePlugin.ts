@@ -1,5 +1,5 @@
 import type { Dirent, Stats } from 'fs'
-import { readdir, readFile, stat } from 'fs/promises'
+import { readdir, stat } from 'fs/promises'
 import * as path from 'path'
 import { z } from 'zod/v4'
 import { errorMessage, getErrnoCode, isENOENT } from '../errors.js'
@@ -136,7 +136,7 @@ export async function validatePluginManifest(
   // Read file content — handle ENOENT / EISDIR / permission errors directly
   let content: string
   try {
-    content = await readFile(absolutePath, { encoding: 'utf-8' })
+    content = await Bun.file(absolutePath).text()
   } catch (error: unknown) {
     const code = getErrnoCode(error)
     let message: string
@@ -317,7 +317,7 @@ export async function validateMarketplaceManifest(
   // Read file content — handle ENOENT / EISDIR / permission errors directly
   let content: string
   try {
-    content = await readFile(absolutePath, { encoding: 'utf-8' })
+    content = await Bun.file(absolutePath).text()
   } catch (error: unknown) {
     const code = getErrnoCode(error)
     let message: string
@@ -466,7 +466,7 @@ export async function validateMarketplaceManifest(
         )
         let manifestVersion: string | undefined
         try {
-          const raw = await readFile(pluginJsonPath, { encoding: 'utf-8' })
+          const raw = await Bun.file(pluginJsonPath).text()
           const parsed = jsonParse(raw) as { version?: unknown }
           if (typeof parsed.version === 'string') {
             manifestVersion = parsed.version
@@ -646,7 +646,7 @@ function validateComponentFile(
 async function validateHooksJson(filePath: string): Promise<ValidationResult> {
   let content: string
   try {
-    content = await readFile(filePath, { encoding: 'utf-8' })
+    content = await Bun.file(filePath).text()
   } catch (e: unknown) {
     const code = getErrnoCode(e)
     // ENOENT is fine — hooks are optional
@@ -776,7 +776,7 @@ export async function validatePluginContents(
     for (const filePath of files) {
       let content: string
       try {
-        content = await readFile(filePath, { encoding: 'utf-8' })
+        content = await Bun.file(filePath).text()
       } catch (e: unknown) {
         // ENOENT is expected for speculative skill paths (subdirs without SKILL.md)
         if (isENOENT(e)) continue
@@ -870,7 +870,7 @@ export async function validateManifest(
     case 'unknown': {
       // Try to parse and guess based on content
       try {
-        const content = await readFile(absolutePath, { encoding: 'utf-8' })
+        const content = await Bun.file(absolutePath).text()
         const parsed = jsonParse(content) as Record<string, unknown>
 
         // Heuristic: if it has a "plugins" array, it's probably a marketplace

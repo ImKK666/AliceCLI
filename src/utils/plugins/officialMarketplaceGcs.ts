@@ -8,7 +8,7 @@
  * when there's a new SHA. Callers decide fallback behavior on failure.
  */
 
-import { chmod, mkdir, readFile, rename, rm, writeFile } from 'fs/promises'
+import { chmod, mkdir, rename, rm } from 'fs/promises'
 import { dirname, join, resolve, sep } from 'path'
 import { waitForScrollIdle } from '../../bootstrap/state.js'
 import type { AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS } from '../../services/analytics/index.js'
@@ -92,10 +92,12 @@ export async function fetchOfficialMarketplaceFromGcs(
     // 2. Sentinel check — `.gcs-sha` at the install root holds the last
     //    extracted SHA. Matching means we already have this content.
     const sentinelPath = join(installLocation, '.gcs-sha')
-    const currentSha = await readFile(sentinelPath, 'utf8').then(
-      s => s.trim(),
-      () => null, // ENOENT — first fetch, proceed to download
-    )
+    const currentSha = await Bun.file(sentinelPath)
+      .text()
+      .then(
+        s => s.trim(),
+        () => null, // ENOENT — first fetch, proceed to download
+      )
     if (currentSha === sha) {
       outcome = 'noop'
       return sha
@@ -126,7 +128,7 @@ export async function fetchOfficialMarketplaceFromGcs(
       if (!rel || rel.endsWith('/')) continue // prefix dir entry or subdir entry
       const dest = join(staging, rel)
       await mkdir(dirname(dest), { recursive: true })
-      await writeFile(dest, data)
+      await Bun.write(dest, data)
       const mode = modes[arcPath]
       if (mode && mode & 0o111) {
         // Only chmod when an exec bit is set — skip plain files to save syscalls.
@@ -135,7 +137,7 @@ export async function fetchOfficialMarketplaceFromGcs(
         await chmod(dest, mode & 0o777).catch(() => {})
       }
     }
-    await writeFile(join(staging, '.gcs-sha'), sha)
+    await Bun.write(join(staging, '.gcs-sha'), sha)
 
     // Atomic swap: rm old, rename staging. Brief window where installLocation
     // doesn't exist — acceptable for a background refresh (caller retries next

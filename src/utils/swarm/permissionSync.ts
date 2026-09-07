@@ -18,7 +18,7 @@
  * 6. Worker polls mailbox for responses and continues execution
  */
 
-import { mkdir, readdir, readFile, unlink, writeFile } from 'fs/promises'
+import { mkdir, readdir, unlink } from 'fs/promises'
 import { join } from 'path'
 import { z } from 'zod/v4'
 import { logForDebugging } from '../debug.js'
@@ -222,14 +222,14 @@ export async function writePermissionRequest(
 
   // Create a directory-level lock file for atomic writes
   const lockFilePath = join(lockDir, '.lock')
-  await writeFile(lockFilePath, '', 'utf-8')
+  await Bun.write(lockFilePath, '')
 
   let release: (() => Promise<void>) | undefined
   try {
     release = await lockfile.lock(lockFilePath)
 
     // Write the request file
-    await writeFile(pendingPath, jsonStringify(request, null, 2), 'utf-8')
+    await Bun.write(pendingPath, jsonStringify(request, null, 2))
 
     logForDebugging(
       `[PermissionSync] Wrote pending request ${request.id} from ${request.workerName} for ${request.toolName}`,
@@ -283,7 +283,7 @@ export async function readPendingPermissions(
     jsonFiles.map(async file => {
       const filePath = join(pendingDir, file)
       try {
-        const content = await readFile(filePath, 'utf-8')
+        const content = await Bun.file(filePath).text()
         const parsed = SwarmPermissionRequestSchema().safeParse(
           jsonParse(content),
         )
@@ -329,7 +329,7 @@ export async function readResolvedPermission(
   const resolvedPath = getResolvedRequestPath(team, requestId)
 
   try {
-    const content = await readFile(resolvedPath, 'utf-8')
+    const content = await Bun.file(resolvedPath).text()
     const parsed = SwarmPermissionRequestSchema().safeParse(jsonParse(content))
     if (parsed.success) {
       return parsed.data
@@ -374,7 +374,7 @@ export async function resolvePermission(
   const resolvedPath = getResolvedRequestPath(team, requestId)
   const lockFilePath = join(getPendingDir(team), '.lock')
 
-  await writeFile(lockFilePath, '', 'utf-8')
+  await Bun.write(lockFilePath, '')
 
   let release: (() => Promise<void>) | undefined
   try {
@@ -383,7 +383,7 @@ export async function resolvePermission(
     // Read the pending request
     let content: string
     try {
-      content = await readFile(pendingPath, 'utf-8')
+      content = await Bun.file(pendingPath).text()
     } catch (e: unknown) {
       const code = getErrnoCode(e)
       if (code === 'ENOENT') {
@@ -417,11 +417,7 @@ export async function resolvePermission(
     }
 
     // Write to resolved directory
-    await writeFile(
-      resolvedPath,
-      jsonStringify(resolvedRequest, null, 2),
-      'utf-8',
-    )
+    await Bun.write(resolvedPath, jsonStringify(resolvedRequest, null, 2))
 
     // Remove from pending directory
     await unlink(pendingPath)
@@ -480,7 +476,7 @@ export async function cleanupOldResolutions(
     jsonFiles.map(async file => {
       const filePath = join(resolvedDir, file)
       try {
-        const content = await readFile(filePath, 'utf-8')
+        const content = await Bun.file(filePath).text()
         const request = jsonParse(content) as SwarmPermissionRequest
 
         // Check if the resolution is old enough to clean up

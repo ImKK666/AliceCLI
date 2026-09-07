@@ -5,7 +5,6 @@ import {
   mkdir,
   mkdtemp,
   readdir,
-  readFile,
   rm,
   unlink,
   writeFile,
@@ -916,7 +915,7 @@ async function loadCachedFacets(
 ): Promise<SessionFacets | null> {
   const facetPath = join(getFacetsDir(), `${sessionId}.json`)
   try {
-    const content = await readFile(facetPath, { encoding: 'utf-8' })
+    const content = await Bun.file(facetPath).text()
     const parsed: unknown = jsonParse(content)
     if (!isValidSessionFacets(parsed)) {
       // Delete corrupted cache file so it gets re-extracted next run
@@ -951,7 +950,7 @@ async function loadCachedSessionMeta(
 ): Promise<SessionMeta | null> {
   const metaPath = join(getSessionMetaDir(), `${sessionId}.json`)
   try {
-    const content = await readFile(metaPath, { encoding: 'utf-8' })
+    const content = await Bun.file(metaPath).text()
     return jsonParse(content)
   } catch {
     return null

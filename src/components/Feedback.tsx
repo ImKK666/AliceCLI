@@ -1,4 +1,4 @@
-import { readFile, stat } from 'fs/promises';
+import { stat } from 'fs/promises';
 import * as React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { getLastAPIRequest } from 'src/bootstrap/state.js';
@@ -157,7 +157,7 @@ async function loadRawTranscriptJsonl(): Promise<string | null> {
       logForDebugging(`Skipping raw transcript read: file too large (${size} bytes)`, { level: 'warn' });
       return null;
     }
-    return await readFile(transcriptPath, 'utf-8');
+    return await Bun.file(transcriptPath).text();
   } catch {
     return null;
   }

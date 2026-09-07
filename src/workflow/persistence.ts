@@ -1,11 +1,4 @@
-import {
-  mkdir,
-  readFile,
-  readdir,
-  rename,
-  rm,
-  writeFile,
-} from 'node:fs/promises'
+import { mkdir, readdir, rename, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { getProjectRoot } from '../bootstrap/state.js'
 import { logForDebugging } from '../utils/debug.js'
@@ -53,7 +46,7 @@ export async function writeRunState(
   const payload: StateFile = { schemaVersion: SCHEMA_VERSION, run }
   try {
     await mkdir(dir, { recursive: true })
-    await writeFile(tmp, JSON.stringify(payload), 'utf-8')
+    await Bun.write(tmp, JSON.stringify(payload))
     await rename(tmp, target)
   } catch (e) {
     logForDebugging(
@@ -74,7 +67,7 @@ export async function readRunState(
   const target = join(runsDir, runId, STATE_FILE)
   let raw: string
   try {
-    raw = await readFile(target, 'utf-8')
+    raw = await Bun.file(target).text()
   } catch {
     return null
   }

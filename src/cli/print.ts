@@ -28,7 +28,7 @@ import {
   type SdkMcpState,
   type McpSetServersResult,
 } from './print/mcpManagement.js'
-import { readFile, stat } from 'fs/promises'
+import { stat } from 'fs/promises'
 import { dirname } from 'path'
 import {
   downloadUserSettings,
@@ -3268,7 +3268,7 @@ function runHeadlessStreaming(
             // Math.floor matches FileReadTool and getFileModificationTime.
             const diskMtime = Math.floor((await stat(normalizedPath)).mtimeMs)
             if (diskMtime <= msg.request.mtime) {
-              const raw = await readFile(normalizedPath, 'utf-8')
+              const raw = await Bun.file(normalizedPath).text()
               // Strip BOM + normalize CRLF→LF to match readFileInRange and
               // readFileSyncWithMetadata. FileEditTool's content-compare
               // fallback (for Windows mtime bumps without content change)

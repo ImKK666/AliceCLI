@@ -1,4 +1,4 @@
-import { mkdir, unlink, writeFile } from 'fs/promises'
+import { mkdir, unlink } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { type AnsiToPngOptions, ansiToPng } from './ansiToPng.js'
@@ -23,7 +23,7 @@ export async function copyAnsiToClipboard(
 
     const pngPath = join(tempDir, `screenshot-${Date.now()}.png`)
     const pngBuffer = ansiToPng(ansiText, options)
-    await writeFile(pngPath, pngBuffer)
+    await Bun.write(pngPath, pngBuffer)
 
     const result = await copyPngToClipboard(pngPath)
 

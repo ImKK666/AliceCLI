@@ -1,4 +1,4 @@
-import { readdir, readFile, stat } from 'fs/promises'
+import { readdir, stat } from 'fs/promises'
 import { homedir } from 'os'
 import { join } from 'path'
 import {
@@ -108,7 +108,7 @@ export async function readClaudeDesktopMcpServers(): Promise<
 
     let configContent: string
     try {
-      configContent = await readFile(configPath, { encoding: 'utf8' })
+      configContent = await Bun.file(configPath).text()
     } catch (e: unknown) {
       const code = getErrnoCode(e)
       if (code === 'ENOENT') {

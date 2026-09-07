@@ -1,4 +1,4 @@
-import { appendFile, mkdir, readFile, writeFile } from 'fs/promises'
+import { appendFile, mkdir } from 'fs/promises'
 import { homedir } from 'os'
 import { dirname, join } from 'path'
 import { getCwd } from '../cwd.js'
@@ -79,7 +79,7 @@ export async function addFileGlobRuleToGitignore(
 
     // Add the entry to the global gitignore
     try {
-      const content = await readFile(globalGitignorePath, { encoding: 'utf-8' })
+      const content = await Bun.file(globalGitignorePath).text()
       if (content.includes(gitignoreEntry)) {
         return // Pattern already exists, don't add again
       }
@@ -88,7 +88,7 @@ export async function addFileGlobRuleToGitignore(
       const code = getErrnoCode(e)
       if (code === 'ENOENT') {
         // Create global gitignore with entry
-        await writeFile(globalGitignorePath, `${gitignoreEntry}\n`, 'utf-8')
+        await Bun.write(globalGitignorePath, `${gitignoreEntry}\n`)
       } else {
         throw e
       }

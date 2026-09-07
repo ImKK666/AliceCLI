@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto'
-import { mkdir, writeFile } from 'fs/promises'
+import { mkdir } from 'fs/promises'
 import { dirname, join, resolve } from 'path'
 import { getProjectRoot, getSessionId } from '../bootstrap/state.js'
 import type { MessageOrigin } from '../types/message.js'
@@ -219,7 +219,7 @@ async function writeAutonomyRuns(
 ): Promise<void> {
   const path = resolveAutonomyRunsPath(rootDir)
   await mkdir(dirname(path), { recursive: true })
-  await writeFile(
+  await Bun.write(
     path,
     `${JSON.stringify(
       {
@@ -228,7 +228,6 @@ async function writeAutonomyRuns(
       null,
       2,
     )}\n`,
-    'utf-8',
   )
 }
 

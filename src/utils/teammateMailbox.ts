@@ -8,7 +8,7 @@
  */
 
 import { randomBytes } from 'crypto'
-import { mkdir, readFile, rename, stat, unlink, writeFile } from 'fs/promises'
+import { mkdir, rename, stat, unlink, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { z } from 'zod/v4'
 import { TEAMMATE_MESSAGE_TAG } from '../constants/xml.js'
@@ -138,7 +138,7 @@ async function readMailboxFile(inboxPath: string): Promise<string> {
       `Mailbox file exceeds ${MAX_MAILBOX_FILE_BYTES} bytes: ${inboxPath}`,
     )
   }
-  return readFile(inboxPath, 'utf-8')
+  return Bun.file(inboxPath).text()
 }
 
 async function readMailboxForMutation(
@@ -161,7 +161,7 @@ async function writeMailboxAtomic(
   }
   const tempPath = `${inboxPath}.${process.pid}.${randomBytes(8).toString('hex')}.tmp`
   try {
-    await writeFile(tempPath, content, 'utf-8')
+    await Bun.write(tempPath, content)
     await rename(tempPath, inboxPath)
   } catch (error) {
     await unlink(tempPath).catch(() => undefined)

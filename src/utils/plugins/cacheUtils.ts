@@ -1,4 +1,4 @@
-import { readdir, rm, stat, unlink, writeFile } from 'fs/promises'
+import { readdir, rm, stat, unlink } from 'fs/promises'
 import { join } from 'path'
 import { clearCommandsCache } from '../../commands.js'
 import { clearAllOutputStylesCache } from '../../constants/outputStyles.js'
@@ -57,7 +57,7 @@ export async function markPluginVersionOrphaned(
   versionPath: string,
 ): Promise<void> {
   try {
-    await writeFile(getOrphanedAtPath(versionPath), `${Date.now()}`, 'utf-8')
+    await Bun.write(getOrphanedAtPath(versionPath), `${Date.now()}`)
   } catch (error) {
     logForDebugging(`Failed to write .orphaned_at: ${versionPath}: ${error}`)
   }

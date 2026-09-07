@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { join } from 'path';
-import { stat, writeFile } from 'fs/promises';
+import { stat } from 'fs/promises';
 import figures from 'figures';
 import { Box, Text, useInput, wrapText } from '@anthropic/ink';
 import { useTerminalSize } from '../../hooks/useTerminalSize.js';
@@ -152,7 +152,7 @@ export function UltraplanChoiceDialog({
           break;
         case 'cancel': {
           const savePath = join(getCwd(), `${getDateStamp()}-ultraplan.md`);
-          await writeFile(savePath, plan, { encoding: 'utf-8' });
+          await Bun.write(savePath, plan);
           setMessages(prev => [
             ...prev,
             createSystemMessage(`Ultraplan rejected · Plan saved to ${toRelativePath(savePath)}`, 'suggestion'),

@@ -10,7 +10,6 @@
  * for extracted plugins used during a single session.
  */
 
-import { readFile } from 'fs/promises'
 import { join } from 'path'
 import { logForDebugging } from '../debug.js'
 import { jsonParse, jsonStringify } from '../slowOperations.js'
@@ -37,7 +36,7 @@ import {
  */
 export async function readZipCacheKnownMarketplaces(): Promise<KnownMarketplacesFile> {
   try {
-    const content = await readFile(getZipCacheKnownMarketplacesPath(), 'utf-8')
+    const content = await Bun.file(getZipCacheKnownMarketplacesPath()).text()
     const parsed = KnownMarketplacesFileSchema().safeParse(jsonParse(content))
     if (!parsed.success) {
       logForDebugging(
@@ -79,7 +78,7 @@ export async function readMarketplaceJson(
   const relPath = getMarketplaceJsonRelativePath(marketplaceName)
   const fullPath = join(zipCachePath, relPath)
   try {
-    const content = await readFile(fullPath, 'utf-8')
+    const content = await Bun.file(fullPath).text()
     const parsed = jsonParse(content)
     const result = PluginMarketplaceSchema().safeParse(parsed)
     if (result.success) {
@@ -125,7 +124,7 @@ async function readMarketplaceJsonContent(dir: string): Promise<string | null> {
   ]
   for (const candidate of candidates) {
     try {
-      return await readFile(candidate, 'utf-8')
+      return await Bun.file(candidate).text()
     } catch {
       // ENOENT (doesn't exist) or EISDIR (directory) — try next
     }

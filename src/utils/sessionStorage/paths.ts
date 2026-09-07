@@ -1,5 +1,5 @@
 import type { Dirent } from 'fs'
-import { mkdir, readdir, readFile, stat, unlink, writeFile } from 'fs/promises'
+import { mkdir, readdir, stat, unlink } from 'fs/promises'
 import memoize from 'lodash-es/memoize.js'
 import { basename, dirname, join } from 'path'
 import {
@@ -106,7 +106,7 @@ export async function writeAgentMetadata(
 ): Promise<void> {
   const path = getAgentMetadataPath(agentId)
   await mkdir(dirname(path), { recursive: true })
-  await writeFile(path, JSON.stringify(metadata))
+  await Bun.write(path, JSON.stringify(metadata))
 }
 
 export async function readAgentMetadata(
@@ -114,7 +114,7 @@ export async function readAgentMetadata(
 ): Promise<AgentMetadata | null> {
   const path = getAgentMetadataPath(agentId)
   try {
-    const raw = await readFile(path, 'utf-8')
+    const raw = await Bun.file(path).text()
     return JSON.parse(raw) as AgentMetadata
   } catch (e) {
     if (isFsInaccessible(e)) return null
@@ -160,7 +160,7 @@ export async function writeRemoteAgentMetadata(
 ): Promise<void> {
   const path = getRemoteAgentMetadataPath(taskId)
   await mkdir(dirname(path), { recursive: true })
-  await writeFile(path, JSON.stringify(metadata))
+  await Bun.write(path, JSON.stringify(metadata))
 }
 
 export async function readRemoteAgentMetadata(
@@ -168,7 +168,7 @@ export async function readRemoteAgentMetadata(
 ): Promise<RemoteAgentMetadata | null> {
   const path = getRemoteAgentMetadataPath(taskId)
   try {
-    const raw = await readFile(path, 'utf-8')
+    const raw = await Bun.file(path).text()
     return JSON.parse(raw) as RemoteAgentMetadata
   } catch (e) {
     if (isFsInaccessible(e)) return null
@@ -205,7 +205,7 @@ export async function listRemoteAgentMetadata(): Promise<
   for (const entry of entries) {
     if (!entry.isFile() || !entry.name.endsWith('.meta.json')) continue
     try {
-      const raw = await readFile(join(dir, entry.name), 'utf-8')
+      const raw = await Bun.file(join(dir, entry.name)).text()
       results.push(JSON.parse(raw) as RemoteAgentMetadata)
     } catch (e) {
       // Skip unreadable or corrupt files — a partial write from a crashed

@@ -1,5 +1,5 @@
 import { randomUUID, type UUID } from 'crypto'
-import { mkdir, readFile, writeFile } from 'fs/promises'
+import { mkdir, writeFile } from 'fs/promises'
 import { getOriginalCwd, getSessionId } from '../../bootstrap/state.js'
 import type { LocalJSXCommandContext } from '../../commands.js'
 import { logEvent } from '../../services/analytics/index.js'
@@ -79,7 +79,9 @@ async function createFork(customTitle?: string): Promise<{
   // Read current transcript file
   let transcriptContent: Buffer
   try {
-    transcriptContent = await readFile(currentTranscriptPath)
+    transcriptContent = Buffer.from(
+      await Bun.file(currentTranscriptPath).arrayBuffer(),
+    )
   } catch {
     throw new Error('No conversation to branch')
   }

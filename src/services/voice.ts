@@ -5,7 +5,6 @@
 // on Linux if the native module is unavailable.
 
 // child_process replaced by Bun.spawn / Bun.spawnSync
-import { readFile } from 'fs/promises'
 import { logForDebugging } from '../utils/debug.js'
 import { isEnvTruthy, isRunningOnHomespace } from '../utils/envUtils.js'
 import { logError } from '../utils/log.js'
@@ -128,13 +127,15 @@ export function _resetArecordProbeForTesting(): void {
 let linuxAlsaCardsMemo: Promise<boolean> | null = null
 
 function linuxHasAlsaCards(): Promise<boolean> {
-  linuxAlsaCardsMemo ??= readFile('/proc/asound/cards', 'utf8').then(
-    cards => {
-      const c = cards.trim()
-      return c !== '' && !c.includes('no soundcards')
-    },
-    () => false,
-  )
+  linuxAlsaCardsMemo ??= Bun.file('/proc/asound/cards')
+    .text()
+    .then(
+      cards => {
+        const c = cards.trim()
+        return c !== '' && !c.includes('no soundcards')
+      },
+      () => false,
+    )
   return linuxAlsaCardsMemo
 }
 

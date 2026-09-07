@@ -1,7 +1,7 @@
 import type { BetaToolUnion } from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
 import type { TextBlockParam } from '@anthropic-ai/sdk/resources/index.mjs'
 import { createPatch } from 'diff'
-import { mkdir, writeFile } from 'fs/promises'
+import { mkdir } from 'fs/promises'
 import { join } from 'path'
 import type { AgentId } from 'src/types/ids.js'
 import type { Message } from 'src/types/message.js'
@@ -718,7 +718,7 @@ async function writeCacheBreakDiff(
       'before',
       'after',
     )
-    await writeFile(diffPath, patch)
+    await Bun.write(diffPath, patch)
     return diffPath
   } catch {
     return undefined

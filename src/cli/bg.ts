@@ -1,4 +1,4 @@
-import { readdir, readFile, unlink } from 'fs/promises'
+import { readdir, unlink } from 'fs/promises'
 import { join } from 'path'
 import { randomUUID } from 'crypto'
 import { getClaudeConfigHomeDir } from '../utils/envUtils.js'
@@ -33,7 +33,7 @@ export async function listLiveSessions(): Promise<SessionEntry[]> {
     }
 
     try {
-      const raw = await readFile(join(dir, file), 'utf-8')
+      const raw = await Bun.file(join(dir, file)).text()
       const entry = jsonParse(raw) as SessionEntry
       sessions.push(entry)
     } catch {
@@ -145,7 +145,7 @@ export async function logsHandler(target: string | undefined): Promise<void> {
   }
 
   try {
-    const content = await readFile(session.logPath, 'utf-8')
+    const content = await Bun.file(session.logPath).text()
     process.stdout.write(content)
   } catch (e) {
     console.error(`Failed to read log file: ${session.logPath}`)

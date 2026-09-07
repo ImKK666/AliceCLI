@@ -921,7 +921,7 @@ export function ManagePlugins({
           const marketplaceDir = path.join(selectedPlugin!.plugin.path, '..');
           const marketplaceJsonPath = path.join(marketplaceDir, '.claude-plugin', 'marketplace.json');
 
-          const content = await fs.readFile(marketplaceJsonPath, 'utf-8');
+          const content = await Bun.file(marketplaceJsonPath).text();
           const marketplace = jsonParse(content);
 
           const entry = marketplace.plugins?.find((p: { name: string }) => p.name === selectedPlugin!.plugin.name);

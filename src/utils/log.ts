@@ -1,6 +1,6 @@
 import { feature } from 'bun:bundle'
 import type { BetaMessageStreamParams } from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
-import { readdir, readFile, stat } from 'fs/promises'
+import { readdir, stat } from 'fs/promises'
 import memoize from 'lodash-es/memoize.js'
 import { join } from 'path'
 import type { QuerySource } from 'src/constants/querySource.js'
@@ -238,7 +238,7 @@ async function loadLogList(path: string): Promise<LogOption[]> {
   const logData = await Promise.all(
     files.map(async (file, i) => {
       const fullPath = join(path, String(file.name))
-      const content = await readFile(fullPath, { encoding: 'utf8' })
+      const content = await Bun.file(fullPath).text()
       const messages = jsonParse(content) as SerializedMessage[]
       const firstMessage = messages[0]
       const lastMessage = messages[messages.length - 1]

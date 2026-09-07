@@ -1,5 +1,4 @@
 import { execa } from 'execa';
-import { readFile } from 'fs/promises';
 import { join } from 'path';
 import * as React from 'react';
 import { useCallback, useEffect, useState } from 'react';
@@ -81,7 +80,7 @@ export async function playAnimation(skillDir: string): Promise<{
   // than thrown — the old pathExists-based code never threw, and one caller
   // (handleSelect) uses `void playAnimation().then(...)` without a .catch().
   try {
-    await readFile(dataPath);
+    Buffer.from(await Bun.file(dataPath).arrayBuffer());
   } catch (e: unknown) {
     if (isENOENT(e)) {
       return {
@@ -97,7 +96,7 @@ export async function playAnimation(skillDir: string): Promise<{
   }
 
   try {
-    await readFile(playerPath);
+    Buffer.from(await Bun.file(playerPath).arrayBuffer());
   } catch (e: unknown) {
     if (isENOENT(e)) {
       return {

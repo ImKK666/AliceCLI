@@ -24,7 +24,7 @@
 
 import { feature } from 'bun:bundle'
 import { mkdirSync, writeFileSync } from 'fs'
-import { mkdir, writeFile } from 'fs/promises'
+import { mkdir } from 'fs/promises'
 import { dirname, join } from 'path'
 import { getSessionId } from '../../bootstrap/state.js'
 import { registerCleanup } from '../cleanupRegistry.js'
@@ -992,7 +992,7 @@ async function periodicWrite(): Promise<void> {
 
   try {
     await mkdir(dirname(tracePath), { recursive: true })
-    await writeFile(tracePath, buildTraceDocument())
+    await Bun.write(tracePath, buildTraceDocument())
     logForDebugging(
       `[Perfetto] Periodic write: ${events.length} events to ${tracePath}`,
     )
@@ -1025,7 +1025,7 @@ async function writePerfettoTrace(): Promise<void> {
 
   try {
     await mkdir(dirname(tracePath), { recursive: true })
-    await writeFile(tracePath, buildTraceDocument())
+    await Bun.write(tracePath, buildTraceDocument())
     traceWritten = true
     logForDebugging(`[Perfetto] Trace finalized at: ${tracePath}`)
   } catch (error) {

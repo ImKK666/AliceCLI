@@ -13,7 +13,7 @@
  */
 
 import { randomBytes } from 'crypto'
-import { readFile, rename, unlink, writeFile } from 'fs/promises'
+import { rename, unlink, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { logForDebugging } from '../debug.js'
 import { getFsImplementation } from '../fsOperations.js'
@@ -74,9 +74,7 @@ function parsePluginsData(content: string): Record<string, FlaggedPlugin> {
 
 async function readFromDisk(): Promise<Record<string, FlaggedPlugin>> {
   try {
-    const content = await readFile(getFlaggedPluginsPath(), {
-      encoding: 'utf-8',
-    })
+    const content = await Bun.file(getFlaggedPluginsPath()).text()
     return parsePluginsData(content)
   } catch {
     return {}

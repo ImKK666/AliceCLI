@@ -4,7 +4,7 @@
 // like memory does, and so it's writable even when the memory path comes
 // from an env/settings override whose parent may not be.
 
-import { mkdir, readFile, stat, unlink, utimes, writeFile } from 'fs/promises'
+import { mkdir, stat, unlink, utimes } from 'fs/promises'
 import { join } from 'path'
 import { getOriginalCwd } from '../../bootstrap/state.js'
 import { getAutoMemPath } from '../../memdir/paths.js'
@@ -49,7 +49,7 @@ export async function tryAcquireConsolidationLock(): Promise<number | null> {
   let mtimeMs: number | undefined
   let holderPid: number | undefined
   try {
-    const [s, raw] = await Promise.all([stat(path), readFile(path, 'utf8')])
+    const [s, raw] = await Promise.all([stat(path), Bun.file(path).text()])
     mtimeMs = s.mtimeMs
     const parsed = parseInt(raw.trim(), 10)
     holderPid = Number.isFinite(parsed) ? parsed : undefined
@@ -69,12 +69,12 @@ export async function tryAcquireConsolidationLock(): Promise<number | null> {
 
   // Memory dir may not exist yet.
   await mkdir(getAutoMemPath(), { recursive: true })
-  await writeFile(path, String(process.pid))
+  await Bun.write(path, String(process.pid))
 
   // Two reclaimers both write → last wins the PID. Loser bails on re-read.
   let verify: string
   try {
-    verify = await readFile(path, 'utf8')
+    verify = await Bun.file(path).text()
   } catch {
     return null
   }
@@ -97,7 +97,7 @@ export async function rollbackConsolidationLock(
       await unlink(path)
       return
     }
-    await writeFile(path, '')
+    await Bun.write(path, '')
     const t = priorMtime / 1000 // utimes wants seconds
     await utimes(path, t, t)
   } catch (e: unknown) {
@@ -131,7 +131,7 @@ export async function recordConsolidation(): Promise<void> {
   try {
     // Memory dir may not exist yet (manual /dream before any auto-trigger).
     await mkdir(getAutoMemPath(), { recursive: true })
-    await writeFile(lockPath(), String(process.pid))
+    await Bun.write(lockPath(), String(process.pid))
   } catch (e: unknown) {
     logForDebugging(
       `[autoDream] recordConsolidation write failed: ${(e as Error).message}`,

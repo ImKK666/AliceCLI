@@ -6,7 +6,7 @@ import type {
 } from '@opentelemetry/sdk-logs'
 import { http, isHttpError } from 'src/utils/http.js'
 import { randomUUID } from 'crypto'
-import { appendFile, mkdir, readdir, unlink, writeFile } from 'fs/promises'
+import { appendFile, mkdir, readdir, unlink } from 'fs/promises'
 import * as path from 'path'
 import type { CoreUserData } from 'src/utils/user.js'
 import {
@@ -184,7 +184,7 @@ export class FirstPartyEventLoggingExporter implements LogRecordExporter {
         await mkdir(getStorageDir(), { recursive: true })
         // Write as JSON lines (one event per line)
         const content = events.map(e => jsonStringify(e)).join('\n') + '\n'
-        await writeFile(filePath, content, 'utf8')
+        await Bun.write(filePath, content)
       }
     } catch (error) {
       logError(error)

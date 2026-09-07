@@ -9,7 +9,6 @@ import {
   type WorkflowInput,
   type WorkflowPorts,
 } from '@claude-code-best/workflow-engine'
-import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { getProjectRoot } from '../bootstrap/state.js'
 import { logForDebugging } from '../utils/debug.js'
@@ -156,7 +155,7 @@ export function makeService(
     }
     if (input.scriptPath) {
       return {
-        script: await readFile(input.scriptPath, 'utf-8'),
+        script: await Bun.file(input.scriptPath).text(),
         workflowFile: input.scriptPath,
         workflowName,
       }

@@ -1,4 +1,4 @@
-import { open, readFile, stat } from 'fs/promises'
+import { open, stat } from 'fs/promises'
 import {
   applyEdits,
   modify,
@@ -201,7 +201,7 @@ const MAX_JSONL_READ_BYTES = 100 * 1024 * 1024
 export async function readJSONLFile<T>(filePath: string): Promise<T[]> {
   const { size } = await stat(filePath)
   if (size <= MAX_JSONL_READ_BYTES) {
-    return parseJSONL<T>(await readFile(filePath))
+    return parseJSONL<T>(Buffer.from(await Bun.file(filePath).arrayBuffer()))
   }
   await using fd = await open(filePath, 'r')
   const buf = Buffer.allocUnsafe(MAX_JSONL_READ_BYTES)

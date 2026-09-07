@@ -1,5 +1,5 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'fs'
-import { mkdir, readFile, rm, writeFile } from 'fs/promises'
+import { mkdir, rm } from 'fs/promises'
 import { join } from 'path'
 import { z } from 'zod/v4'
 import { getSessionCreatedTeams } from '../../bootstrap/state.js'
@@ -148,7 +148,7 @@ export async function readTeamFileAsync(
   teamName: string,
 ): Promise<TeamFile | null> {
   try {
-    const content = await readFile(getTeamFilePath(teamName), 'utf-8')
+    const content = await Bun.file(getTeamFilePath(teamName)).text()
     return jsonParse(content) as TeamFile
   } catch (e) {
     if (getErrnoCode(e) === 'ENOENT') return null
@@ -178,7 +178,7 @@ export async function writeTeamFileAsync(
 ): Promise<void> {
   const teamDir = getTeamDir(teamName)
   await mkdir(teamDir, { recursive: true })
-  await writeFile(getTeamFilePath(teamName), jsonStringify(teamFile, null, 2))
+  await Bun.write(getTeamFilePath(teamName), jsonStringify(teamFile, null, 2))
 }
 
 /**
@@ -495,7 +495,7 @@ async function destroyWorktree(worktreePath: string): Promise<void> {
   let mainRepoPath: string | null = null
 
   try {
-    const gitFileContent = (await readFile(gitFilePath, 'utf-8')).trim()
+    const gitFileContent = (await Bun.file(gitFilePath).text()).trim()
     // The .git file contains something like: gitdir: /path/to/repo/.git/worktrees/worktree-name
     const match = gitFileContent.match(/^gitdir:\s*(.+)$/)
     if (match && match[1]) {

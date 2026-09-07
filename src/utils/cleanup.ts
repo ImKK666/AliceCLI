@@ -508,7 +508,7 @@ export async function cleanupNpmCacheForAnthropicPackages(): Promise<void> {
       keysToRemove.map(key => cacache.rm.entry(npmCachePath, key)),
     )
 
-    await fs.writeFile(markerPath, new Date().toISOString())
+    await Bun.write(markerPath, new Date().toISOString())
 
     const durationMs = Date.now() - startTime
     if (keysToRemove.length > 0) {
@@ -564,7 +564,7 @@ export async function cleanupOldVersionsThrottled(): Promise<void> {
 
   try {
     await cleanupOldVersions()
-    await fs.writeFile(markerPath, new Date().toISOString())
+    await Bun.write(markerPath, new Date().toISOString())
   } catch (error) {
     logError(error as Error)
   } finally {

@@ -1,7 +1,7 @@
 import { feature } from 'bun:bundle'
 import type { UUID } from 'crypto'
 import type { Dirent } from 'fs'
-import { readdir, readFile, stat, writeFile } from 'fs/promises'
+import { readdir, stat, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { logEvent } from 'src/services/analytics/index.js'
 import {
@@ -1169,7 +1169,7 @@ export async function loadTranscriptFile(
         }
       }
     }
-    buf ??= await readFile(filePath)
+    buf ??= Buffer.from(await Bun.file(filePath).arrayBuffer())
     // For large buffers (which here means readTranscriptForLoad output with
     // attr-snaps already stripped at the fd level — the <5MB readFile path
     // falls through the size gate below), the dominant cost is parsing dead

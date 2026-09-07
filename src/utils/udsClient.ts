@@ -8,7 +8,7 @@
  */
 
 import { createConnection, type Socket } from 'net'
-import { readdir, readFile } from 'fs/promises'
+import { readdir } from 'fs/promises'
 import { join } from 'path'
 import { getClaudeConfigHomeDir } from './envUtils.js'
 import { logForDebugging } from './debug.js'
@@ -90,7 +90,7 @@ export async function listAllLiveSessions(): Promise<PeerSession[]> {
     }
 
     try {
-      const raw = await readFile(join(dir, file), 'utf8')
+      const raw = await Bun.file(join(dir, file)).text()
       const data = jsonParse(raw) as Record<string, unknown>
       results.push({
         pid,

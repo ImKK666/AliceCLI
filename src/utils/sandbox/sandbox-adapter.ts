@@ -21,7 +21,6 @@ import {
   SandboxViolationStore,
 } from '@anthropic-ai/sandbox-runtime'
 import { rmSync, statSync } from 'fs'
-import { readFile } from 'fs/promises'
 import { memoize } from 'lodash-es'
 import { join, resolve, sep } from 'path'
 import {
@@ -422,7 +421,7 @@ function scrubBareGitRepoFiles(): void {
 async function detectWorktreeMainRepoPath(cwd: string): Promise<string | null> {
   const gitPath = join(cwd, '.git')
   try {
-    const gitContent = await readFile(gitPath, { encoding: 'utf8' })
+    const gitContent = await Bun.file(gitPath).text()
     const gitdirMatch = gitContent.match(/^gitdir:\s*(.+)$/m)
     if (!gitdirMatch?.[1]) {
       return null

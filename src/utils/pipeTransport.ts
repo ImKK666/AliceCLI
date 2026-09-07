@@ -13,7 +13,7 @@
  */
 
 import { createServer, createConnection, type Server, type Socket } from 'net'
-import { mkdir, unlink, readdir, writeFile } from 'fs/promises'
+import { mkdir, unlink, readdir } from 'fs/promises'
 import { join } from 'path'
 import { EventEmitter } from 'events'
 import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages.mjs'
@@ -237,7 +237,7 @@ export class PipeServer extends EventEmitter {
         if (process.platform === 'win32') {
           const regFile = join(getPipesDir(), `${this.name}.pipe`)
           const { hostname } = require('os') as typeof import('os')
-          void writeFile(
+          void Bun.write(
             regFile,
             JSON.stringify({
               pid: process.pid,

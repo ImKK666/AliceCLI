@@ -163,7 +163,6 @@ export async function exportHandler(
   source: string,
   outputFile: string,
 ): Promise<void> {
-  const { writeFile, readFile } = await import('fs/promises')
   const logs = await getRecentActivity()
 
   // Try as index first
@@ -178,8 +177,8 @@ export async function exportHandler(
   if (!log) {
     // Try as file path
     try {
-      const content = await readFile(source, 'utf-8')
-      await writeFile(outputFile, content, 'utf-8')
+      const content = await Bun.file(source).text()
+      await Bun.write(outputFile, content)
       console.log(`Exported ${source} → ${outputFile}`)
       return
     } catch {
@@ -189,7 +188,7 @@ export async function exportHandler(
     }
   }
 
-  await writeFile(outputFile, JSON.stringify(log, null, 2), 'utf-8')
+  await Bun.write(outputFile, JSON.stringify(log, null, 2))
   console.log(`Exported session ${log.sessionId} → ${outputFile}`)
 }
 

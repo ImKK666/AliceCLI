@@ -11,7 +11,7 @@
 
 import chokidar, { type FSWatcher } from 'chokidar'
 import { readFileSync } from 'fs'
-import { readFile, stat } from 'fs/promises'
+import { stat } from 'fs/promises'
 import { dirname, join } from 'path'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../services/analytics/growthbook.js'
 import { logEvent } from '../services/analytics/index.js'
@@ -141,7 +141,7 @@ export async function loadKeybindings(): Promise<KeybindingsLoadResult> {
   const userPath = getKeybindingsPath()
 
   try {
-    const content = await readFile(userPath, 'utf-8')
+    const content = await Bun.file(userPath).text()
     const parsed: unknown = jsonParse(content)
 
     // Extract bindings array from object wrapper format: { "bindings": [...] }

@@ -248,7 +248,7 @@ const isComputerUseMCPServer = feature('CHICAGO_MCP')
     ).isComputerUseMCPServer
   : undefined
 
-import { mkdir, readFile, unlink, writeFile } from 'fs/promises'
+import { mkdir, unlink } from 'fs/promises'
 import { dirname, join } from 'path'
 import { getClaudeConfigHomeDir } from '../../utils/envUtils.js'
 /* eslint-enable @typescript-eslint/no-require-imports */
@@ -270,7 +270,8 @@ let authCachePromise: Promise<McpAuthCacheData> | null = null
 
 function getMcpAuthCache(): Promise<McpAuthCacheData> {
   if (!authCachePromise) {
-    authCachePromise = readFile(getMcpAuthCachePath(), 'utf-8')
+    authCachePromise = Bun.file(getMcpAuthCachePath())
+      .text()
       .then(data => jsonParse(data) as McpAuthCacheData)
       .catch(() => ({}))
   }
@@ -297,7 +298,7 @@ function setMcpAuthCacheEntry(serverId: string): void {
       cache[serverId] = { timestamp: Date.now() }
       const cachePath = getMcpAuthCachePath()
       await mkdir(dirname(cachePath), { recursive: true })
-      await writeFile(cachePath, jsonStringify(cache))
+      await Bun.write(cachePath, jsonStringify(cache))
       // Invalidate the read cache so subsequent reads see the new entry.
       // Safe because writeChain serializes writes: the next write's
       // getMcpAuthCache() call will re-read the file with this entry present.

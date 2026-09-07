@@ -1,4 +1,4 @@
-import { mkdir, readFile, stat, unlink, writeFile } from 'fs/promises'
+import { mkdir, stat, unlink } from 'fs/promises'
 import { dirname, join } from 'path'
 import { z } from 'zod/v4'
 import { logForDebugging } from '../utils/debug.js'
@@ -66,7 +66,7 @@ export async function writeBridgePointer(
   const path = getBridgePointerPath(dir)
   try {
     await mkdir(dirname(path), { recursive: true })
-    await writeFile(path, jsonStringify(pointer), 'utf8')
+    await Bun.write(path, jsonStringify(pointer))
     logForDebugging(`[bridge:pointer] wrote ${path}`)
   } catch (err: unknown) {
     logForDebugging(`[bridge:pointer] write failed: ${err}`, { level: 'warn' })
@@ -90,7 +90,7 @@ export async function readBridgePointer(
     // stat for mtime (staleness anchor), then read. Two syscalls, but both
     // are needed — mtime IS the data we return, not a TOCTOU guard.
     mtimeMs = (await stat(path)).mtimeMs
-    raw = await readFile(path, 'utf8')
+    raw = await Bun.file(path).text()
   } catch {
     return null
   }

@@ -8,9 +8,7 @@ import {
   appendFile as fsAppendFile,
   open as fsOpen,
   mkdir,
-  readFile,
   stat,
-  writeFile,
 } from 'fs/promises'
 import { dirname, join } from 'path'
 import {
@@ -690,7 +688,7 @@ class Project {
           )
           return
         }
-        const content = await readFile(this.sessionFile, { encoding: 'utf-8' })
+        const content = await Bun.file(this.sessionFile).text()
         const lines = content.split('\n').filter((line: string) => {
           if (!line.trim()) return true
           try {
@@ -700,9 +698,7 @@ class Project {
             return true // Keep malformed lines
           }
         })
-        await writeFile(this.sessionFile, lines.join('\n'), {
-          encoding: 'utf8',
-        })
+        await Bun.write(this.sessionFile, lines.join('\n'))
       } catch {
         // Silently ignore errors - the file might not exist yet
       }

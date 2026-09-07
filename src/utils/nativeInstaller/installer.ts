@@ -26,7 +26,6 @@ import {
   stat,
   symlink,
   unlink,
-  writeFile,
 } from 'fs/promises'
 import { homedir } from 'os'
 import { basename, delimiter, dirname, join, resolve } from 'path'
@@ -167,7 +166,7 @@ async function getVersionPaths(version: string) {
   try {
     await stat(installPath)
   } catch {
-    await writeFile(installPath, '', { encoding: 'utf8' })
+    await Bun.write(installPath, '')
   }
 
   return {

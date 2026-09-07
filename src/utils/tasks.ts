@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, unlink, writeFile } from 'fs/promises'
+import { mkdir, readdir, unlink, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { z } from 'zod/v4'
 import { getIsNonInteractiveSession, getSessionId } from '../bootstrap/state.js'
@@ -114,7 +114,7 @@ function getHighWaterMarkPath(taskListId: string): string {
 async function readHighWaterMark(taskListId: string): Promise<number> {
   const path = getHighWaterMarkPath(taskListId)
   try {
-    const content = (await readFile(path, 'utf-8')).trim()
+    const content = (await Bun.file(path).text()).trim()
     const value = parseInt(content, 10)
     return isNaN(value) ? 0 : value
   } catch {
@@ -127,7 +127,7 @@ async function writeHighWaterMark(
   value: number,
 ): Promise<void> {
   const path = getHighWaterMarkPath(taskListId)
-  await writeFile(path, String(value))
+  await Bun.write(path, String(value))
 }
 
 export function isTodoV2Enabled(): boolean {
@@ -297,7 +297,7 @@ export async function createTask(
     const id = String(highestId + 1)
     const task: Task = { id, ...taskData }
     const path = getTaskPath(taskListId, id)
-    await writeFile(path, jsonStringify(task, null, 2))
+    await Bun.write(path, jsonStringify(task, null, 2))
     notifyTasksUpdated()
     return id
   } finally {
@@ -313,7 +313,7 @@ export async function getTask(
 ): Promise<Task | null> {
   const path = getTaskPath(taskListId, taskId)
   try {
-    const content = await readFile(path, 'utf-8')
+    const content = await Bun.file(path).text()
     const data = jsonParse(content) as { status?: string }
 
     // TEMPORARY: Migrate old status names for existing sessions (ant-only)
@@ -362,7 +362,7 @@ async function updateTaskUnsafe(
   }
   const updated: Task = { ...existing, ...updates, id: taskId }
   const path = getTaskPath(taskListId, taskId)
-  await writeFile(path, jsonStringify(updated, null, 2))
+  await Bun.write(path, jsonStringify(updated, null, 2))
   notifyTasksUpdated()
   return updated
 }
@@ -727,7 +727,7 @@ async function readTeamMembers(
   const teamsDir = getTeamsDir()
   const teamFilePath = join(teamsDir, sanitizeName(teamName), 'config.json')
   try {
-    const content = await readFile(teamFilePath, 'utf-8')
+    const content = await Bun.file(teamFilePath).text()
     const teamFile = jsonParse(content) as {
       leadAgentId: string
       members: TeamMember[]

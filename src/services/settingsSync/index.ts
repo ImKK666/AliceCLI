@@ -10,7 +10,7 @@
  */
 
 import { feature } from 'bun:bundle'
-import { mkdir, readFile, stat, writeFile } from 'fs/promises'
+import { mkdir, stat } from 'fs/promises'
 import pickBy from 'lodash-es/pickBy.js'
 import { dirname } from 'path'
 import { getIsInteractive } from '../../bootstrap/state.js'
@@ -404,7 +404,7 @@ async function tryReadFileForSync(filePath: string): Promise<string | null> {
       return null
     }
 
-    const content = await readFile(filePath, 'utf8')
+    const content = await Bun.file(filePath).text()
     // Check for empty/whitespace-only without allocating a trimmed copy
     if (!content || /^\s*$/.test(content)) {
       return null
@@ -469,7 +469,7 @@ async function writeFileForSync(
       await mkdir(parentDir, { recursive: true })
     }
 
-    await writeFile(filePath, content, 'utf8')
+    await Bun.write(filePath, content)
     logForDiagnosticsNoPII('info', 'settings_sync_file_written')
     return true
   } catch {

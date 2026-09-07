@@ -18,7 +18,6 @@
  *                   └── marketplace.json
  */
 
-import { writeFile } from 'fs/promises'
 import isEqual from 'lodash-es/isEqual.js'
 import memoize from 'lodash-es/memoize.js'
 import { basename, dirname, isAbsolute, join, resolve, sep } from 'path'
@@ -1668,7 +1667,7 @@ async function loadAndCacheMarketplace(
         // SettingsMarketplacePlugin type (no strict/.default(), no manifest
         // fields). The parseFileWithSchema(PluginMarketplaceSchema()) call
         // below widens and validates — that's the real check.
-        await writeFile(
+        await Bun.write(
           marketplacePath,
           jsonStringify(
             {

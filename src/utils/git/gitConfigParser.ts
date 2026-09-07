@@ -8,7 +8,6 @@
  *   - Values: optional quoting, inline comments (# or ;), backslash escapes
  */
 
-import { readFile } from 'fs/promises'
 import { join } from 'path'
 
 /**
@@ -22,7 +21,7 @@ export async function parseGitConfigValue(
   key: string,
 ): Promise<string | null> {
   try {
-    const config = await readFile(join(gitDir, 'config'), 'utf-8')
+    const config = await Bun.file(join(gitDir, 'config')).text()
     return parseConfigString(config, section, subsection, key)
   } catch {
     return null

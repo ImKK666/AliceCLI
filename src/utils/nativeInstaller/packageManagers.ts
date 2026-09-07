@@ -2,7 +2,6 @@
  * Package manager detection for Claude CLI
  */
 
-import { readFile } from 'fs/promises'
 import memoize from 'lodash-es/memoize.js'
 import { logForDebugging } from '../debug.js'
 import { execFileNoThrow } from '../execFileNoThrow.js'
@@ -29,7 +28,7 @@ export type PackageManager =
 export const getOsRelease = memoize(
   async (): Promise<{ id: string; idLike: string[] } | null> => {
     try {
-      const content = await readFile('/etc/os-release', 'utf8')
+      const content = await Bun.file('/etc/os-release').text()
       const idMatch = content.match(/^ID=["']?(\S+?)["']?\s*$/m)
       const idLikeMatch = content.match(/^ID_LIKE=["']?(.+?)["']?\s*$/m)
       return {

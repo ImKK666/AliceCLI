@@ -1,11 +1,4 @@
-import {
-  mkdir,
-  readFile,
-  readdir,
-  rename,
-  unlink,
-  writeFile,
-} from 'node:fs/promises'
+import { mkdir, readdir, rename, unlink } from 'node:fs/promises'
 import { randomBytes } from 'node:crypto'
 import { dirname, join } from 'node:path'
 import {
@@ -50,7 +43,7 @@ export async function saveInstinct(
   await mkdir(dir, { recursive: true })
   const target = instinctPath(normalized.id, options)
   const tmp = `${target}.${randomBytes(6).toString('hex')}.tmp`
-  await writeFile(tmp, serializeInstinct(normalized))
+  await Bun.write(tmp, serializeInstinct(normalized))
   await rename(tmp, target)
   return normalized
 }
@@ -69,7 +62,7 @@ export async function loadInstincts(
 
   const instincts: StoredInstinct[] = []
   for (const file of files.filter(file => file.endsWith('.json'))) {
-    const content = await readFile(join(dir, file), 'utf8')
+    const content = await Bun.file(join(dir, file)).text()
     instincts.push(parseInstinct(content))
   }
 
@@ -214,7 +207,7 @@ export async function exportInstincts(
 ): Promise<StoredInstinct[]> {
   const instincts = await loadInstincts(options)
   await mkdir(dirname(outputPath), { recursive: true })
-  await writeFile(outputPath, `${JSON.stringify(instincts, null, 2)}\n`)
+  await Bun.write(outputPath, `${JSON.stringify(instincts, null, 2)}\n`)
   return instincts
 }
 
@@ -223,7 +216,7 @@ export async function importInstincts(
   options?: InstinctStoreOptions,
 ): Promise<StoredInstinct[]> {
   const parsed = JSON.parse(
-    await readFile(inputPath, 'utf8'),
+    await Bun.file(inputPath).text(),
   ) as StoredInstinct[]
   const saved: StoredInstinct[] = []
   for (const instinct of parsed) {

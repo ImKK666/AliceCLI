@@ -1,4 +1,4 @@
-import { chmod, mkdir, readFile, unlink, writeFile } from 'fs/promises'
+import { chmod, mkdir, unlink, writeFile } from 'fs/promises'
 import { homedir } from 'os'
 import { join } from 'path'
 import { logForDebugging } from 'src/utils/debug.js'
@@ -122,7 +122,7 @@ function extractAccountId(tokens: {
 
 async function readStoredAuth(path: string): Promise<ChatGPTAuthTokens | null> {
   try {
-    const raw = await readFile(path, 'utf8')
+    const raw = await Bun.file(path).text()
     const parsed = JSON.parse(raw) as StoredAuthFile
     const tokens = parsed.tokens
     const idToken = tokens?.id_token

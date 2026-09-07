@@ -1,4 +1,3 @@
-import { readFile } from 'fs/promises'
 import { join, relative, resolve } from 'path'
 import { z } from 'zod/v4'
 import type {
@@ -63,7 +62,7 @@ export async function loadPluginLspServers(
   // 1. Check for .lsp.json file in plugin directory
   const lspJsonPath = join(plugin.path, '.lsp.json')
   try {
-    const content = await readFile(lspJsonPath, 'utf-8')
+    const content = await Bun.file(lspJsonPath).text()
     const parsed = jsonParse(content)
     const result = z
       .record(z.string(), LspServerConfigSchema())
@@ -159,7 +158,7 @@ async function loadLspServersFromManifest(
 
       // Load from file
       try {
-        const content = await readFile(validatedPath, 'utf-8')
+        const content = await Bun.file(validatedPath).text()
         const parsed = jsonParse(content)
         const result = z
           .record(z.string(), LspServerConfigSchema())

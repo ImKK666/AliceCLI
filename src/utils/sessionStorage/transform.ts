@@ -1,5 +1,4 @@
 import type { UUID } from 'crypto'
-import { readFile } from 'fs/promises'
 import { logEvent } from 'src/services/analytics/index.js'
 import { builtInCommandNames } from '../../commands.js'
 import { COMMAND_NAME_TAG } from '../../constants/xml.js'
@@ -366,7 +365,7 @@ export async function loadTranscriptFromFile(
   }
 
   // json log files
-  const content = await readFile(filePath, { encoding: 'utf-8' })
+  const content = await Bun.file(filePath).text()
   let parsed: unknown
 
   try {

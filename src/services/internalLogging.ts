@@ -1,4 +1,3 @@
-import { readFile } from 'fs/promises'
 import memoize from 'lodash-es/memoize.js'
 import type { ToolPermissionContext } from '../Tool.js'
 import { jsonStringify } from '../utils/slowOperations.js'
@@ -22,7 +21,7 @@ const getKubernetesNamespace = memoize(async (): Promise<string | null> => {
     '/var/run/secrets/kubernetes.io/serviceaccount/namespace'
   const namespaceNotFound = 'namespace not found'
   try {
-    const content = await readFile(namespacePath, { encoding: 'utf8' })
+    const content = await Bun.file(namespacePath).text()
     return content.trim()
   } catch {
     return namespaceNotFound
@@ -40,9 +39,7 @@ const getContainerId = memoize(async (): Promise<string | null> => {
   const containerIdNotFound = 'container ID not found'
   const containerIdNotFoundInMountinfo = 'container ID not found in mountinfo'
   try {
-    const mountinfo = (
-      await readFile(containerIdPath, { encoding: 'utf8' })
-    ).trim()
+    const mountinfo = (await Bun.file(containerIdPath).text()).trim()
 
     // Pattern to match both Docker and containerd/CRI-O container IDs
     // Docker: /docker/containers/[64-char-hex]

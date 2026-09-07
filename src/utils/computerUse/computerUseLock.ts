@@ -1,4 +1,4 @@
-import { mkdir, readFile, unlink, writeFile } from 'fs/promises'
+import { mkdir, unlink, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { getSessionId } from '../../bootstrap/state.js'
 import { registerCleanup } from '../../utils/cleanupRegistry.js'
@@ -47,7 +47,7 @@ function getLockPath(): string {
 
 async function readLock(): Promise<ComputerUseLock | undefined> {
   try {
-    const raw = await readFile(getLockPath(), 'utf8')
+    const raw = await Bun.file(getLockPath()).text()
     const parsed: unknown = jsonParse(raw)
     return isComputerUseLock(parsed) ? parsed : undefined
   } catch {

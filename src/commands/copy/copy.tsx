@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from 'fs/promises';
+import { mkdir } from 'fs/promises';
 import { marked, type Tokens } from 'marked';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -69,7 +69,7 @@ export function fileExtension(lang: string | undefined): string {
 async function writeToFile(text: string, filename: string): Promise<string> {
   const filePath = join(COPY_DIR, filename);
   await mkdir(COPY_DIR, { recursive: true });
-  await writeFile(filePath, text, 'utf-8');
+  await Bun.write(filePath, text);
   return filePath;
 }
 

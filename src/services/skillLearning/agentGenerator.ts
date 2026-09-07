@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { getClaudeConfigHomeDir } from '../../utils/envUtils.js'
@@ -64,7 +64,7 @@ export async function writeLearnedAgent(
   await mkdir(draft.outputPath, { recursive: true })
   const filePath = join(draft.outputPath, `${draft.name}.md`)
   if (existsSync(filePath)) return filePath
-  await writeFile(filePath, draft.content, 'utf8')
+  await Bun.write(filePath, draft.content)
   clearCommandsCache()
   return filePath
 }

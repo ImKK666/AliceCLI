@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, writeFile } from 'fs/promises'
+import { mkdir, readdir, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { getSessionId } from '../bootstrap/state.js'
 import { logForDebugging } from './debug.js'
@@ -74,7 +74,7 @@ export async function getSessionEnvironmentScript(): Promise<string | null> {
   const envFile = process.env.CLAUDE_ENV_FILE
   if (envFile) {
     try {
-      const envScript = (await readFile(envFile, 'utf8')).trim()
+      const envScript = (await Bun.file(envFile).text()).trim()
       if (envScript) {
         scripts.push(envScript)
         logForDebugging(
@@ -102,7 +102,7 @@ export async function getSessionEnvironmentScript(): Promise<string | null> {
     for (const file of hookFiles) {
       const filePath = join(sessionEnvDir, file)
       try {
-        const content = (await readFile(filePath, 'utf8')).trim()
+        const content = (await Bun.file(filePath).text()).trim()
         if (content) {
           scripts.push(content)
         }

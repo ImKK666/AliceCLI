@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { getClaudeConfigHomeDir } from '../../utils/envUtils.js'
 import { clearSkillIndexCache } from '../skillSearch/localSearch.js'
@@ -101,9 +101,9 @@ export async function appendInstinctEvidenceToSkill(
   target: ExistingSkill,
   instincts: Instinct[],
 ): Promise<string> {
-  const existing = await readFile(target.path, 'utf8').catch(
-    () => target.content,
-  )
+  const existing = await Bun.file(target.path)
+    .text()
+    .catch(() => target.content)
 
   // Skip if the file already exceeds the size cap
   if (Buffer.byteLength(existing, 'utf8') >= MAX_SKILL_FILE_BYTES) {
@@ -138,7 +138,7 @@ export async function appendInstinctEvidenceToSkill(
       ? merged.slice(0, MAX_SKILL_FILE_BYTES)
       : merged
 
-  await writeFile(target.path, finalContent, 'utf8')
+  await Bun.write(target.path, finalContent)
   clearSkillIndexCache()
   return target.path
 }
@@ -148,7 +148,7 @@ export async function writeLearnedSkill(
 ): Promise<string> {
   await mkdir(draft.outputPath, { recursive: true })
   const filePath = join(draft.outputPath, 'SKILL.md')
-  await writeFile(filePath, draft.content, 'utf8')
+  await Bun.write(filePath, draft.content)
   clearSkillIndexCache()
   try {
     const { clearCommandsCache } = await import('../../commands.js')

@@ -1,5 +1,5 @@
 import { execa } from 'execa'
-import { readFile, realpath } from 'fs/promises'
+import { realpath } from 'fs/promises'
 import { homedir } from 'os'
 import { delimiter, join, posix, win32 } from 'path'
 import { checkGlobalInstallPermissions } from './autoUpdater.js'
@@ -327,10 +327,9 @@ async function detectConfigurationIssues(
   // development-mode early return: this is config correctness, not an
   // install-path check, and it's useful to see during dev testing.
   try {
-    const raw = await readFile(
+    const raw = await Bun.file(
       join(getManagedFilePath(), 'managed-settings.json'),
-      'utf-8',
-    )
+    ).text()
     const parsed: unknown = jsonParse(raw)
     const field =
       parsed && typeof parsed === 'object'

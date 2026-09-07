@@ -1,4 +1,4 @@
-import { readdir, readFile } from 'fs/promises'
+import { readdir } from 'fs/promises'
 import { join } from 'path'
 import { getProjectRoot } from '../bootstrap/state.js'
 import { safeParseJSON } from './json.js'
@@ -102,10 +102,7 @@ async function readWorkflowRun(
 ): Promise<WorkflowRunRecord | null> {
   try {
     const parsed = safeParseJSON(
-      await readFile(
-        join(rootDir, WORKFLOW_RUNS_REL, `${runId}.json`),
-        'utf-8',
-      ),
+      await Bun.file(join(rootDir, WORKFLOW_RUNS_REL, `${runId}.json`)).text(),
       false,
     )
     return normalizeWorkflowRun(parsed)

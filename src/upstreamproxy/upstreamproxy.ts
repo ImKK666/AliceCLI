@@ -19,7 +19,7 @@
  * Design doc: api-go/ccr/docs/plans/CCR_AUTH_DESIGN.md § "Week-1 pilot scope".
  */
 
-import { mkdir, readFile, unlink, writeFile } from 'fs/promises'
+import { mkdir, unlink } from 'fs/promises'
 import { homedir } from 'os'
 import { join } from 'path'
 import { registerCleanup } from '../utils/cleanupRegistry.js'
@@ -205,7 +205,7 @@ export function resetUpstreamProxyForTests(): void {
 
 async function readToken(path: string): Promise<string | null> {
   try {
-    const raw = await readFile(path, 'utf8')
+    const raw = await Bun.file(path).text()
     return raw.trim() || null
   } catch (err) {
     if (isENOENT(err)) return null
@@ -271,9 +271,11 @@ async function downloadCaBundle(
       return false
     }
     const ccrCa = await resp.text()
-    const systemCa = await readFile(systemCaPath, 'utf8').catch(() => '')
+    const systemCa = await Bun.file(systemCaPath)
+      .text()
+      .catch(() => '')
     await mkdir(join(outPath, '..'), { recursive: true })
-    await writeFile(outPath, systemCa + '\n' + ccrCa, 'utf8')
+    await Bun.write(outPath, systemCa + '\n' + ccrCa)
     return true
   } catch (err) {
     logForDebugging(

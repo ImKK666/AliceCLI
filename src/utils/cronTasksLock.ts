@@ -8,7 +8,7 @@
 // Pattern mirrors computerUseLock.ts: O_EXCL atomic create, PID liveness
 // probe, stale-lock recovery, cleanup-on-exit.
 
-import { mkdir, readFile, unlink, writeFile } from 'fs/promises'
+import { mkdir, unlink, writeFile } from 'fs/promises'
 import { dirname, join } from 'path'
 import { z } from 'zod/v4'
 import { getProjectRoot, getSessionId } from '../bootstrap/state.js'
@@ -53,7 +53,7 @@ function getLockPath(dir?: string): string {
 async function readLock(dir?: string): Promise<SchedulerLock | undefined> {
   let raw: string
   try {
-    raw = await readFile(getLockPath(dir), 'utf8')
+    raw = await Bun.file(getLockPath(dir)).text()
   } catch {
     return undefined
   }
@@ -138,7 +138,7 @@ export async function tryAcquireSchedulerLock(
   // see a live PID and don't steal it.
   if (existing?.sessionId === sessionId) {
     if (existing.pid !== process.pid) {
-      await writeFile(getLockPath(dir), jsonStringify(lock))
+      await Bun.write(getLockPath(dir), jsonStringify(lock))
       registerLockCleanup(opts)
     }
     return true

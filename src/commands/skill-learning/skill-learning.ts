@@ -119,8 +119,7 @@ export const call: LocalCommandCall = async (
       if (filtered.length !== all.length) {
         await exportInstincts(output, options)
         // Re-write with filtered payload to honor filter args.
-        const { writeFile } = await import('node:fs/promises')
-        await writeFile(output, `${JSON.stringify(filtered, null, 2)}\n`)
+        await Bun.write(output, `${JSON.stringify(filtered, null, 2)}\n`)
       } else {
         await exportInstincts(output, options)
       }
@@ -152,8 +151,7 @@ export const call: LocalCommandCall = async (
       // Read + filter first so --dry-run can truly skip persistence. The
       // previous `importInstincts(...)` call wrote to disk before branching
       // on --dry-run, which defeated the purpose of the flag.
-      const { readFile: readFileFs } = await import('node:fs/promises')
-      const parsed = JSON.parse(await readFileFs(input, 'utf8')) as Awaited<
+      const parsed = JSON.parse(await Bun.file(input).text()) as Awaited<
         ReturnType<typeof loadInstincts>
       >
       const filtered = parsed.filter(i => {

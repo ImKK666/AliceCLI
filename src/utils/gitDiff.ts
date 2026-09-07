@@ -1,5 +1,5 @@
 import type { StructuredPatchHunk } from 'diff'
-import { access, readFile } from 'fs/promises'
+import { access } from 'fs/promises'
 import { dirname, join, relative, sep } from 'path'
 import { getCwd } from './cwd.js'
 import { getCachedRepository } from './detectRepository.js'
@@ -509,7 +509,7 @@ async function generateSyntheticDiff(
     if (!isFileWithinReadSizeLimit(absoluteFilePath, MAX_DIFF_SIZE_BYTES)) {
       return null
     }
-    const content = await readFile(absoluteFilePath, 'utf-8')
+    const content = await Bun.file(absoluteFilePath).text()
     const lines = content.split('\n')
     // Remove trailing empty line from split if file ends with newline
     if (lines.length > 0 && lines.at(-1) === '') {

@@ -1,4 +1,4 @@
-import { readdir, readFile } from 'fs/promises'
+import { readdir } from 'fs/promises'
 import memoize from 'lodash-es/memoize.js'
 import { release as osRelease } from 'os'
 import { getFsImplementation } from './fsOperations.js'
@@ -95,7 +95,7 @@ export const getLinuxDistroInfo = memoize(
     }
 
     try {
-      const content = await readFile('/etc/os-release', 'utf8')
+      const content = await Bun.file('/etc/os-release').text()
       for (const line of content.split('\n')) {
         const match = line.match(/^(ID|VERSION_ID)=(.*)$/)
         if (match && match[1] && match[2]) {

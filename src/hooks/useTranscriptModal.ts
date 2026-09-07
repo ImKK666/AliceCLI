@@ -5,7 +5,6 @@ import { useSearchHighlight } from '@anthropic/ink'
 import { useTerminalSize } from './useTerminalSize.js'
 import { renderMessagesToPlainText } from '../utils/exportRenderer.js'
 import { openFileInExternalEditor } from '../utils/editor.js'
-import { writeFile } from 'fs/promises'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import type { JumpHandle } from '../components/VirtualMessageList.js'
@@ -252,7 +251,7 @@ export function useTranscriptModal({
             )
             const text = raw.replace(/[ \t]+$/gm, '')
             const path = join(tmpdir(), `cc-transcript-${Date.now()}.txt`)
-            await writeFile(path, text)
+            await Bun.write(path, text)
             const opened = openFileInExternalEditor(path)
             setStatus(
               opened

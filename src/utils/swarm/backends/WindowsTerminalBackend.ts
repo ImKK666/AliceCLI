@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto'
-import { readFile, unlink } from 'fs/promises'
+import { unlink } from 'fs/promises'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import type { AgentColorName } from '@claude-code-best/builtin-tools/tools/AgentTool/agentColorManager.js'
@@ -64,7 +64,7 @@ async function waitForPidFile(
   let lastErr: unknown
   while (Date.now() < deadline) {
     try {
-      const content = (await readFile(pidFile, 'utf-8')).trim()
+      const content = (await Bun.file(pidFile).text()).trim()
       if (!/^\d+$/.test(content)) {
         lastErr = new Error(
           `pidFile content not a valid pid: ${JSON.stringify(content)}`,
@@ -348,7 +348,7 @@ export class WindowsTerminalBackend implements PaneBackend {
       let pidContent: string | null = null
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
-          pidContent = (await readFile(pane.pidFile, 'utf-8')).trim()
+          pidContent = (await Bun.file(pane.pidFile).text()).trim()
           break
         } catch {
           if (attempt === 2) {

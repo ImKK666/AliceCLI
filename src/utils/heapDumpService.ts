@@ -4,7 +4,7 @@
  */
 
 import { createWriteStream, writeFileSync } from 'fs'
-import { readdir, readFile, writeFile } from 'fs/promises'
+import { readdir, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { pipeline } from 'stream/promises'
 import {
@@ -121,7 +121,7 @@ export async function captureMemoryDiagnostics(
   // Try to read Linux smaps_rollup for detailed memory breakdown
   let smapsRollup: string | undefined
   try {
-    smapsRollup = await readFile('/proc/self/smaps_rollup', 'utf8')
+    smapsRollup = await Bun.file('/proc/self/smaps_rollup').text()
   } catch {
     // Not on Linux or no access - this is fine
   }

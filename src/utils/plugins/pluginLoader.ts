@@ -35,7 +35,6 @@
 import {
   copyFile,
   readdir,
-  readFile,
   readlink,
   realpath,
   rename,
@@ -983,7 +982,7 @@ export async function cachePlugin(
 
   if (await pathExists(manifestPath)) {
     try {
-      const content = await readFile(manifestPath, { encoding: 'utf-8' })
+      const content = await Bun.file(manifestPath).text()
       const parsed = jsonParse(content)
       const result = PluginManifestSchema().safeParse(parsed)
 
@@ -1027,9 +1026,7 @@ export async function cachePlugin(
     }
   } else if (await pathExists(legacyManifestPath)) {
     try {
-      const content = await readFile(legacyManifestPath, {
-        encoding: 'utf-8',
-      })
+      const content = await Bun.file(legacyManifestPath).text()
       const parsed = jsonParse(content)
       const result = PluginManifestSchema().safeParse(parsed)
 
@@ -1162,7 +1159,7 @@ export async function loadPluginManifest(
 
   try {
     // Read and parse the manifest JSON file
-    const content = await readFile(manifestPath, { encoding: 'utf-8' })
+    const content = await Bun.file(manifestPath).text()
     const parsedJson = jsonParse(content)
 
     // Validate against the PluginManifest schema
@@ -1232,7 +1229,7 @@ async function loadPluginHooks(
     )
   }
 
-  const content = await readFile(hooksConfigPath, { encoding: 'utf-8' })
+  const content = await Bun.file(hooksConfigPath).text()
   const rawHooksConfig = jsonParse(content)
 
   // The hooks.json file has a wrapper structure with description and hooks
@@ -1812,7 +1809,7 @@ async function loadPluginSettings(
   // Try loading settings.json from the plugin directory
   const settingsJsonPath = join(pluginPath, 'settings.json')
   try {
-    const content = await readFile(settingsJsonPath, { encoding: 'utf-8' })
+    const content = await Bun.file(settingsJsonPath).text()
     const parsed = jsonParse(content)
     if (isRecord(parsed)) {
       const filtered = parsePluginSettings(parsed)

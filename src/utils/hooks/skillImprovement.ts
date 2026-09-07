@@ -209,14 +209,12 @@ export async function applySkillImprovement(
   if (!skillName) return
 
   const { join } = await import('path')
-  const fs = await import('fs/promises')
-
   // Skills live at .claude/skills/<name>/SKILL.md relative to CWD
   const filePath = join(getCwd(), '.claude', 'skills', skillName, 'SKILL.md')
 
   let currentContent: string
   try {
-    currentContent = await fs.readFile(filePath, 'utf-8')
+    currentContent = await Bun.file(filePath).text()
   } catch {
     logError(
       new Error(`Failed to read skill file for improvement: ${filePath}`),
@@ -292,7 +290,7 @@ Rules:
   }
 
   try {
-    await fs.writeFile(filePath, updatedContent, 'utf-8')
+    await Bun.write(filePath, updatedContent)
   } catch (e) {
     logError(toError(e))
   }

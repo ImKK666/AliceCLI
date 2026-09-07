@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto'
-import { mkdir, readdir, readFile } from 'fs/promises'
+import { mkdir, readdir } from 'fs/promises'
 import { join } from 'path'
 import {
   PDF_MAX_EXTRACT_SIZE,
@@ -67,7 +67,7 @@ export async function readPDF(filePath: string): Promise<
       }
     }
 
-    const fileBuffer = await readFile(filePath)
+    const fileBuffer = Buffer.from(await Bun.file(filePath).arrayBuffer())
 
     // Validate PDF magic bytes — reject files that aren't actually PDFs
     // (e.g., HTML files renamed to .pdf) before they enter conversation context.

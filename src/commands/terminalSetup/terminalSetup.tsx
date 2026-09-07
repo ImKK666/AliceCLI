@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import { randomBytes } from 'crypto';
-import { copyFile, mkdir, readFile, writeFile } from 'fs/promises';
+import { copyFile, mkdir } from 'fs/promises';
 import { homedir, platform } from 'os';
 import { dirname, join } from 'path';
 import type { ThemeName } from 'src/utils/theme.js';
@@ -263,7 +263,7 @@ async function installBindingsForVSCodeTerminal(
     let keybindings: VSCodeKeybinding[] = [];
     let fileExists = false;
     try {
-      content = await readFile(keybindingsPath, { encoding: 'utf-8' });
+      content = await Bun.file(keybindingsPath).text();
       fileExists = true;
       keybindings = (safeParseJSONC(content) as VSCodeKeybinding[]) ?? [];
     } catch (e: unknown) {
@@ -314,7 +314,7 @@ async function installBindingsForVSCodeTerminal(
     const updatedContent = addItemToJSONCArray(content, newKeybinding);
 
     // Write the updated content back to the file
-    await writeFile(keybindingsPath, updatedContent, { encoding: 'utf-8' });
+    await Bun.write(keybindingsPath, updatedContent);
 
     return `${color(
       'success',
@@ -497,7 +497,7 @@ chars = "\\u001B\\r"`;
 
   for (const path of configPaths) {
     try {
-      configContent = await readFile(path, { encoding: 'utf-8' });
+      configContent = await Bun.file(path).text();
       configPath = path;
       configExists = true;
       break;
@@ -554,7 +554,7 @@ chars = "\\u001B\\r"`;
     updatedContent += '\n' + ALACRITTY_KEYBINDING + '\n';
 
     // Write the updated config
-    await writeFile(configPath, updatedContent, { encoding: 'utf-8' });
+    await Bun.write(configPath, updatedContent);
 
     return `${color('success', theme)('Installed Alacritty Shift+Enter key binding')}${EOL}${color(
       'success',
@@ -581,7 +581,7 @@ async function installBindingsForZed(theme: ThemeName): Promise<string> {
     let keymapContent = '[]';
     let fileExists = false;
     try {
-      keymapContent = await readFile(keymapPath, { encoding: 'utf-8' });
+      keymapContent = await Bun.file(keymapPath).text();
       fileExists = true;
     } catch (e: unknown) {
       if (!isFsInaccessible(e)) throw e;
@@ -636,9 +636,7 @@ async function installBindingsForZed(theme: ThemeName): Promise<string> {
     });
 
     // Write the updated keymap
-    await writeFile(keymapPath, jsonStringify(keymap, null, 2) + '\n', {
-      encoding: 'utf-8',
-    });
+    await Bun.write(keymapPath, jsonStringify(keymap, null, 2) + '\n');
 
     return `${color(
       'success',

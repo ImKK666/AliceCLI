@@ -12,7 +12,7 @@
 
 import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages.mjs'
 import { randomUUID } from 'crypto'
-import { mkdir, writeFile } from 'fs/promises'
+import { mkdir } from 'fs/promises'
 import { basename, join } from 'path'
 import { z } from 'zod/v4'
 import { getSessionId } from '../bootstrap/state.js'
@@ -106,7 +106,7 @@ async function resolveOne(att: InboundAttachment): Promise<string | undefined> {
 
   try {
     await mkdir(dir, { recursive: true })
-    await writeFile(outPath, data)
+    await Bun.write(outPath, data)
   } catch (e) {
     debug(`write ${outPath} failed: ${e}`)
     return undefined

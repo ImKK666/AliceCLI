@@ -10,7 +10,6 @@ import {
 } from './localSearch.js'
 import { normalizeQueryIntent } from './intentNormalize.js'
 import { logForDebugging } from '../../utils/debug.js'
-import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { parseFrontmatter } from '../../utils/frontmatterParser.js'
 
@@ -174,7 +173,7 @@ async function loadSkillContent(
 
   for (const path of candidates) {
     try {
-      const raw = await readFile(path, 'utf8')
+      const raw = await Bun.file(path).text()
       return {
         path,
         content: parseFrontmatter(raw).content.slice(0, AUTO_LOAD_MAX_CHARS),

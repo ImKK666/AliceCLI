@@ -1,4 +1,4 @@
-import { readFile, stat } from 'fs/promises'
+import { stat } from 'fs/promises'
 import type { Message } from '../../types/message.js'
 import { checkAndRefreshOAuthTokenIfNeeded } from '../../utils/auth.js'
 import { logForDebugging } from '../../utils/debug.js'
@@ -45,7 +45,7 @@ export async function submitTranscriptShare(
       const transcriptPath = getTranscriptPath()
       const { size } = await stat(transcriptPath)
       if (size <= MAX_TRANSCRIPT_READ_BYTES) {
-        rawTranscriptJsonl = await readFile(transcriptPath, 'utf-8')
+        rawTranscriptJsonl = await Bun.file(transcriptPath).text()
       } else {
         logForDebugging(
           `Skipping raw transcript read: file too large (${size} bytes)`,

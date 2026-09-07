@@ -1,5 +1,5 @@
 import { BROWSER_TOOLS } from '@ant/claude-for-chrome-mcp'
-import { chmod, mkdir, readFile, writeFile } from 'fs/promises'
+import { chmod, mkdir } from 'fs/promises'
 import { homedir } from 'os'
 import { join } from 'path'
 import {
@@ -218,16 +218,16 @@ export async function installChromeNativeHostManifest(
     const manifestPath = join(manifestDir, NATIVE_HOST_MANIFEST_NAME)
 
     // Check if content matches to avoid unnecessary writes
-    const existingContent = await readFile(manifestPath, 'utf-8').catch(
-      () => null,
-    )
+    const existingContent = await Bun.file(manifestPath)
+      .text()
+      .catch(() => null)
     if (existingContent === manifestContent) {
       continue
     }
 
     try {
       await mkdir(manifestDir, { recursive: true })
-      await writeFile(manifestPath, manifestContent)
+      await Bun.write(manifestPath, manifestContent)
       logForDebugging(
         `[Claude in Chrome] Installed native host manifest at: ${manifestPath}`,
       )
@@ -325,13 +325,15 @@ exec ${command}
 `
 
   // Check if content matches to avoid unnecessary writes
-  const existingContent = await readFile(wrapperPath, 'utf-8').catch(() => null)
+  const existingContent = await Bun.file(wrapperPath)
+    .text()
+    .catch(() => null)
   if (existingContent === scriptContent) {
     return wrapperPath
   }
 
   await mkdir(chromeDir, { recursive: true })
-  await writeFile(wrapperPath, scriptContent)
+  await Bun.write(wrapperPath, scriptContent)
 
   if (platform !== 'windows') {
     await chmod(wrapperPath, 0o755)

@@ -1,14 +1,6 @@
 import { feature } from 'bun:bundle'
 import chalk from 'chalk'
-import {
-  copyFile,
-  mkdir,
-  readdir,
-  readFile,
-  stat,
-  symlink,
-  utimes,
-} from 'fs/promises'
+import { copyFile, mkdir, readdir, stat, symlink, utimes } from 'fs/promises'
 import ignore from 'ignore'
 import { basename, dirname, join } from 'path'
 import { saveCurrentProjectConfig } from './config.js'
@@ -393,7 +385,7 @@ export async function copyWorktreeIncludeFiles(
 ): Promise<string[]> {
   let includeContent: string
   try {
-    includeContent = await readFile(join(repoRoot, '.worktreeinclude'), 'utf-8')
+    includeContent = await Bun.file(join(repoRoot, '.worktreeinclude')).text()
   } catch {
     return []
   }
