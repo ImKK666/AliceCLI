@@ -76,7 +76,7 @@ export function getLearnedCommandPath(
 ): string {
   if (options?.outputRoot) return options.outputRoot
   if (scope === 'project') {
-    return join(options?.cwd ?? process.cwd(), '.claude', 'commands')
+    return join(options?.cwd ?? process.cwd(), '.alice', 'commands')
   }
   return (
     options?.globalCommandsDir ?? join(getClaudeConfigHomeDir(), 'commands')

@@ -11,8 +11,8 @@ import { getCwd } from './cwd.js'
 import { getFsImplementation } from './fsOperations.js'
 import { normalizePathForConfigKey } from './path.js'
 
-export const AUTONOMY_DIR = join('.claude', 'autonomy')
-export const AUTONOMY_DIR_POSIX = '.claude/autonomy'
+export const AUTONOMY_DIR = join('.alice', 'autonomy')
+export const AUTONOMY_DIR_POSIX = '.alice/autonomy'
 export const AUTONOMY_AGENTS_FILENAME = 'AGENTS.md'
 export const AUTONOMY_HEARTBEAT_FILENAME = 'HEARTBEAT.md'
 export const AUTONOMY_AGENTS_PATH_POSIX = `${AUTONOMY_DIR_POSIX}/${AUTONOMY_AGENTS_FILENAME}`

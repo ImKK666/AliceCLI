@@ -110,7 +110,7 @@ export async function initializeAssistantTeam(): Promise<
 }
 
 /**
- * Assistant-specific system prompt addendum loaded from ~/.claude/agents/assistant.md.
+ * Assistant-specific system prompt addendum loaded from ~/.alice/agents/assistant.md.
  * Returns empty string if the file doesn't exist.
  */
 export function getAssistantSystemPromptAddendum(): string {

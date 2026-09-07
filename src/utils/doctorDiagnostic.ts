@@ -210,7 +210,7 @@ async function detectMultipleInstallations(): Promise<
   const installations: Array<{ type: string; path: string }> = []
 
   // Check for local installation
-  const localPath = join(homedir(), '.claude', 'local')
+  const localPath = join(homedir(), '.alice', 'local')
   if (await localInstallationExists()) {
     installations.push({ type: 'npm-local', path: localPath })
   }
@@ -496,13 +496,13 @@ async function detectConfigurationIssues(
         // Alias exists but points to invalid target
         warnings.push({
           issue: 'Local installation not accessible',
-          fix: `Alias exists but points to invalid target: ${existingAlias}. Update alias: alias claude="~/.claude/local/claude"`,
+          fix: `Alias exists but points to invalid target: ${existingAlias}. Update alias: alias claude="~/.alice/local/claude"`,
         })
       } else {
         // No alias exists and not in PATH
         warnings.push({
           issue: 'Local installation not accessible',
-          fix: 'Create alias: alias claude="~/.claude/local/claude"',
+          fix: 'Create alias: alias claude="~/.alice/local/claude"',
         })
       }
     }

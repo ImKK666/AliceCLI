@@ -45,7 +45,7 @@ export async function withAutonomyPersistenceLock<T>(
   fn: () => Promise<T>,
 ): Promise<T> {
   const key = resolve(rootDir)
-  const lockPath = join(key, '.claude', 'autonomy', '.lock')
+  const lockPath = join(key, '.alice', 'autonomy', '.lock')
   const previous = persistenceLocks.get(key) ?? Promise.resolve()
 
   let release!: () => void
@@ -57,7 +57,7 @@ export async function withAutonomyPersistenceLock<T>(
 
   await previous
   try {
-    await mkdir(join(key, '.claude', 'autonomy'), { recursive: true })
+    await mkdir(join(key, '.alice', 'autonomy'), { recursive: true })
     await writeFile(lockPath, '', { flag: 'a' })
     const unlock = await lock(lockPath, {
       lockfilePath: `${lockPath}.lock`,

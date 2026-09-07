@@ -33,7 +33,9 @@ import { validateKey } from '../../utils/localValidate.js'
 let _baseDirCache: { configDir: string; baseDir: string } | undefined
 function getBaseDir(): string {
   const configDir =
-    process.env['CLAUDE_CONFIG_DIR'] ?? join(homedir(), '.claude')
+    process.env['ALICE_CONFIG_DIR'] ??
+    process.env['CLAUDE_CONFIG_DIR'] ??
+    join(homedir(), '.alice')
   if (_baseDirCache && _baseDirCache.configDir === configDir) {
     return _baseDirCache.baseDir
   }

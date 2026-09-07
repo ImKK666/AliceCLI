@@ -79,7 +79,7 @@ export function getSkillLearningRoot(
   if (process.env.CLAUDE_SKILL_LEARNING_HOME) {
     return process.env.CLAUDE_SKILL_LEARNING_HOME
   }
-  return join(process.env.HOME ?? process.cwd(), '.claude', 'skill-learning')
+  return join(process.env.HOME ?? process.cwd(), '.alice', 'skill-learning')
 }
 
 export function getObservationFilePath(

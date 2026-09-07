@@ -2,16 +2,21 @@ import memoize from 'lodash-es/memoize.js'
 import { homedir } from 'os'
 import { join } from 'path'
 
-// Memoized: 150+ callers, many on hot paths. Keyed off CLAUDE_CONFIG_DIR so
+// Memoized: 150+ callers, many on hot paths. Keyed off ALICE_CONFIG_DIR/CLAUDE_CONFIG_DIR so
 // tests that change the env var get a fresh value without explicit cache.clear.
-export const getClaudeConfigHomeDir = memoize(
+export const getConfigHomeDir = memoize(
   (): string => {
     return (
-      process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), '.claude')
+      process.env.ALICE_CONFIG_DIR ??
+      process.env.CLAUDE_CONFIG_DIR ??
+      join(homedir(), '.alice')
     ).normalize('NFC')
   },
-  () => process.env.CLAUDE_CONFIG_DIR,
+  () => process.env.ALICE_CONFIG_DIR ?? process.env.CLAUDE_CONFIG_DIR,
 )
+
+// Legacy alias for backwards compatibility during migration
+export const getClaudeConfigHomeDir = getConfigHomeDir
 
 export function getTeamsDir(): string {
   return join(getClaudeConfigHomeDir(), 'teams')

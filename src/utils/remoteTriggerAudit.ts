@@ -2,7 +2,7 @@ import { mkdir, appendFile } from 'fs/promises'
 import { dirname, join } from 'path'
 import { getProjectRoot } from '../bootstrap/state.js'
 
-const REMOTE_TRIGGER_AUDIT_REL = join('.claude', 'remote-trigger-audit.jsonl')
+const REMOTE_TRIGGER_AUDIT_REL = join('.alice', 'remote-trigger-audit.jsonl')
 const MAX_AUDIT_RECORDS = 200
 
 export type RemoteTriggerAuditRecord = {

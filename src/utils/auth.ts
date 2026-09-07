@@ -84,7 +84,7 @@ const DEFAULT_API_KEY_HELPER_TTL = 5 * 60 * 1000
 
 /**
  * CCR and Claude Desktop spawn the CLI with OAuth and should never fall back
- * to the user's ~/.claude/settings.json API-key config (apiKeyHelper,
+ * to the user's ~/.alice/settings.json API-key config (apiKeyHelper,
  * env.ANTHROPIC_API_KEY, env.ANTHROPIC_AUTH_TOKEN). Those settings exist for
  * the user's terminal CLI, not managed sessions. Without this guard, a user
  * who runs `claude` in their terminal with an API key sees every CCD session
@@ -349,7 +349,7 @@ export function getAnthropicApiKeyWithSource(
 /**
  * Get the configured apiKeyHelper from settings.
  * In bare mode, only the --settings flag source is consulted — apiKeyHelper
- * from ~/.claude/settings.json or project settings is ignored.
+ * from ~/.alice/settings.json or project settings is ignored.
  */
 export function getConfiguredApiKeyHelper(): string | undefined {
   if (isBareMode()) {
@@ -712,7 +712,7 @@ export function refreshAwsAuth(awsAuthRefresh: string): Promise<boolean> {
           'AWS auth refresh timed out after 3 minutes. Run your auth command manually in a separate terminal.',
         )
       : chalk.red(
-          'Error running awsAuthRefresh (in settings or ~/.claude.json):',
+          'Error running awsAuthRefresh (in settings or ~/.alice.json):',
         )
     console.error(message)
     authStatusManager.endAuthentication(false)
@@ -787,7 +787,7 @@ async function getAwsCredsFromCredentialExport(): Promise<{
       }
     } catch (e) {
       const message = chalk.red(
-        'Error getting AWS credentials from awsCredentialExport (in settings or ~/.claude.json):',
+        'Error getting AWS credentials from awsCredentialExport (in settings or ~/.alice.json):',
       )
       if (e instanceof Error) {
         console.error(message, e.message)
@@ -1002,7 +1002,7 @@ export function refreshGcpAuth(gcpAuthRefresh: string): Promise<boolean> {
           'GCP auth refresh timed out after 3 minutes. Run your auth command manually in a separate terminal.',
         )
       : chalk.red(
-          'Error running gcpAuthRefresh (in settings or ~/.claude.json):',
+          'Error running gcpAuthRefresh (in settings or ~/.alice.json):',
         )
     console.error(message)
     authStatusManager.endAuthentication(false)
@@ -2008,7 +2008,7 @@ export async function validateForceLoginOrg(): Promise<OrgValidationResult> {
 
   // Always fetch the authoritative org UUID from the profile endpoint.
   // Even keychain-sourced tokens verify server-side: the cached org UUID
-  // in ~/.claude.json is user-writable and cannot be trusted.
+  // in ~/.alice.json is user-writable and cannot be trusted.
   const { source } = getAuthTokenSource()
   const isEnvVarToken =
     source === 'CLAUDE_CODE_OAUTH_TOKEN' ||

@@ -42,7 +42,7 @@ const MAX_WORKTREE_SLUG_LENGTH = 64
 /**
  * Validates a worktree slug to prevent path traversal and directory escape.
  *
- * The slug is joined into `.claude/worktrees/<slug>` via path.join, which
+ * The slug is joined into `.alice/worktrees/<slug>` via path.join, which
  * normalizes `..` segments — so `../../../target` would escape the worktrees
  * directory. Similarly, an absolute path (leading `/` or `C:\`) would discard
  * the prefix entirely.
@@ -193,14 +193,14 @@ const GIT_NO_PROMPT_ENV = {
 }
 
 function worktreesDir(repoRoot: string): string {
-  return join(repoRoot, '.claude', 'worktrees')
+  return join(repoRoot, '.alice', 'worktrees')
 }
 
 // Flatten nested slugs (`user/feature` → `user+feature`) for both the branch
 // name and the directory path. Nesting in either location is unsafe:
 //   - git refs: `worktree-user` (file) vs `worktree-user/feature` (needs dir)
 //     is a D/F conflict that git rejects.
-//   - directory: `.claude/worktrees/user/feature/` lives inside the `user`
+//   - directory: `.alice/worktrees/user/feature/` lives inside the `user`
 //     worktree; `git worktree remove` on the parent deletes children with
 //     uncommitted work.
 // `+` is valid in git branch names and filesystem paths but NOT in the
@@ -911,8 +911,8 @@ export async function createAgentWorktree(slug: string): Promise<{
 
   // Fall back to git worktree
   // findCanonicalGitRoot (not findGitRoot) so agent worktrees always land in
-  // the main repo's .claude/worktrees/ even when spawned from inside a session
-  // worktree — otherwise they nest at <worktree>/.claude/worktrees/ and the
+  // the main repo's .alice/worktrees/ even when spawned from inside a session
+  // worktree — otherwise they nest at <worktree>/.alice/worktrees/ and the
   // periodic cleanup (which scans the canonical root) never finds them.
   const gitRoot = findCanonicalGitRoot(getCwd())
   if (!gitRoot) {

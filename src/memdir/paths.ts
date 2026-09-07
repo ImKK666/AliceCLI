@@ -169,7 +169,7 @@ function getAutoMemPathOverride(): string | undefined {
  * Settings.json override for the full auto-memory directory path.
  * Supports ~/ expansion for user convenience.
  *
- * SECURITY: projectSettings (.claude/settings.json committed to the repo) is
+ * SECURITY: projectSettings (.alice/settings.json committed to the repo) is
  * intentionally excluded — a malicious repo could otherwise set
  * autoMemoryDirectory: "~/.ssh" and gain silent write access to sensitive
  * directories via the filesystem.ts write carve-out (which fires when

@@ -132,7 +132,7 @@ export function Doctor({ onDone }: Props): React.ReactNode {
 
     void (async () => {
       const userAgentsDir = join(getClaudeConfigHomeDir(), 'agents');
-      const projectAgentsDir = join(getOriginalCwd(), '.claude', 'agents');
+      const projectAgentsDir = join(getOriginalCwd(), '.alice', 'agents');
 
       const { activeAgents, allAgents, failedFiles } = agentDefinitions;
 

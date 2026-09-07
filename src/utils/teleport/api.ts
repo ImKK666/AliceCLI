@@ -206,7 +206,7 @@ export function isWorkspaceKeyCleared(rawValue: unknown): boolean {
  *
  * Reads the workspace API key from two sources in priority order:
  *   1. ANTHROPIC_API_KEY environment variable (takes precedence)
- *   2. workspaceApiKey field in ~/.claude.json (set via /login UI, no restart needed)
+ *   2. workspaceApiKey field in ~/.alice.json (set via /login UI, no restart needed)
  *
  * Validates the sk-ant-api03-* prefix and returns the key for use in `x-api-key` headers.
  * Configuration errors (missing or wrong-prefix key) are surfaced as thrown errors so

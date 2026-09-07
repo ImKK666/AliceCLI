@@ -22,7 +22,7 @@ export interface AccountData {
 export function getStateDir(): string {
   const dir =
     process.env.WEIXIN_STATE_DIR ||
-    join(homedir(), '.claude', 'channels', 'weixin')
+    join(homedir(), '.alice', 'channels', 'weixin')
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true })
   }

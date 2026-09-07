@@ -204,7 +204,7 @@ export const DeniedMcpServerEntrySchema = lazySchema(() =>
  *
  * ⚠️ BACKWARD COMPATIBILITY NOTICE ⚠️
  *
- * This schema defines the structure of user settings files (.claude/settings.json).
+ * This schema defines the structure of user settings files (.alice/settings.json).
  * We support backward-compatible changes! Here's how:
  *
  * ✅ ALLOWED CHANGES:
@@ -541,7 +541,7 @@ export const SettingsSchema = lazySchema(() =>
         .describe(
           'When set in managed settings, blocks non-plugin customization sources for the listed surfaces. ' +
             'Array form locks specific surfaces (e.g. ["skills", "hooks"]); `true` locks all four; `false` is an explicit no-op. ' +
-            'Blocked: ~/.claude/{surface}/, .claude/{surface}/ (project), settings.json hooks, .mcp.json. ' +
+            'Blocked: ~/.alice/{surface}/, .alice/{surface}/ (project), settings.json hooks, .mcp.json. ' +
             'NOT blocked: managed (policySettings) sources, plugin-provided customizations. ' +
             'Composes with strictKnownMarketplaces for end-to-end admin control — plugins gated by ' +
             'marketplace allowlist, everything else blocked here.',
@@ -605,7 +605,7 @@ export const SettingsSchema = lazySchema(() =>
         })
         .optional()
         .describe(
-          'Additional marketplaces to make available for this repository. Typically used in repository .claude/settings.json to ensure team members have required plugin sources.',
+          'Additional marketplaces to make available for this repository. Typically used in repository .alice/settings.json to ensure team members have required plugin sources.',
         ),
       // Enterprise strict list of allowed marketplace sources (policy settings only)
       // When set, ONLY these exact sources can be added. Check happens BEFORE download.
@@ -889,7 +889,7 @@ export const SettingsSchema = lazySchema(() =>
         .optional()
         .describe(
           'Custom directory for plan files, relative to project root. ' +
-            'If not set, defaults to ~/.claude/plans/',
+            'If not set, defaults to ~/.alice/plans/',
         ),
       ...(process.env.USER_TYPE === 'ant'
         ? {
@@ -1014,7 +1014,7 @@ export const SettingsSchema = lazySchema(() =>
         .string()
         .optional()
         .describe(
-          'Custom directory path for auto-memory storage. Supports ~/ prefix for home directory expansion. Ignored if set in projectSettings (checked-in .claude/settings.json) for security. When unset, defaults to ~/.claude/projects/<sanitized-cwd>/memory/.',
+          'Custom directory path for auto-memory storage. Supports ~/ prefix for home directory expansion. Ignored if set in projectSettings (checked-in .alice/settings.json) for security. When unset, defaults to ~/.alice/projects/<sanitized-cwd>/memory/.',
         ),
       autoDreamEnabled: z
         .boolean()
@@ -1123,10 +1123,10 @@ export const SettingsSchema = lazySchema(() =>
         .array(z.string())
         .optional()
         .describe(
-          'Glob patterns or absolute paths of CLAUDE.md files to exclude from loading. ' +
+          'Glob patterns or absolute paths of ALICE.md files to exclude from loading. ' +
             'Patterns are matched against absolute file paths using picomatch. ' +
             'Only applies to User, Project, and Local memory types (Managed/policy files cannot be excluded). ' +
-            'Examples: "/home/user/monorepo/CLAUDE.md", "**/code/CLAUDE.md", "**/some-dir/.claude/rules/**"',
+            'Examples: "/home/user/monorepo/ALICE.md", "**/code/ALICE.md", "**/some-dir/.alice/rules/**"',
         ),
       cacheThreshold: z
         .number()
@@ -1155,7 +1155,7 @@ export const SettingsSchema = lazySchema(() =>
       /**
        * Workspace API key stored in settings.json for /login UI convenience.
        *
-       * ⚠️ SECURITY NOTICE: stored in plaintext in ~/.claude.json — ensure this
+       * ⚠️ SECURITY NOTICE: stored in plaintext in ~/.alice.json — ensure this
        * file is gitignored and has restricted permissions (chmod 600 on POSIX).
        * Use ANTHROPIC_API_KEY env var in CI/CD or shared environments instead.
        *

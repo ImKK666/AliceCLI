@@ -239,17 +239,21 @@ export function convertToSandboxRuntimeConfig(
   const cwd = getCwdState()
   const originalCwd = getOriginalCwd()
   if (cwd !== originalCwd) {
+    denyWrite.push(resolve(cwd, '.alice', 'settings.json'))
+    denyWrite.push(resolve(cwd, '.alice', 'settings.local.json'))
     denyWrite.push(resolve(cwd, '.claude', 'settings.json'))
     denyWrite.push(resolve(cwd, '.claude', 'settings.local.json'))
   }
 
-  // Block writes to .claude/skills in both original and current working directories.
-  // The sandbox-runtime's getDangerousDirectories() protects .claude/commands and
-  // .claude/agents but not .claude/skills. Skills have the same privilege level
+  // Block writes to .alice/skills (and legacy .claude/skills) in both original and current working directories.
+  // The sandbox-runtime's getDangerousDirectories() protects .alice/commands and
+  // .alice/agents but not .alice/skills. Skills have the same privilege level
   // (auto-discovered, auto-loaded, full Claude capabilities) so they need the
   // same OS-level sandbox protection.
+  denyWrite.push(resolve(originalCwd, '.alice', 'skills'))
   denyWrite.push(resolve(originalCwd, '.claude', 'skills'))
   if (cwd !== originalCwd) {
+    denyWrite.push(resolve(cwd, '.alice', 'skills'))
     denyWrite.push(resolve(cwd, '.claude', 'skills'))
   }
 

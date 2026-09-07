@@ -6,7 +6,7 @@ import { getClaudeConfigHomeDir } from '../utils/envUtils.js'
 import {
   getProjectDirsUpToHome,
   extractDescriptionFromMarkdown,
-  type ClaudeConfigDirectory,
+  type ConfigDirectory,
 } from '../utils/markdownConfigLoader.js'
 
 export interface TemplateInfo {
@@ -23,7 +23,7 @@ export interface TemplateInfo {
  */
 function getTemplatesDirs(): string[] {
   const projectDirs = getProjectDirsUpToHome(
-    'templates' as ClaudeConfigDirectory,
+    'templates' as ConfigDirectory,
     process.cwd(),
   )
 

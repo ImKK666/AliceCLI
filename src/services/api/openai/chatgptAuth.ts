@@ -45,7 +45,9 @@ function authFilePath(): string {
 
 function getClaudeConfigHomeDirLocal(): string {
   return (
-    process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), '.claude')
+    process.env.ALICE_CONFIG_DIR ??
+    process.env.CLAUDE_CONFIG_DIR ??
+    join(homedir(), '.alice')
   ).normalize('NFC')
 }
 

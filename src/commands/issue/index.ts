@@ -369,7 +369,7 @@ const issue: Command = {
             fullBodyText.slice(0, MAX_URL_BODY) +
             '\n\n... (truncated, see CLI for full body)'
           try {
-            const draftsDir = join(homedir(), '.claude', 'issue-drafts')
+            const draftsDir = join(homedir(), '.alice', 'issue-drafts')
             mkdirSync(draftsDir, { recursive: true })
             const stamp = new Date().toISOString().replace(/[:.]/g, '-')
             draftPath = join(draftsDir, `issue-${stamp}.md`)

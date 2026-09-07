@@ -64,6 +64,7 @@ export const DANGEROUS_FILES = [
   '.profile',
   '.ripgreprc',
   '.mcp.json',
+  '.alice.json',
   '.claude.json',
 ] as const
 
@@ -75,6 +76,7 @@ export const DANGEROUS_DIRECTORIES = [
   '.git',
   '.vscode',
   '.idea',
+  '.alice',
   '.claude',
 ] as const
 
@@ -105,6 +107,15 @@ export function getClaudeSkillScope(
   const absolutePathLower = normalizeCaseForComparison(absolutePath)
 
   const bases = [
+    {
+      dir: expandPath(join(getOriginalCwd(), '.alice', 'skills')),
+      prefix: '/.alice/skills/',
+    },
+    {
+      dir: expandPath(join(homedir(), '.alice', 'skills')),
+      prefix: '~/.alice/skills/',
+    },
+    // Legacy fallback
     {
       dir: expandPath(join(getOriginalCwd(), '.claude', 'skills')),
       prefix: '/.claude/skills/',
@@ -208,6 +219,8 @@ export function isClaudeSettingsPath(filePath: string): boolean {
 
   // Use platform separator so endsWith checks work on both Unix (/) and Windows (\)
   if (
+    normalizedPath.endsWith(`${sep}.alice${sep}settings.json`) ||
+    normalizedPath.endsWith(`${sep}.alice${sep}settings.local.json`) ||
     normalizedPath.endsWith(`${sep}.claude${sep}settings.json`) ||
     normalizedPath.endsWith(`${sep}.claude${sep}settings.local.json`)
   ) {
@@ -227,17 +240,23 @@ function isClaudeConfigFilePath(filePath: string): boolean {
     return true
   }
 
-  // Check if file is within .claude/commands or .claude/agents directories
+  // Check if file is within .alice/commands or .alice/agents directories (and legacy .claude/ equivalents)
   // using proper path segment validation (not string matching with includes())
   // pathInWorkingPath now handles case-insensitive comparison to prevent bypasses
-  const commandsDir = join(getOriginalCwd(), '.claude', 'commands')
-  const agentsDir = join(getOriginalCwd(), '.claude', 'agents')
-  const skillsDir = join(getOriginalCwd(), '.claude', 'skills')
+  const commandsDir = join(getOriginalCwd(), '.alice', 'commands')
+  const agentsDir = join(getOriginalCwd(), '.alice', 'agents')
+  const skillsDir = join(getOriginalCwd(), '.alice', 'skills')
+  const legacyCommandsDir = join(getOriginalCwd(), '.claude', 'commands')
+  const legacyAgentsDir = join(getOriginalCwd(), '.claude', 'agents')
+  const legacySkillsDir = join(getOriginalCwd(), '.claude', 'skills')
 
   return (
     pathInWorkingPath(filePath, commandsDir) ||
     pathInWorkingPath(filePath, agentsDir) ||
-    pathInWorkingPath(filePath, skillsDir)
+    pathInWorkingPath(filePath, skillsDir) ||
+    pathInWorkingPath(filePath, legacyCommandsDir) ||
+    pathInWorkingPath(filePath, legacyAgentsDir) ||
+    pathInWorkingPath(filePath, legacySkillsDir)
   )
 }
 
@@ -453,17 +472,17 @@ function isDangerousFilePathToAutoEdit(path: string): boolean {
         continue
       }
 
-      // Special case: .claude/worktrees/ is a structural path (where Claude stores
-      // git worktrees), not a user-created dangerous directory. Skip the .claude
-      // segment when it's followed by 'worktrees'. Any nested .claude directories
-      // within the worktree (not followed by 'worktrees') are still blocked.
-      if (dir === '.claude') {
+      // Special case: .alice/worktrees/ (and legacy .claude/worktrees/) is a structural
+      // path (where Alice stores git worktrees), not a user-created dangerous directory.
+      // Skip the directory segment when it's followed by 'worktrees'. Any nested
+      // directories within the worktree (not followed by 'worktrees') are still blocked.
+      if (dir === '.alice' || dir === '.claude') {
         const nextSegment = pathSegments[i + 1]
         if (
           nextSegment &&
           normalizeCaseForComparison(nextSegment) === 'worktrees'
         ) {
-          break // Skip this .claude, continue checking other segments
+          break // Skip this directory, continue checking other segments
         }
       }
 
@@ -1594,7 +1613,7 @@ export function checkEditableInternalPath(
   // .claude/ only (not ~/.claude/) since launch.json is per-project.
   if (
     normalizeCaseForComparison(normalizedPath) ===
-    normalizeCaseForComparison(join(getOriginalCwd(), '.claude', 'launch.json'))
+    normalizeCaseForComparison(join(getOriginalCwd(), '.alice', 'launch.json'))
   ) {
     return {
       behavior: 'allow',

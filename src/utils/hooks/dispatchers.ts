@@ -1024,8 +1024,8 @@ export function hasInstructionsLoadedHook(): boolean {
 }
 
 /**
- * Execute InstructionsLoaded hooks when an instruction file (CLAUDE.md or
- * .claude/rules/*.md) is loaded into context. Fire-and-forget.
+ * Execute InstructionsLoaded hooks when an instruction file (ALICE.md or
+ * .alice/rules/*.md) is loaded into context. Fire-and-forget.
  */
 export async function executeInstructionsLoadedHooks(
   filePath: string,

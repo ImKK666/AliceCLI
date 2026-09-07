@@ -1,7 +1,7 @@
 /**
  * UDS Client — connect to peer Alice CLI sessions via Unix Domain Sockets.
  *
- * Peers are discovered by reading the PID-file registry in ~/.claude/sessions/
+ * Peers are discovered by reading the PID-file registry in ~/.alice/sessions/
  * (written by concurrentSessions.ts) and checking each entry's
  * `messagingSocketPath` field. A peer is "alive" if its PID is running and
  * its socket accepts a ping/pong round-trip.

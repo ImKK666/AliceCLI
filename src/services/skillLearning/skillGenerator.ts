@@ -167,7 +167,7 @@ export function getLearnedSkillPath(
 ): string {
   if (options?.outputRoot) return join(options.outputRoot, name)
   if (scope === 'project') {
-    return join(options?.cwd ?? process.cwd(), '.claude', 'skills', name)
+    return join(options?.cwd ?? process.cwd(), '.alice', 'skills', name)
   }
   return join(
     options?.globalSkillsDir ?? join(getClaudeConfigHomeDir(), 'skills'),

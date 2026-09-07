@@ -7,7 +7,7 @@
  *    prompts and receiving streamed AI output back.
  *
  * Each CLI auto-creates a PipeServer at:
- *   ~/.claude/pipes/{session-short-id}.sock
+ *   ~/.alice/pipes/{session-short-id}.sock
  *
  * Protocol: newline-delimited JSON (NDJSON), one message per line.
  */

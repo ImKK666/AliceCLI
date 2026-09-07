@@ -3,10 +3,10 @@ import { join } from 'path'
 import { findGitRoot } from '../utils/git.js'
 
 /**
- * `claude up` — run the "# claude up" section from the nearest CLAUDE.md.
+ * `claude up` — run the "# claude up" section from the nearest ALICE.md (or CLAUDE.md).
  *
- * Walks up from CWD looking for CLAUDE.md files, extracts the section
- * under the `# claude up` heading, and executes it as a shell script.
+ * Walks up from CWD looking for ALICE.md files (falling back to CLAUDE.md),
+ * extracts the section under the `# claude up` heading, and executes it as a shell script.
  *
  * ANT-only command (USER_TYPE === "ant").
  */
@@ -18,22 +18,26 @@ export async function up(): Promise<void> {
   let upSection: string | null = null
 
   for (const dir of searchDirs) {
-    const claudeMdPath = join(dir, 'CLAUDE.md')
-    try {
-      const content = readFileSync(claudeMdPath, 'utf-8')
-      upSection = extractUpSection(content)
-      if (upSection) {
-        console.log(`Found "# claude up" in ${claudeMdPath}`)
-        break
+    // Try ALICE.md first, then fall back to CLAUDE.md
+    for (const filename of ['ALICE.md', 'CLAUDE.md']) {
+      const mdPath = join(dir, filename)
+      try {
+        const content = readFileSync(mdPath, 'utf-8')
+        upSection = extractUpSection(content)
+        if (upSection) {
+          console.log(`Found "# claude up" in ${mdPath}`)
+          break
+        }
+      } catch {
+        // File not found — continue searching
       }
-    } catch {
-      // File not found — continue searching
     }
+    if (upSection) break
   }
 
   if (!upSection) {
     console.log(
-      'No "# claude up" section found in CLAUDE.md.\n' +
+      'No "# claude up" section found in ALICE.md.\n' +
         'Add a section like:\n\n' +
         '  # claude up\n' +
         '  ```bash\n' +

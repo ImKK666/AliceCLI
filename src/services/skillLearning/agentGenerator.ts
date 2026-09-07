@@ -76,7 +76,7 @@ export function getLearnedAgentPath(
 ): string {
   if (options?.outputRoot) return options.outputRoot
   if (scope === 'project') {
-    return join(options?.cwd ?? process.cwd(), '.claude', 'agents')
+    return join(options?.cwd ?? process.cwd(), '.alice', 'agents')
   }
   return options?.globalAgentsDir ?? join(getClaudeConfigHomeDir(), 'agents')
 }

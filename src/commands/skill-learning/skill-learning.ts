@@ -84,7 +84,7 @@ export const call: LocalCommandCall = async (
       if (generate) {
         for (const draft of drafts) {
           const roots = [
-            join(process.cwd(), '.claude', 'skills'),
+            join(process.cwd(), '.alice', 'skills'),
             join(getClaudeConfigHomeDir(), 'skills'),
           ]
           const existing = await compareExistingSkills(draft, roots)

@@ -205,7 +205,7 @@ async function autoEvolveLearnedSkills(options: {
   const cwd = process.cwd()
 
   const skillRoots = [
-    join(cwd, '.claude', 'skills'),
+    join(cwd, '.alice', 'skills'),
     join(getClaudeConfigHomeDir(), 'skills'),
   ]
   const skillClusters = clusterInstincts(instincts).filter(
@@ -230,7 +230,7 @@ async function autoEvolveLearnedSkills(options: {
   const commandDrafts = generateCommandCandidates(instincts, { cwd })
   for (const draft of commandDrafts) {
     const roots = [
-      join(cwd, '.claude', 'commands'),
+      join(cwd, '.alice', 'commands'),
       join(getClaudeConfigHomeDir(), 'commands'),
     ]
     const existing = await compareExistingArtifacts('command', draft, roots)
@@ -241,7 +241,7 @@ async function autoEvolveLearnedSkills(options: {
   const agentDrafts = generateAgentCandidates(instincts, { cwd })
   for (const draft of agentDrafts) {
     const roots = [
-      join(cwd, '.claude', 'agents'),
+      join(cwd, '.alice', 'agents'),
       join(getClaudeConfigHomeDir(), 'agents'),
     ]
     const existing = await compareExistingArtifacts('agent', draft, roots)

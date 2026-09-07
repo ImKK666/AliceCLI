@@ -147,7 +147,7 @@ export const callOnboarding: LocalJSXCommandCall = async (onDone, _context, args
         '  - `claude mcp add <name> <command>` — add a server (in your shell)\n' +
         '  - `claude mcp remove <name>` — remove a server\n' +
         'Servers also load from `.mcp.json` in the workspace and from ' +
-        '`~/.claude.json` globally.',
+        '`~/.alice.json` globally.',
       { display: 'system' },
     );
     return null;

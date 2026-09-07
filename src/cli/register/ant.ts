@@ -9,11 +9,11 @@ type RegisterHelpers = {
 export function register(program: Command, _helpers: RegisterHelpers): void {
   if (process.env.USER_TYPE !== 'ant') return
 
-  // claude up — run the project's CLAUDE.md "# claude up" setup instructions.
+  // claude up — run the project's ALICE.md "# claude up" setup instructions.
   program
     .command('up')
     .description(
-      '[ANT-ONLY] Initialize or upgrade the local dev environment using the "# claude up" section of the nearest CLAUDE.md',
+      '[ANT-ONLY] Initialize or upgrade the local dev environment using the "# claude up" section of the nearest ALICE.md',
     )
     .action(async () => {
       const { up } = await import('src/cli/up.js')

@@ -23,7 +23,7 @@ const KEEP_MAX_RUNS = 50
  * Tests monkey-patch this function to point at a tmpdir.
  */
 export function getRunsDir(): string {
-  return join(getProjectRoot(), '.claude', 'workflow-runs')
+  return join(getProjectRoot(), '.alice', 'workflow-runs')
 }
 
 type StateFile = {

@@ -210,7 +210,7 @@ export async function applySkillImprovement(
 
   const { join } = await import('path')
   // Skills live at .claude/skills/<name>/SKILL.md relative to CWD
-  const filePath = join(getCwd(), '.claude', 'skills', skillName, 'SKILL.md')
+  const filePath = join(getCwd(), '.alice', 'skills', skillName, 'SKILL.md')
 
   let currentContent: string
   try {

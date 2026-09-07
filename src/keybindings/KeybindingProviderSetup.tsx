@@ -36,7 +36,7 @@ type Props = {
  *
  * Features:
  * - Loads default bindings from code
- * - Merges with user bindings from ~/.claude/keybindings.json
+ * - Merges with user bindings from ~/.alice/keybindings.json
  * - Watches for file changes and reloads automatically (hot-reload)
  * - User bindings override defaults (later entries win)
  * - Chord support with automatic timeout

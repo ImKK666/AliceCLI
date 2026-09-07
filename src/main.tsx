@@ -548,7 +548,7 @@ export async function main() {
       }
       // Forward session-resume + model flags to the remote CLI's initial spawn.
       // --continue/-c and --resume <uuid> operate on the REMOTE session history
-      // (which persists under the remote's ~/.claude/projects/<cwd>/).
+      // (which persists under the remote's ~/.alice/projects/<cwd>/).
       // --model controls which model the remote uses.
       const extractFlag = (flag: string, opts: { hasValue?: boolean; as?: string } = {}) => {
         const i = rawCliArgs.indexOf(flag);

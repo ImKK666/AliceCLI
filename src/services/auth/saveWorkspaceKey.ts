@@ -31,7 +31,7 @@ const MAX_KEY_LENGTH = 256
 // ---------------------------------------------------------------------------
 
 /**
- * Validates and saves a workspace API key to ~/.claude.json.
+ * Validates and saves a workspace API key to ~/.alice.json.
  *
  * The write is performed via saveGlobalConfig so the in-process cache is
  * updated immediately — no restart needed.
@@ -114,7 +114,7 @@ export async function removeWorkspaceKey(): Promise<void> {
 /**
  * Returns the effective workspace API key from the two-source chain:
  *   1. ANTHROPIC_API_KEY env var (takes precedence)
- *   2. workspaceApiKey from ~/.claude.json
+ *   2. workspaceApiKey from ~/.alice.json
  *
  * Returns undefined when neither is set.
  */
