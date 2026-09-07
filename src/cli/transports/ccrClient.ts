@@ -7,7 +7,7 @@ import { decodeJwtExpiry } from '../../bridge/jwtUtils.js'
 import { logForDebugging } from '../../utils/debug.js'
 import { logForDiagnosticsNoPII } from '../../utils/diagLogs.js'
 import { errorMessage, getErrnoCode } from '../../utils/errors.js'
-import { createAxiosInstance } from '../../utils/proxy.js'
+import { http } from '../../utils/http.js'
 import {
   registerSessionActivityCallback,
   unregisterSessionActivityCallback,
@@ -276,7 +276,6 @@ export class CCRClient {
   private currentState: SessionState | null = null
   private readonly sessionBaseUrl: string
   private readonly sessionId: string
-  private readonly http = createAxiosInstance({ keepAlive: true })
 
   // stream_event delay buffer — accumulates content deltas for up to
   // STREAM_EVENT_FLUSH_INTERVAL_MS before enqueueing (reduces POST count
@@ -571,7 +570,7 @@ export class CCRClient {
     if (Object.keys(authHeaders).length === 0) return { ok: false }
 
     try {
-      const response = await this.http[method](
+      const response = await (http as Record<string, Function>)[method](
         `${this.sessionBaseUrl}${path}`,
         body,
         {
@@ -924,7 +923,7 @@ export class CCRClient {
     for (let attempt = 1; attempt <= 10; attempt++) {
       let response
       try {
-        response = await this.http.get<T>(url, {
+        response = await http.get<T>(url, {
           headers: {
             ...authHeaders,
             'anthropic-version': '2023-06-01',

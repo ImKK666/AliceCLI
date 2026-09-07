@@ -2,7 +2,6 @@
 // dynamically in getAWSClientProxyConfig() to defer ~929KB of AWS SDK.
 // undici is lazy-required inside getProxyAgent/configureGlobalAgents to defer
 // ~1.5MB when no HTTPS_PROXY/mTLS env vars are set (the common case).
-import axios, { type AxiosInstance } from 'axios'
 import type { LookupOptions } from 'dns'
 import type { Agent } from 'http'
 import { HttpsProxyAgent, type HttpsProxyAgentOptions } from 'https-proxy-agent'
@@ -161,37 +160,6 @@ function createHttpsProxyAgent(
 }
 
 /**
- * Axios instance with its own proxy agent. Same NO_PROXY/mTLS/CA
- * resolution as the global interceptor, but agent options stay
- * scoped to this instance.
- */
-export function createAxiosInstance(
-  extra: HttpsProxyAgentOptions<string> = {},
-): AxiosInstance {
-  const proxyUrl = getProxyUrl()
-  const mtlsAgent = getMTLSAgent()
-  const instance = axios.create({ proxy: false })
-
-  if (!proxyUrl) {
-    if (mtlsAgent) instance.defaults.httpsAgent = mtlsAgent
-    return instance
-  }
-
-  const proxyAgent = createHttpsProxyAgent(proxyUrl, extra)
-  instance.interceptors.request.use(config => {
-    if (config.url && shouldBypassProxy(config.url)) {
-      config.httpsAgent = mtlsAgent
-      config.httpAgent = mtlsAgent
-    } else {
-      config.httpsAgent = proxyAgent
-      config.httpAgent = proxyAgent
-    }
-    return config
-  })
-  return instance
-}
-
-/**
  * Get or create a memoized proxy agent for the given URI
  * Now respects NO_PROXY environment variable
  */
@@ -319,64 +287,21 @@ export function getProxyFetchOptions(opts?: { forAnthropicAPI?: boolean }): {
 }
 
 /**
- * Configure global HTTP agents for both axios and undici
- * This ensures all HTTP requests use the proxy and/or mTLS if configured
+ * Configure global HTTP agents for undici (Node.js fetch).
+ * Bun's native fetch respects HTTP_PROXY/HTTPS_PROXY/NO_PROXY env vars
+ * and supports TLS options via getProxyFetchOptions(). This function
+ * only affects the undici global dispatcher for Node.js compatibility.
  */
-let proxyInterceptorId: number | undefined
-
 export function configureGlobalAgents(): void {
   const proxyUrl = getProxyUrl()
-  const mtlsAgent = getMTLSAgent()
-
-  // Eject previous interceptor to avoid stacking on repeated calls
-  if (proxyInterceptorId !== undefined) {
-    axios.interceptors.request.eject(proxyInterceptorId)
-    proxyInterceptorId = undefined
-  }
-
-  // Reset proxy-related defaults so reconfiguration is clean
-  axios.defaults.proxy = undefined
-  axios.defaults.httpAgent = undefined
-  axios.defaults.httpsAgent = undefined
 
   if (proxyUrl) {
-    // workaround for https://github.com/axios/axios/issues/4531
-    axios.defaults.proxy = false
-
-    // Create proxy agent with mTLS options if available
-    const proxyAgent = createHttpsProxyAgent(proxyUrl)
-
-    // Add axios request interceptor to handle NO_PROXY
-    proxyInterceptorId = axios.interceptors.request.use(config => {
-      // Check if URL should bypass proxy based on NO_PROXY
-      if (config.url && shouldBypassProxy(config.url)) {
-        // Bypass proxy - use mTLS agent if configured, otherwise undefined
-        if (mtlsAgent) {
-          config.httpsAgent = mtlsAgent
-          config.httpAgent = mtlsAgent
-        } else {
-          // Remove any proxy agents to use direct connection
-          delete config.httpsAgent
-          delete config.httpAgent
-        }
-      } else {
-        // Use proxy agent
-        config.httpsAgent = proxyAgent
-        config.httpAgent = proxyAgent
-      }
-      return config
-    })
-
-    // Set global dispatcher that now respects NO_PROXY via EnvHttpProxyAgent
+    // Set global dispatcher that respects NO_PROXY via EnvHttpProxyAgent
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     ;(require('undici') as typeof undici).setGlobalDispatcher(
       getProxyAgent(proxyUrl),
     )
-  } else if (mtlsAgent) {
-    // No proxy but mTLS is configured
-    axios.defaults.httpsAgent = mtlsAgent
-
-    // Set undici global dispatcher with mTLS
+  } else {
     const mtlsOptions = getTLSFetchOptions()
     if (mtlsOptions.dispatcher) {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
