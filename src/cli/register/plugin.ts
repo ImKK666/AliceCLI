@@ -18,7 +18,7 @@ export function register(program: Command, helpers: RegisterHelpers): void {
   const pluginCmd = program
     .command('plugin')
     .alias('plugins')
-    .description('Manage Claude Code plugins')
+    .description('Manage Alice CLI plugins')
     .configureHelp(helpers.createSortedHelpConfig())
 
   pluginCmd
@@ -58,7 +58,7 @@ export function register(program: Command, helpers: RegisterHelpers): void {
   // Marketplace subcommands
   const marketplaceCmd = pluginCmd
     .command('marketplace')
-    .description('Manage Claude Code marketplaces')
+    .description('Manage Alice CLI marketplaces')
     .configureHelp(helpers.createSortedHelpConfig())
 
   marketplaceCmd

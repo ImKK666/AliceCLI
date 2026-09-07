@@ -27,7 +27,7 @@ function kebabCase(name: string): string {
 
 /**
  * Extracts YAML frontmatter and Markdown body from a string.
- * Expects the format used by Claude Code SKILL.md, OpenCode agents,
+ * Expects the format used by Alice CLI SKILL.md, OpenCode agents,
  * and Cursor rules: `---` delimited YAML followed by Markdown content.
  *
  * @throws {Error} If the string does not contain valid `---` delimiters.

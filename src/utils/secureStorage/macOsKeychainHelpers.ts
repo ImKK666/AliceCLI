@@ -36,6 +36,22 @@ export function getMacOsKeychainStorageServiceName(
   const dirHash = isDefaultDir
     ? ''
     : `-${new Bun.CryptoHasher('sha256').update(configDir).digest('hex').substring(0, 8)}`
+  return `Alice CLI${getOauthConfig().OAUTH_FILE_SUFFIX}${serviceSuffix}${dirHash}`
+}
+
+/**
+ * Legacy service name for keychain migration. When Alice CLI was previously
+ * "Claude Code", credentials were stored under this prefix. On read, we
+ * fall back to this name and migrate entries forward.
+ */
+export function getLegacyKeychainServiceName(
+  serviceSuffix: string = '',
+): string {
+  const configDir = getClaudeConfigHomeDir()
+  const isDefaultDir = !process.env.CLAUDE_CONFIG_DIR
+  const dirHash = isDefaultDir
+    ? ''
+    : `-${new Bun.CryptoHasher('sha256').update(configDir).digest('hex').substring(0, 8)}`
   return `Claude Code${getOauthConfig().OAUTH_FILE_SUFFIX}${serviceSuffix}${dirHash}`
 }
 

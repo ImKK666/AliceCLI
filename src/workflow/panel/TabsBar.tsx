@@ -43,11 +43,11 @@ export function TabsBar({ runs, activeRunId }: { runs: RunProgress[]; activeRunI
             <Box>
               <Text color={RUN_STATUS_COLOR[r.status] as keyof Theme}>{STATUS_DOT[r.status]}</Text>
               <Text> </Text>
-              <Text color={active ? 'claude' : undefined} bold={active}>
+              <Text color={active ? 'alice' : undefined} bold={active}>
                 {label}
               </Text>
             </Box>
-            <Text color={active ? 'claude' : undefined}>{active ? underline : ''}</Text>
+            <Text color={active ? 'alice' : undefined}>{active ? underline : ''}</Text>
           </Box>
         );
       })}

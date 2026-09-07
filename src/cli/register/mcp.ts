@@ -16,7 +16,7 @@ export function register(program: Command, helpers: RegisterHelpers): void {
 
   mcp
     .command('serve')
-    .description(`Start the Claude Code MCP server`)
+    .description(`Start the Alice CLI MCP server`)
     .option('-d, --debug', 'Enable debug mode', () => true)
     .option(
       '--verbose',

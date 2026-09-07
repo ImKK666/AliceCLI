@@ -38,7 +38,7 @@ const DEFAULT_DIALOG = {
   dialogPipeline: 'Plan → Edit → Execute',
   usageBlurb: [
     'Remote plan mode with rich web editing experience.',
-    'Runs in Claude Code on the web. When the plan is ready,',
+    'Runs in Alice CLI on the web. When the plan is ready,',
     'you can execute it in the web session or send it back here.',
     'You can continue to work while the plan is generated remotely.',
   ],
@@ -54,7 +54,7 @@ export const DIALOG_CONFIG = {
     dialogPipeline: 'Scope → Critique → Edit → Execute',
     usageBlurb: [
       'Advanced multi-agent plan mode.',
-      'Runs in Claude Code on the web. When the plan is ready,',
+      'Runs in Alice CLI on the web. When the plan is ready,',
       'you can execute it in the web session or send it back here.',
       'You can continue to work while the plan is generated remotely.',
     ],

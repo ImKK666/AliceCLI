@@ -1,5 +1,5 @@
 /**
- * `claude rollback [target]` — roll back to a previous Claude Code version.
+ * `claude rollback [target]` — roll back to a previous Alice CLI version.
  *
  * ANT-only command (USER_TYPE === "ant").
  *
@@ -15,7 +15,7 @@ export async function rollback(
   if (options?.list) {
     console.log('Recent versions:')
     console.log('  (version listing requires access to the release registry)')
-    console.log('  Use `claude update --list` for available versions.')
+    console.log('  Use `alice update --list` for available versions.')
     return
   }
 
@@ -32,15 +32,15 @@ export async function rollback(
 
   if (!target) {
     console.error(
-      'Usage: claude rollback [target]\n\n' +
+      'Usage: alice rollback [target]\n\n' +
         'Options:\n' +
         '  -l, --list     List recent published versions\n' +
         '  --dry-run      Show what would be installed\n' +
         '  --safe         Roll back to server-pinned safe version\n\n' +
         'Examples:\n' +
-        '  claude rollback 2.1.880\n' +
-        '  claude rollback --list\n' +
-        '  claude rollback --safe',
+        '  alice rollback 2.1.880\n' +
+        '  alice rollback --list\n' +
+        '  alice rollback --safe',
     )
     process.exitCode = 1
     return

@@ -214,7 +214,7 @@ export function WorkflowsPanel({
   const elapsed = focused ? Date.now() - focused.startedAt : 0;
 
   return (
-    <Box ref={clockRef} flexDirection="column" borderStyle="round" borderColor="claude" paddingX={1}>
+    <Box ref={clockRef} flexDirection="column" borderStyle="round" borderColor="alice" paddingX={1}>
       <Box justifyContent="space-between">
         <Text bold>{focused?.workflowName ?? 'Workflows'}</Text>
         {focused ? (
@@ -238,7 +238,7 @@ export function WorkflowsPanel({
 
       <Box flexDirection="row" marginTop={1}>
         <Box width="25%" flexDirection="column">
-          <Text color={focusColumn === 'phases' ? 'claude' : 'subtle'} bold>
+          <Text color={focusColumn === 'phases' ? 'alice' : 'subtle'} bold>
             Phases
           </Text>
           <PhaseSidebar
@@ -250,7 +250,7 @@ export function WorkflowsPanel({
         </Box>
         <Text color="subtle">│</Text>
         <Box flexGrow={1} flexDirection="column">
-          <Text color={focusColumn === 'agents' ? 'claude' : 'subtle'} bold>
+          <Text color={focusColumn === 'agents' ? 'alice' : 'subtle'} bold>
             {phaseHeader} · {visibleAgents.length} agents
           </Text>
           <AgentList agents={visibleAgents} selectedIndex={clampedAgent} focused={focusColumn === 'agents'} />

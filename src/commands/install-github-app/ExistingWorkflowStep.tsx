@@ -39,7 +39,7 @@ export function ExistingWorkflowStep({ repoName, onSelectAction }: ExistingWorkf
 
       <Box flexDirection="column" marginBottom={1}>
         <Text>
-          A Claude workflow file already exists at <Text color="claude">.github/workflows/claude.yml</Text>
+          A Claude workflow file already exists at <Text color="alice">.github/workflows/claude.yml</Text>
         </Text>
         <Text dimColor>What would you like to do?</Text>
       </Box>
@@ -51,7 +51,7 @@ export function ExistingWorkflowStep({ repoName, onSelectAction }: ExistingWorkf
       <Box marginTop={1}>
         <Text dimColor>
           View the latest workflow template at:{' '}
-          <Text color="claude">https://github.com/anthropics/claude-code-action/blob/main/examples/claude.yml</Text>
+          <Text color="alice">https://github.com/anthropics/claude-code-action/blob/main/examples/claude.yml</Text>
         </Text>
       </Box>
     </Box>

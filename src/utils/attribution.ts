@@ -64,7 +64,7 @@ export function getAttributionTexts(): AttributionTexts {
 
   const modelName = getRealModelName()
   const email = getAttributionEmail(modelName)
-  const defaultAttribution = `🤖 Generated with [Claude Code Best](${PRODUCT_URL})`
+  const defaultAttribution = `🤖 Generated with [Alice CLI](${PRODUCT_URL})`
   const defaultCommit = `Co-Authored-By: ${modelName} <${email}>`
 
   const settings = getInitialSettings()
@@ -272,7 +272,7 @@ async function getTranscriptStats(): Promise<{
 /**
  * Get enhanced PR attribution text with Claude contribution stats.
  *
- * Format: "🤖 Generated with Claude Code (93% 3-shotted by claude-opus-4-5)"
+ * Format: "🤖 Generated with Alice CLI (93% 3-shotted by claude-opus-4-5)"
  *
  * Rules:
  * - Shows Claude contribution percentage from commit attribution
@@ -313,7 +313,7 @@ export async function getEnhancedPRAttribution(
     return ''
   }
 
-  const defaultAttribution = `🤖 Generated with [Claude Code](${PRODUCT_URL})`
+  const defaultAttribution = `🤖 Generated with [Alice CLI](${PRODUCT_URL})`
 
   // Get AppState first
   const appState = getAppState()
@@ -351,12 +351,12 @@ export async function getEnhancedPRAttribution(
     return defaultAttribution
   }
 
-  // Build the enhanced attribution: "🤖 Generated with Claude Code (93% 3-shotted by claude-opus-4-5, 2 memories recalled)"
+  // Build the enhanced attribution: "🤖 Generated with Alice CLI (93% 3-shotted by claude-opus-4-5, 2 memories recalled)"
   const memSuffix =
     memoryAccessCount > 0
       ? `, ${memoryAccessCount} ${memoryAccessCount === 1 ? 'memory' : 'memories'} recalled`
       : ''
-  const summary = `🤖 Generated with [Claude Code Best](${PRODUCT_URL}) (${claudePercent}% ${promptCount}-shotted by ${realModelName}${memSuffix})`
+  const summary = `🤖 Generated with [Alice CLI](${PRODUCT_URL}) (${claudePercent}% ${promptCount}-shotted by ${realModelName}${memSuffix})`
 
   // Append trailer lines for squash-merge survival. Only for allowlisted repos
   // (INTERNAL_MODEL_REPOS) and only in builds with COMMIT_ATTRIBUTION enabled —

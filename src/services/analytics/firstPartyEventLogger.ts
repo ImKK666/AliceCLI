@@ -383,7 +383,7 @@ export function initialize1PEventLogging(): void {
   // because logs.getLogger() returns a logger from the global provider, which is
   // separate and used for customer telemetry.
   firstPartyEventLogger = firstPartyEventLoggerProvider.getLogger(
-    'com.anthropic.claude_code.events',
+    'com.alice.alice_cli.events',
     MACRO.VERSION,
   )
 }

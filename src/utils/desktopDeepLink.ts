@@ -29,11 +29,11 @@ function isDevMode(): boolean {
 
 /**
  * Builds a deep link URL for Claude Desktop to resume a CLI session.
- * Format: claude://resume?session={sessionId}&cwd={cwd}
- * In dev mode: claude-dev://resume?session={sessionId}&cwd={cwd}
+ * Format: alice://resume?session={sessionId}&cwd={cwd}
+ * In dev mode: alice-dev://resume?session={sessionId}&cwd={cwd}
  */
 function buildDesktopDeepLink(sessionId: string): string {
-  const protocol = isDevMode() ? 'claude-dev' : 'claude'
+  const protocol = isDevMode() ? 'alice-dev' : 'alice'
   const url = new URL(`${protocol}://resume`)
   url.searchParams.set('session', sessionId)
   url.searchParams.set('cwd', getCwd())
@@ -43,7 +43,7 @@ function buildDesktopDeepLink(sessionId: string): string {
 /**
  * Check if Claude Desktop app is installed.
  * On macOS, checks for /Applications/Claude.app.
- * On Linux, checks if xdg-open can handle claude:// protocol.
+ * On Linux, checks if xdg-open can handle alice:// protocol.
  * On Windows, checks if the protocol handler exists.
  * In dev mode, always returns true (assumes dev Desktop is running).
  */
@@ -64,7 +64,7 @@ async function isDesktopInstalled(): Promise<boolean> {
     const { code, stdout } = await execFileNoThrow('xdg-mime', [
       'query',
       'default',
-      'x-scheme-handler/claude',
+      'x-scheme-handler/alice',
     ])
     return code === 0 && stdout.trim().length > 0
   } else if (platform === 'win32') {

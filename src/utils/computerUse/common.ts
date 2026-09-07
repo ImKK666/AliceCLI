@@ -4,13 +4,13 @@ import { env } from '../env.js'
 export const COMPUTER_USE_MCP_SERVER_NAME = 'computer-use'
 
 /**
- * Sentinel bundle ID for the frontmost gate. Claude Code is a terminal — it has
+ * Sentinel bundle ID for the frontmost gate. Alice CLI is a terminal — it has
  * no window. This never matches a real `NSWorkspace.frontmostApplication`, so
  * the package's "host is frontmost" branch (mouse click-through exemption,
  * keyboard safety-net) is dead code for us. `prepareForAction`'s "exempt our
  * own window" is likewise a no-op — there is no window to exempt.
  */
-export const CLI_HOST_BUNDLE_ID = 'com.anthropic.claude-code.cli-no-window'
+export const CLI_HOST_BUNDLE_ID = 'com.alice.alice-cli.cli-no-window'
 
 /**
  * Fallback `env.terminal` → bundleId map for when `__CFBundleIdentifier` is

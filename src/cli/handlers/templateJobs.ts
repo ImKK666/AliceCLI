@@ -37,17 +37,17 @@ function printUsage(): void {
   console.log(`
 Template Job Commands:
 
-  claude job list                    List available templates
-  claude job new <template> [args]   Create a new job from a template
-  claude job reply <job-id> <text>   Reply to an existing job
-  claude job status <job-id>         Show job status
+  alice job list                    List available templates
+  alice job new <template> [args]   Create a new job from a template
+  alice job reply <job-id> <text>   Reply to an existing job
+  alice job status <job-id>         Show job status
 `)
 }
 
 function handleStatus(args: string[]): void {
   const jobId = args[0]
   if (!jobId) {
-    console.error('Usage: claude job status <job-id>')
+    console.error('Usage: alice job status <job-id>')
     process.exitCode = 1
     return
   }
@@ -91,7 +91,7 @@ function handleList(): void {
 function handleNew(args: string[]): void {
   const templateName = args[0]
   if (!templateName) {
-    console.error('Usage: claude job new <template> [args...]')
+    console.error('Usage: alice job new <template> [args...]')
     process.exitCode = 1
     return
   }
@@ -134,7 +134,7 @@ function handleReply(args: string[]): void {
   const text = args.slice(1).join(' ')
 
   if (!jobId || !text) {
-    console.error('Usage: claude job reply <job-id> <text>')
+    console.error('Usage: alice job reply <job-id> <text>')
     process.exitCode = 1
     return
   }

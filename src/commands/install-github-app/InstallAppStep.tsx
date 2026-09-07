@@ -41,7 +41,7 @@ export function InstallAppStep({ repoUrl, onSubmit }: InstallAppStepProps) {
       </Box>
       <Box marginTop={1}>
         <Text dimColor>
-          Having trouble? See manual setup instructions at: <Text color="claude">{GITHUB_ACTION_SETUP_DOCS_URL}</Text>
+          Having trouble? See manual setup instructions at: <Text color="alice">{GITHUB_ACTION_SETUP_DOCS_URL}</Text>
         </Text>
       </Box>
     </Box>

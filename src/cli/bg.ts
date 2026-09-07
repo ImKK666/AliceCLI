@@ -168,7 +168,7 @@ export async function attachHandler(target: string | undefined): Promise<void> {
     )
     if (bgSessions.length === 0) {
       console.log(
-        'No background sessions to attach to. Start one with `claude daemon bg`.',
+        'No background sessions to attach to. Start one with `alice daemon bg`.',
       )
       return
     }
@@ -291,8 +291,8 @@ export async function handleBgStart(args: string[]): Promise<void> {
       'Error: Background sessions with detached engine require -p/--print flag.\n' +
         'The detached engine has no terminal for interactive input.\n\n' +
         'Usage:\n' +
-        '  claude daemon bg -p "your prompt here"\n' +
-        '  echo "prompt" | claude daemon bg --pipe',
+        '  alice daemon bg -p "your prompt here"\n' +
+        '  echo "prompt" | alice daemon bg --pipe',
     )
     if (process.platform !== 'win32') {
       console.error(
@@ -326,10 +326,10 @@ export async function handleBgStart(args: string[]): Promise<void> {
     console.log(`  Log: ${result.logPath}`)
     console.log()
     console.log(
-      `Use \`claude daemon attach ${result.sessionName}\` to reconnect.`,
+      `Use \`alice daemon attach ${result.sessionName}\` to reconnect.`,
     )
-    console.log(`Use \`claude daemon status\` to check status.`)
-    console.log(`Use \`claude daemon kill ${result.sessionName}\` to stop.`)
+    console.log(`Use \`alice daemon status\` to check status.`)
+    console.log(`Use \`alice daemon kill ${result.sessionName}\` to stop.`)
   } catch (e) {
     console.error(e instanceof Error ? e.message : String(e))
     process.exitCode = 1

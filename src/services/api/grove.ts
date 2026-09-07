@@ -343,7 +343,7 @@ export async function checkGroveForNonInteractive(): Promise<void> {
     if (config === null || config.notice_is_grace_period) {
       // Grace period is still active - show informational message and continue
       writeToStderr(
-        '\nAn update to our Consumer Terms and Privacy Policy will take effect on October 8, 2025. Run `claude` to review the updated terms.\n\n',
+        '\nAn update to our Consumer Terms and Privacy Policy will take effect on October 8, 2025. Run `alice` to review the updated terms.\n\n',
       )
       await markGroveNoticeViewed()
     } else {

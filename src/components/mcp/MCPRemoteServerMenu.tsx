@@ -113,11 +113,11 @@ export function MCPRemoteServerMenu({
         onComplete?.(`Authentication successful. Connected to ${server.name}.`);
       } else if (result.client.type === 'needs-auth') {
         onComplete?.(
-          'Authentication successful, but server still requires authentication. You may need to manually restart Claude Code.',
+          'Authentication successful, but server still requires authentication. You may need to manually restart Alice CLI.',
         );
       } else {
         onComplete?.(
-          'Authentication successful, but server reconnection failed. You may need to manually restart Claude Code for the changes to take effect.',
+          'Authentication successful, but server reconnection failed. You may need to manually restart Alice CLI for the changes to take effect.',
         );
       }
     } catch (err) {
@@ -330,13 +330,13 @@ export function MCPRemoteServerMenu({
           onComplete?.(message);
         } else if (result.client.type === 'needs-auth') {
           onComplete?.(
-            'Authentication successful, but server still requires authentication. You may need to manually restart Claude Code.',
+            'Authentication successful, but server still requires authentication. You may need to manually restart Alice CLI.',
           );
         } else {
           // result.client.type === 'failed'
           logMCPDebug(server.name, `Reconnection failed after authentication`);
           onComplete?.(
-            'Authentication successful, but server reconnection failed. You may need to manually restart Claude Code for the changes to take effect.',
+            'Authentication successful, but server reconnection failed. You may need to manually restart Alice CLI for the changes to take effect.',
           );
         }
       }
@@ -403,7 +403,7 @@ export function MCPRemoteServerMenu({
         : ' A browser window will open for authentication';
     return (
       <Box flexDirection="column" gap={1} padding={1}>
-        <Text color="claude">Authenticating with {server.name}…</Text>
+        <Text color="alice">Authenticating with {server.name}…</Text>
         <Box>
           <Spinner />
           <Text>{authCopy}</Text>
@@ -454,7 +454,7 @@ export function MCPRemoteServerMenu({
   if (isClaudeAIAuthenticating) {
     return (
       <Box flexDirection="column" gap={1} padding={1}>
-        <Text color="claude">Authenticating with {server.name}…</Text>
+        <Text color="alice">Authenticating with {server.name}…</Text>
         <Box>
           <Spinner />
           <Text> A browser window will open for authentication</Text>
@@ -489,7 +489,7 @@ export function MCPRemoteServerMenu({
   if (isClaudeAIClearingAuth) {
     return (
       <Box flexDirection="column" gap={1} padding={1}>
-        <Text color="claude">Clear authentication for {server.name}</Text>
+        <Text color="alice">Clear authentication for {server.name}</Text>
         {claudeAIClearAuthBrowserOpened ? (
           <>
             <Text>Find the MCP server in the browser and click &quot;Disconnect&quot;.</Text>

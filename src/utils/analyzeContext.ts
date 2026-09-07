@@ -1096,7 +1096,7 @@ export async function analyzeContextUsage(
     cats.push({
       name: 'Memory files',
       tokens: claudeMdTokens,
-      color: 'claude',
+      color: 'alice',
     })
   }
 

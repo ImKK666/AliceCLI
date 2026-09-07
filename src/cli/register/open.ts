@@ -27,7 +27,7 @@ export function register(program: Command, helpers: RegisterHelpers): void {
   // which redirects to the main command with full TUI support.
   program
     .command('open <cc-url>')
-    .description('Connect to a Claude Code server (internal — use cc:// URLs)')
+    .description('Connect to a Alice CLI server (internal — use cc:// URLs)')
     .option('-p, --print [prompt]', 'Print mode (headless)')
     .option(
       '--output-format <format>',

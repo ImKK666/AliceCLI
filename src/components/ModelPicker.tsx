@@ -341,7 +341,7 @@ function resolveOptionModel(value?: string): string | undefined {
 }
 
 function EffortLevelIndicator({ effort }: { effort?: EffortLevel }): React.ReactNode {
-  return <Text color={effort ? 'claude' : 'subtle'}>{effortLevelToSymbol(effort ?? 'low')}</Text>;
+  return <Text color={effort ? 'alice' : 'subtle'}>{effortLevelToSymbol(effort ?? 'low')}</Text>;
 }
 
 function cycleEffortLevel(

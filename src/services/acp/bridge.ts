@@ -1,5 +1,5 @@
 /**
- * Bridge module: converts Claude Code's SDKMessage stream events from
+ * Bridge module: converts Alice CLI's SDKMessage stream events from
  * QueryEngine.submitMessage() into ACP SessionUpdate notifications.
  *
  * Handles all SDKMessage types:

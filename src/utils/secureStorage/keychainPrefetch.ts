@@ -4,8 +4,8 @@
  *
  * isRemoteManagedSettingsEligible() reads two separate keychain entries
  * SEQUENTIALLY via sync execSync during applySafeConfigEnvironmentVariables():
- *   1. "Claude Code-credentials" (OAuth tokens)  — ~32ms
- *   2. "Claude Code" (legacy API key)            — ~33ms
+ *   1. "Alice CLI-credentials" (OAuth tokens)  — ~32ms
+ *   2. "Alice CLI" (legacy API key)            — ~33ms
  * Sequential cost: ~65ms on every macOS startup.
  *
  * Firing both here lets the subprocesses run in parallel with the ~65ms of
@@ -24,6 +24,7 @@
 import { isBareMode } from '../envUtils.js'
 import {
   CREDENTIALS_SERVICE_SUFFIX,
+  getLegacyKeychainServiceName,
   getMacOsKeychainStorageServiceName,
   getUsername,
   primeKeychainCacheFromPrefetch,
@@ -87,20 +88,43 @@ export function startKeychainPrefetch(): void {
   // Fire both subprocesses immediately (non-blocking). They run in parallel
   // with each other AND with main.tsx imports. The await in Promise.all
   // happens later via ensureKeychainPrefetchCompleted().
-  const oauthSpawn = spawnSecurity(
-    getMacOsKeychainStorageServiceName(CREDENTIALS_SERVICE_SUFFIX),
-  )
-  const legacySpawn = spawnSecurity(getMacOsKeychainStorageServiceName())
+  prefetchPromise = (async () => {
+    // Try new names first
+    const [oauth, legacy] = await Promise.all([
+      spawnSecurity(
+        getMacOsKeychainStorageServiceName(CREDENTIALS_SERVICE_SUFFIX),
+      ),
+      spawnSecurity(getMacOsKeychainStorageServiceName()),
+    ])
 
-  prefetchPromise = Promise.all([oauthSpawn, legacySpawn]).then(
-    ([oauth, legacy]) => {
-      // Timed-out prefetch: don't prime. Sync read/spawn will retry with its
-      // own (longer) timeout. Priming null here would shadow a key that the
-      // sync path might successfully fetch.
-      if (!oauth.timedOut) primeKeychainCacheFromPrefetch(oauth.stdout)
-      if (!legacy.timedOut) legacyApiKeyPrefetch = { stdout: legacy.stdout }
-    },
-  )
+    // Fallback to legacy names if new names not found
+    let oauthResult = oauth
+    let legacyResult = legacy
+
+    if (!oauth.timedOut && oauth.stdout === null) {
+      const legacyOauth = await spawnSecurity(
+        getLegacyKeychainServiceName(CREDENTIALS_SERVICE_SUFFIX),
+      )
+      if (!legacyOauth.timedOut && legacyOauth.stdout !== null) {
+        oauthResult = legacyOauth
+      }
+    }
+
+    if (!legacy.timedOut && legacy.stdout === null) {
+      const legacyKey = await spawnSecurity(getLegacyKeychainServiceName())
+      if (!legacyKey.timedOut && legacyKey.stdout !== null) {
+        legacyResult = legacyKey
+      }
+    }
+
+    // Timed-out prefetch: don't prime. Sync read/spawn will retry with its
+    // own (longer) timeout. Priming null here would shadow a key that the
+    // sync path might successfully fetch.
+    if (!oauthResult.timedOut)
+      primeKeychainCacheFromPrefetch(oauthResult.stdout)
+    if (!legacyResult.timedOut)
+      legacyApiKeyPrefetch = { stdout: legacyResult.stdout }
+  })()
 }
 
 /**

@@ -9,8 +9,8 @@ import { isFullscreenEnvEnabled } from '../../utils/fullscreen.js';
 import { formatModelAndBilling, getLogoDisplayData, truncatePath } from '../../utils/logoV2Utils.js';
 import { renderModelSetting } from '../../utils/model/model.js';
 import { OffscreenFreeze } from '../OffscreenFreeze.js';
-import { AnimatedClawd } from './AnimatedClawd.js';
-import { Clawd } from './Clawd.js';
+import { AnimatedAlice } from './AnimatedAlice.js';
+import { AliceMascot } from './AliceMascot.js';
 import { GuestPassesUpsell, incrementGuestPassesSeenCount, useShowGuestPassesUpsell } from './GuestPassesUpsell.js';
 import {
   incrementOverageCreditUpsellSeenCount,
@@ -44,11 +44,11 @@ export function CondensedLogo(): ReactNode {
   }, [showOverageCreditUpsell, showGuestPassesUpsell]);
 
   // Calculate available width for text content
-  // Account for: condensed clawd width (11 chars) + gap (2) + padding (2) = 15 chars
+  // Account for: condensed mascot width (11 chars) + gap (2) + padding (2) = 15 chars
   const textWidth = Math.max(columns - 15, 20);
 
-  // Truncate version to fit within available width, accounting for "Claude Code v" prefix
-  const versionPrefix = 'Claude Code v';
+  // Truncate version to fit within available width, accounting for "Alice CLI v" prefix
+  const versionPrefix = 'Alice CLI v';
   const truncatedVersion = truncate(version, Math.max(textWidth - versionPrefix.length, 6));
 
   const effortSuffix = getEffortSuffix(model, effortValue);
@@ -73,12 +73,12 @@ export function CondensedLogo(): ReactNode {
   return (
     <OffscreenFreeze>
       <Box flexDirection="row" gap={2} alignItems="center">
-        {isFullscreenEnvEnabled() ? <AnimatedClawd /> : <Clawd />}
+        {isFullscreenEnvEnabled() ? <AnimatedAlice /> : <AliceMascot />}
 
         {/* Info */}
         <Box flexDirection="column">
           <Text>
-            <Text bold>Claude Code</Text> <Text dimColor>v{truncatedVersion}</Text>
+            <Text bold>Alice CLI</Text> <Text dimColor>v{truncatedVersion}</Text>
           </Text>
           {shouldSplit ? (
             <>

@@ -46,7 +46,7 @@ export function createWhatsNewFeed(releaseNotes: string[]): FeedConfig {
   const emptyMessage =
     process.env.USER_TYPE === 'ant'
       ? 'Unable to fetch latest claude-cli-internal commits'
-      : 'Check the Claude Code changelog for updates';
+      : 'Check the Alice CLI changelog for updates';
 
   return {
     title: process.env.USER_TYPE === 'ant' ? "What's new [ANT-ONLY: Latest CC commits]" : "What's new",
@@ -88,8 +88,8 @@ export function createProjectOnboardingFeed(steps: Step[]): FeedConfig {
 export function createGuestPassesFeed(): FeedConfig {
   const reward = getCachedReferrerReward();
   const subtitle = reward
-    ? `Share Claude Code and earn ${formatCreditAmount(reward)} of extra usage`
-    : 'Share Claude Code with friends';
+    ? `Share Alice CLI and earn ${formatCreditAmount(reward)} of extra usage`
+    : 'Share Alice CLI with friends';
   return {
     title: '3 guest passes',
     lines: [],
@@ -97,7 +97,7 @@ export function createGuestPassesFeed(): FeedConfig {
       content: (
         <>
           <Box marginY={1}>
-            <Text color="claude">[✻] [✻] [✻]</Text>
+            <Text color="alice">[✻] [✻] [✻]</Text>
           </Box>
           <Text dimColor>{subtitle}</Text>
         </>

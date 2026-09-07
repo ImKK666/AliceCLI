@@ -37,10 +37,10 @@ export const ListPeersTool = buildTool({
   },
 
   async description() {
-    return 'Discover other Claude Code sessions for cross-session messaging'
+    return 'Discover other Alice CLI sessions for cross-session messaging'
   },
   async prompt() {
-    return `List active Claude Code sessions that can receive messages via SendMessage.
+    return `List active Alice CLI sessions that can receive messages via SendMessage.
 
 Returns an array of peers with their addresses. Use these addresses as the \`to\` field in SendMessage:
 - \`"uds:/path/to.sock"\` — local sessions on the same machine (Unix Domain Socket)

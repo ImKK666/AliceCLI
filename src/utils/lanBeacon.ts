@@ -1,7 +1,7 @@
 /**
  * LAN Beacon — UDP multicast peer discovery for Pipes system.
  *
- * Uses multicast group 224.0.71.67 ("CC" = Claude Code ASCII) on port 7101
+ * Uses multicast group 224.0.71.67 ("CC" = Alice CLI ASCII) on port 7101
  * to announce and discover CLI instances on the local network.
  *
  * Feature-gated by LAN_PIPES.

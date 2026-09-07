@@ -139,7 +139,7 @@ export async function mcpRemoveHandler(name: string, options: { scope?: string }
       });
       process.stderr.write('\nTo remove from a specific scope, use:\n');
       scopes.forEach(scope => {
-        process.stderr.write(`  claude mcp remove "${name}" -s ${scope}\n`);
+        process.stderr.write(`  alice mcp remove "${name}" -s ${scope}\n`);
       });
       cliError();
     }
@@ -153,7 +153,7 @@ export async function mcpListHandler(): Promise<void> {
   logEvent('tengu_mcp_list', {});
   const { servers: configs } = await getAllMcpConfigs();
   if (Object.keys(configs).length === 0) {
-    console.log('No MCP servers configured. Use `claude mcp add` to add a server.');
+    console.log('No MCP servers configured. Use `alice mcp add` to add a server.');
   } else {
     console.log('Checking MCP server health...\n');
 
@@ -257,7 +257,7 @@ export async function mcpGetHandler(name: string): Promise<void> {
       }
     }
   }
-  console.log(`\nTo remove this server, run: claude mcp remove "${name}" -s ${server.scope}`);
+  console.log(`\nTo remove this server, run: alice mcp remove "${name}" -s ${server.scope}`);
   // Use gracefulShutdown to properly clean up MCP server connections
   // (process.exit bypasses cleanup handlers, leaving child processes orphaned)
   await gracefulShutdown(0);
@@ -368,6 +368,6 @@ export async function mcpResetChoicesHandler(): Promise<void> {
   }));
   cliOk(
     'All project-scoped (.mcp.json) server approvals and rejections have been reset.\n' +
-      'You will be prompted for approval next time you start Claude Code.',
+      'You will be prompted for approval next time you start Alice CLI.',
   );
 }

@@ -1,16 +1,16 @@
 /**
  * Deep Link URI Parser
  *
- * Parses `claude-cli://open` URIs. All parameters are optional:
+ * Parses `alice-cli://open` URIs. All parameters are optional:
  *   q    — pre-fill the prompt input (not submitted)
  *   cwd  — working directory (absolute path)
  *   repo — owner/name slug, resolved against githubRepoPaths config
  *
  * Examples:
- *   claude-cli://open
- *   claude-cli://open?q=hello+world
- *   claude-cli://open?q=fix+tests&repo=owner/repo
- *   claude-cli://open?cwd=/path/to/project
+ *   alice-cli://open
+ *   alice-cli://open?q=hello+world
+ *   alice-cli://open?q=fix+tests&repo=owner/repo
+ *   alice-cli://open?cwd=/path/to/project
  *
  * Security: values are URL-decoded, Unicode-sanitized, and rejected if they
  * contain ASCII control characters (newlines etc. can act as command
@@ -20,7 +20,7 @@
 
 import { partiallySanitizeUnicode } from '../sanitization.js'
 
-export const DEEP_LINK_PROTOCOL = 'claude-cli'
+export const DEEP_LINK_PROTOCOL = 'alice-cli'
 
 export type DeepLinkAction = {
   query?: string
@@ -77,7 +77,7 @@ const MAX_QUERY_LENGTH = 5000
 const MAX_CWD_LENGTH = 4096
 
 /**
- * Parse a claude-cli:// URI into a structured action.
+ * Parse an alice-cli:// URI into a structured action.
  *
  * @throws {Error} if the URI is malformed or contains dangerous characters
  */
@@ -153,7 +153,7 @@ export function parseDeepLink(uri: string): DeepLinkAction {
 }
 
 /**
- * Build a claude-cli:// deep link URL.
+ * Build an alice-cli:// deep link URL.
  */
 export function buildDeepLink(action: DeepLinkAction): string {
   const url = new URL(`${DEEP_LINK_PROTOCOL}://open`)

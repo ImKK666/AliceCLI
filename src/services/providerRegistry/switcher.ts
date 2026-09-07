@@ -81,7 +81,7 @@ export function switchProvider(
   if (!process.env[found.apiKeyEnv]) {
     warnings.push(
       `${found.apiKeyEnv} is not set in the current environment. ` +
-        `Set it before starting Claude Code: export ${found.apiKeyEnv}=<your-api-key>`,
+        `Set it before starting Alice CLI: export ${found.apiKeyEnv}=<your-api-key>`,
     )
   }
 

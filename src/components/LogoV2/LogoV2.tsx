@@ -14,7 +14,7 @@ import {
 } from '../../utils/logoV2Utils.js';
 import { truncate } from '../../utils/format.js';
 import { getDisplayPath } from '../../utils/file.js';
-import { Clawd } from './Clawd.js';
+import { AliceMascot } from './AliceMascot.js';
 import { FeedColumn } from './FeedColumn.js';
 import {
   createRecentActivityFeed,
@@ -201,8 +201,8 @@ export function LogoV2(): React.ReactNode {
   const layoutMode = getLayoutMode(columns);
 
   const userTheme = resolveThemeSetting(getGlobalConfig().theme);
-  const borderTitle = ` ${color('claude', userTheme)('Claude Code')} ${color('inactive', userTheme)(`v${version}`)} `;
-  const compactBorderTitle = color('claude', userTheme)(' Claude Code ');
+  const borderTitle = ` ${color('alice', userTheme)('Alice CLI')} ${color('inactive', userTheme)(`v${version}`)} `;
+  const compactBorderTitle = color('alice', userTheme)(' Alice CLI ');
 
   // Early return for compact mode
   if (layoutMode === 'compact') {
@@ -228,7 +228,7 @@ export function LogoV2(): React.ReactNode {
           <Box
             flexDirection="column"
             borderStyle="round"
-            borderColor="claude"
+            borderColor="alice"
             borderText={{
               content: compactBorderTitle,
               position: 'top',
@@ -242,7 +242,7 @@ export function LogoV2(): React.ReactNode {
           >
             <Text bold>{welcomeMessage}</Text>
             <Box marginY={1}>
-              <Clawd />
+              <AliceMascot />
             </Box>
             <Text dimColor>{modelDisplayName}</Text>
             <Text dimColor>{billingType}</Text>
@@ -287,7 +287,7 @@ export function LogoV2(): React.ReactNode {
         <Box
           flexDirection="column"
           borderStyle="round"
-          borderColor="claude"
+          borderColor="alice"
           borderText={{
             content: borderTitle,
             position: 'top',
@@ -309,7 +309,7 @@ export function LogoV2(): React.ReactNode {
                 <Text bold>{welcomeMessage}</Text>
               </Box>
 
-              <Clawd />
+              <AliceMascot />
 
               <Box flexDirection="column" alignItems="center">
                 <Text dimColor>{modelLine}</Text>
@@ -322,7 +322,7 @@ export function LogoV2(): React.ReactNode {
               <Box
                 height="100%"
                 borderStyle="single"
-                borderColor="claude"
+                borderColor="alice"
                 borderDimColor
                 borderTop={false}
                 borderBottom={false}

@@ -257,7 +257,7 @@ export function getParentCacheSuppressReason(
     : null
 }
 
-const SUGGESTION_PROMPT = `[SUGGESTION MODE: Suggest what the user might naturally type next into Claude Code.]
+const SUGGESTION_PROMPT = `[SUGGESTION MODE: Suggest what the user might naturally type next into Alice CLI.]
 
 FIRST: Look at the user's recent messages and original request.
 

@@ -98,7 +98,7 @@ export function OverageCreditUpsell({ maxWidth, twoLine }: Props): React.ReactNo
     const title = getFeedTitle(amount);
     return (
       <>
-        <Text color="claude">{maxWidth ? truncate(title, maxWidth) : title}</Text>
+        <Text color="alice">{maxWidth ? truncate(title, maxWidth) : title}</Text>
         <Text dimColor>{maxWidth ? truncate(FEED_SUBTITLE, maxWidth) : FEED_SUBTITLE}</Text>
       </>
     );
@@ -110,7 +110,7 @@ export function OverageCreditUpsell({ maxWidth, twoLine }: Props): React.ReactNo
 
   return (
     <Text dimColor>
-      <Text color="claude">{display.slice(0, highlightLen)}</Text>
+      <Text color="alice">{display.slice(0, highlightLen)}</Text>
       {display.slice(highlightLen)}
     </Text>
   );

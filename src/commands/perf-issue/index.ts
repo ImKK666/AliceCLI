@@ -350,7 +350,7 @@ function formatReportMarkdown(
     )
 
   return [
-    '# Claude Code Performance Snapshot',
+    '# Alice CLI Performance Snapshot',
     '',
     `- timestamp: ${new Date().toISOString()}`,
     `- session:   ${sessionId}`,

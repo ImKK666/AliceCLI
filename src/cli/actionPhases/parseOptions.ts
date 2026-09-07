@@ -159,7 +159,7 @@ export async function parseAndValidateOptions(
   if (prompt === 'code') {
     logEvent('tengu_code_prompt_ignored', {})
     console.warn(
-      chalk.yellow('Tip: You can launch Claude Code with just `claude`'),
+      chalk.yellow('Tip: You can launch Alice CLI with just `alice`'),
     )
     prompt = undefined
   }

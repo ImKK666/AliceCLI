@@ -1,5 +1,5 @@
 /**
- * UDS Messaging Layer — Unix Domain Socket IPC for Claude Code instances.
+ * UDS Messaging Layer — Unix Domain Socket IPC for Alice CLI instances.
  *
  * Each session auto-creates a UDS server so peer sessions can send messages.
  * Protocol: newline-delimited JSON (NDJSON), one message per line.

@@ -568,9 +568,9 @@ describe('Opus 4.7 Prompt Engineering Audit', () => {
   // TXT 来源: {product_information}
   // ------------------------------------------------------------------
   describe('#13 Product information', () => {
-    test('env info contains Claude Code product description', async () => {
+    test('env info contains Alice CLI product description', async () => {
       const envInfo = await computeSimpleEnvInfo('claude-opus-4-7')
-      expect(envInfo).toContain('Claude Code')
+      expect(envInfo).toContain('Alice CLI')
       expect(envInfo).toContain('CLI')
     })
 

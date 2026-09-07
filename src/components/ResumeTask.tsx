@@ -127,9 +127,9 @@ export function ResumeTask({ onSelect, onCancel, isEmbedded = false }: Props): R
       <Box flexDirection="column" padding={1}>
         <Box flexDirection="row">
           <Spinner />
-          <Text bold>Loading Claude Code sessions…</Text>
+          <Text bold>Loading Alice CLI sessions…</Text>
         </Box>
-        <Text dimColor>{retrying ? 'Retrying…' : 'Fetching your Claude Code sessions…'}</Text>
+        <Text dimColor>{retrying ? 'Retrying…' : 'Fetching your Alice CLI sessions…'}</Text>
       </Box>
     );
   }
@@ -138,7 +138,7 @@ export function ResumeTask({ onSelect, onCancel, isEmbedded = false }: Props): R
     return (
       <Box flexDirection="column" padding={1}>
         <Text bold color="error">
-          Error loading Claude Code sessions
+          Error loading Alice CLI sessions
         </Text>
 
         {renderErrorSpecificGuidance(loadErrorType)}
@@ -154,7 +154,7 @@ export function ResumeTask({ onSelect, onCancel, isEmbedded = false }: Props): R
     return (
       <Box flexDirection="column" padding={1}>
         <Text bold>
-          No Claude Code sessions found
+          No Alice CLI sessions found
           {currentRepo && <Text> for {currentRepo}</Text>}
         </Text>
         <Box marginTop={1}>
@@ -308,7 +308,7 @@ function renderErrorSpecificGuidance(errorType: LoadErrorType): React.ReactNode 
     case 'other':
       return (
         <Box marginY={1} flexDirection="row">
-          <Text dimColor>Sorry, Claude Code encountered an error</Text>
+          <Text dimColor>Sorry, Alice CLI encountered an error</Text>
         </Box>
       );
   }

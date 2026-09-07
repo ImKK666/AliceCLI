@@ -721,7 +721,7 @@ export async function launchInteractiveSession(
         // establish a bridge session before discovery will find it.
         return await exitWithMessage(
           interactiveRoot,
-          `Assistant installed in ${installedDir}. The daemon is starting up — run \`claude assistant\` again in a few seconds to connect.`,
+          `Assistant installed in ${installedDir}. The daemon is starting up — run \`alice assistant\` again in a few seconds to connect.`,
           {
             exitCode: 0,
             beforeExit: () => gracefulShutdown(0),
@@ -860,7 +860,7 @@ export async function launchInteractiveSession(
       }
     }
 
-    // --remote and --teleport both create/resume Claude Code Web (CCR) sessions.
+    // --remote and --teleport both create/resume Alice CLI Web (CCR) sessions.
     // Remote Control (--rc) is a separate feature gated in initReplBridge.ts.
     if (remote !== null || teleport) {
       await waitForPolicyLimitsToLoad()

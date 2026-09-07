@@ -199,7 +199,7 @@ export function register(program: Command, _helpers: RegisterHelpers): void {
         // (e.g. `--debug assistant`) and the position-0 predicate
         // didn't match. Print usage like the ssh stub does.
         process.stderr.write(
-          'Usage: claude assistant [sessionId]\n\n' +
+          'Usage: alice assistant [sessionId]\n\n' +
             'Attach the REPL as a viewer client to a running bridge session.\n' +
             'Omit sessionId to discover and pick from available sessions.\n',
         )
@@ -211,7 +211,7 @@ export function register(program: Command, _helpers: RegisterHelpers): void {
   program
     .command('doctor')
     .description(
-      'Check the health of your Claude Code auto-updater. Note: The workspace trust dialog is skipped and stdio servers from .mcp.json are spawned for health checks. Only use this command in directories you trust.',
+      'Check the health of your Alice CLI auto-updater. Note: The workspace trust dialog is skipped and stdio servers from .mcp.json are spawned for health checks. Only use this command in directories you trust.',
     )
     .action(async () => {
       const [{ doctorHandler }, { createRoot }] = await Promise.all([
@@ -226,7 +226,7 @@ export function register(program: Command, _helpers: RegisterHelpers): void {
   program
     .command('install [target]')
     .description(
-      'Install Claude Code native build. Use [target] to specify version (stable, latest, or specific version)',
+      'Install Alice CLI native build. Use [target] to specify version (stable, latest, or specific version)',
     )
     .option('--force', 'Force installation even if already installed')
     .action(

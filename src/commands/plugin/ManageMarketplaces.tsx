@@ -673,7 +673,7 @@ export function ManageMarketplaces({
         {/* Processing indicator */}
         {isUpdating && (
           <Box marginTop={1} flexDirection="column">
-            <Text color="claude">Updating marketplace…</Text>
+            <Text color="alice">Updating marketplace…</Text>
             {progressMessage && <Text dimColor>{progressMessage}</Text>}
           </Box>
         )}
@@ -681,7 +681,7 @@ export function ManageMarketplaces({
         {/* Success message */}
         {!isUpdating && successMessage && (
           <Box marginTop={1}>
-            <Text color="claude">{successMessage}</Text>
+            <Text color="alice">{successMessage}</Text>
           </Box>
         )}
 
@@ -714,7 +714,7 @@ export function ManageMarketplaces({
         {!isUpdating && !shouldSkipPluginAutoupdate() && selectedMarketplace.autoUpdate && (
           <Box marginTop={1}>
             <Text dimColor>
-              Auto-update enabled. Claude Code will automatically update this marketplace and its installed plugins.
+              Auto-update enabled. Alice CLI will automatically update this marketplace and its installed plugins.
             </Text>
           </Box>
         )}
@@ -782,9 +782,9 @@ export function ManageMarketplaces({
               <Box flexDirection="column" flexGrow={1}>
                 <Box flexDirection="row" gap={1}>
                   <Text bold strikethrough={state.pendingRemove} dimColor={state.pendingRemove}>
-                    {state.name === 'claude-plugins-official' && <Text color="claude">✻ </Text>}
+                    {state.name === 'claude-plugins-official' && <Text color="alice">✻ </Text>}
                     {state.name}
-                    {state.name === 'claude-plugins-official' && <Text color="claude"> ✻</Text>}
+                    {state.name === 'claude-plugins-official' && <Text color="alice"> ✻</Text>}
                   </Text>
                   {indicators.length > 0 && <Text color="warning">[{indicators.join(', ')}]</Text>}
                 </Box>
@@ -824,7 +824,7 @@ export function ManageMarketplaces({
       {/* Processing indicator */}
       {isProcessing && (
         <Box marginTop={1}>
-          <Text color="claude">Processing changes…</Text>
+          <Text color="alice">Processing changes…</Text>
         </Box>
       )}
 

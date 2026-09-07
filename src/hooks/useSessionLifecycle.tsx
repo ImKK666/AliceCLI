@@ -131,7 +131,7 @@ export function useSessionLifecycle({ messages, addNotification }: SessionLifecy
     const handleSuspend = () => {
       // Print suspension instructions
       process.stdout.write(
-        `\nClaude Code has been suspended. Run \`fg\` to bring Claude Code back.\nNote: ctrl + z now suspends Claude Code, ctrl + _ undoes input.\n`,
+        `\nAlice CLI has been suspended. Run \`fg\` to bring Alice CLI back.\nNote: ctrl + z now suspends Alice CLI, ctrl + _ undoes input.\n`,
       );
     };
 

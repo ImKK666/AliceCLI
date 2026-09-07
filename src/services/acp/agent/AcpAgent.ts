@@ -1,5 +1,5 @@
 /**
- * ACP Agent implementation — bridges ACP protocol methods to Claude Code's
+ * ACP Agent implementation — bridges ACP protocol methods to Alice CLI's
  * internal QueryEngine / query() pipeline.
  *
  * Architecture: Uses internal QueryEngine (not @anthropic-ai/claude-agent-sdk)
@@ -87,7 +87,7 @@ export class AcpAgent implements Agent {
       authMethods: [],
       agentInfo: {
         name: 'claude-code',
-        title: 'Claude Code',
+        title: 'Alice CLI',
         version:
           typeof (globalThis as unknown as Record<string, unknown>).MACRO ===
             'object' &&

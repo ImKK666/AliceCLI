@@ -87,8 +87,8 @@ export function UltraplanLaunchDialog({ onChoice }: UltraplanLaunchDialogProps):
   }, [handleChoice]);
 
   const runDescription = isBridgeEnabled
-    ? 'Disable remote control and launch in Claude Code on the web'
-    : 'launch in Claude Code on the web';
+    ? 'Disable remote control and launch in Alice CLI on the web'
+    : 'launch in Alice CLI on the web';
 
   const options = [
     {
@@ -106,7 +106,7 @@ export function UltraplanLaunchDialog({ onChoice }: UltraplanLaunchDialogProps):
           <Text dimColor>{dialogConfig.dialogBody}</Text>
           {showTermsLink ? (
             <Text dimColor>
-              For more information on Claude Code on the web:
+              For more information on Alice CLI on the web:
               <Link url={CCR_TERMS_URL}>{CCR_TERMS_URL}</Link>
             </Text>
           ) : null}

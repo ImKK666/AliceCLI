@@ -167,7 +167,7 @@ export function Passes({ onDone }: Props): React.ReactNode {
         <Text>{'┌──────────┐'}</Text>
         <Text>
           {' ) CC '}
-          <Text color="claude">{TEARDROP_ASTERISK}</Text>
+          <Text color="alice">{TEARDROP_ASTERISK}</Text>
           {' ┊ ( '}
         </Text>
         <Text>{'└──────────┘'}</Text>
@@ -193,8 +193,8 @@ export function Passes({ onDone }: Props): React.ReactNode {
         <Box flexDirection="column" marginLeft={2}>
           <Text dimColor>
             {referrerReward
-              ? `Share a free week of Claude Code with friends. If they love it and subscribe, you'll get ${formatCreditAmount(referrerReward)} of extra usage to keep building. `
-              : 'Share a free week of Claude Code with friends. '}
+              ? `Share a free week of Alice CLI with friends. If they love it and subscribe, you'll get ${formatCreditAmount(referrerReward)} of extra usage to keep building. `
+              : 'Share a free week of Alice CLI with friends. '}
             <Link
               url={
                 referrerReward

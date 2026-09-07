@@ -506,7 +506,7 @@ public class ConsoleInput {
 
 /**
  * Send a key to a console window via WriteConsoleInput (Console Input Buffer).
- * This is required for terminal apps like Claude Code REPL that read stdin in raw mode.
+ * This is required for terminal apps like Alice CLI REPL that read stdin in raw mode.
  */
 export function consoleKey(
   hwnd: string,

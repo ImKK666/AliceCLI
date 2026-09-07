@@ -6,6 +6,7 @@ import { jsonParse, jsonStringify } from '../slowOperations.js'
 import {
   CREDENTIALS_SERVICE_SUFFIX,
   clearKeychainCache,
+  getLegacyKeychainServiceName,
   getMacOsKeychainStorageServiceName,
   getUsername,
   KEYCHAIN_CACHE_TTL_MS,
@@ -47,6 +48,52 @@ export const macOsKeychainStorage = {
     } catch (_e) {
       // fall through
     }
+
+    // Fallback: try legacy service name ("Claude Code") for migration
+    try {
+      const legacyServiceName = getLegacyKeychainServiceName(
+        CREDENTIALS_SERVICE_SUFFIX,
+      )
+      const username = getUsername()
+      const result = execSyncWithDefaults_DEPRECATED(
+        `security find-generic-password -a "${username}" -w -s "${legacyServiceName}"`,
+      )
+      if (result) {
+        const data = jsonParse(result)
+        keychainCacheState.cache = { data, cachedAt: Date.now() }
+        // Best-effort migration: write to new service name in background
+        void (async () => {
+          try {
+            const newServiceName = getMacOsKeychainStorageServiceName(
+              CREDENTIALS_SERVICE_SUFFIX,
+            )
+            const hexValue = Buffer.from(jsonStringify(data), 'utf-8').toString(
+              'hex',
+            )
+            await execFileNoThrow(
+              'security',
+              [
+                'add-generic-password',
+                '-U',
+                '-a',
+                username,
+                '-s',
+                newServiceName,
+                '-X',
+                hexValue,
+              ],
+              { useCwd: false },
+            )
+          } catch {
+            // Best-effort — ignore migration write errors
+          }
+        })()
+        return data
+      }
+    } catch (_e) {
+      // fall through
+    }
+
     // Stale-while-error: if we had a value before and the refresh failed,
     // keep serving the stale value rather than caching null. Since #23192
     // clears the upstream memoize on every API request (macOS path), a
@@ -192,6 +239,53 @@ async function doReadAsync(): Promise<SecureStorageData | null> {
   } catch (_e) {
     // fall through
   }
+
+  // Fallback: try legacy service name ("Claude Code") for migration
+  try {
+    const legacyServiceName = getLegacyKeychainServiceName(
+      CREDENTIALS_SERVICE_SUFFIX,
+    )
+    const username = getUsername()
+    const { stdout, code } = await execFileNoThrow(
+      'security',
+      ['find-generic-password', '-a', username, '-w', '-s', legacyServiceName],
+      { useCwd: false, preserveOutputOnError: false },
+    )
+    if (code === 0 && stdout) {
+      const data: SecureStorageData = jsonParse(stdout.trim())
+      // Best-effort migration: write to new service name in background
+      void (async () => {
+        try {
+          const newServiceName = getMacOsKeychainStorageServiceName(
+            CREDENTIALS_SERVICE_SUFFIX,
+          )
+          const hexValue = Buffer.from(jsonStringify(data), 'utf-8').toString(
+            'hex',
+          )
+          await execFileNoThrow(
+            'security',
+            [
+              'add-generic-password',
+              '-U',
+              '-a',
+              username,
+              '-s',
+              newServiceName,
+              '-X',
+              hexValue,
+            ],
+            { useCwd: false },
+          )
+        } catch {
+          // Best-effort — ignore migration write errors
+        }
+      })()
+      return data
+    }
+  } catch (_e) {
+    // fall through
+  }
+
   return null
 }
 

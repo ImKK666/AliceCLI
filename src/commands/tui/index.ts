@@ -42,7 +42,7 @@ const USAGE_TEXT = [
   '  status      Show current TUI mode state',
   '',
   'TUI mode uses the ANSI alternate screen buffer (\\x1b[?1049h) so the',
-  'Claude Code UI occupies a clean full-screen area with no scroll-back',
+  'Alice CLI UI occupies a clean full-screen area with no scroll-back',
   'flicker.  The setting is stored in ~/.claude/.tui-mode and takes effect',
   'on the next session start.',
   '',

@@ -77,16 +77,16 @@ export function DesktopUpsellStartup({ onDone }: Props): React.ReactNode {
   }
 
   const options = [
-    { label: 'Open in Claude Code Desktop', value: 'try' as const },
+    { label: 'Open in Alice CLI Desktop', value: 'try' as const },
     { label: 'Not now', value: 'not-now' as const },
     { label: "Don't ask again", value: 'never' as const },
   ];
 
   return (
-    <PermissionDialog title="Try Claude Code Desktop">
+    <PermissionDialog title="Try Alice CLI Desktop">
       <Box flexDirection="column" paddingX={2} paddingY={1}>
         <Box marginBottom={1}>
-          <Text>Same Claude Code with visual diffs, live app preview, parallel sessions, and more.</Text>
+          <Text>Same Alice CLI with visual diffs, live app preview, parallel sessions, and more.</Text>
         </Box>
         <Select options={options} onChange={handleSelect} onCancel={() => handleSelect('not-now')} />
       </Box>

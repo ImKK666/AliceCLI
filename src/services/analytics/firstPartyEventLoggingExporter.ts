@@ -309,8 +309,7 @@ export class FirstPartyEventLoggingExporter implements LogRecordExporter {
     try {
       // Filter for event logs only (by scope name)
       const eventLogs = logs.filter(
-        log =>
-          log.instrumentationScope?.name === 'com.anthropic.claude_code.events',
+        log => log.instrumentationScope?.name === 'com.alice.alice_cli.events',
       )
 
       if (eventLogs.length === 0) {

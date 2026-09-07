@@ -6,7 +6,7 @@ const WELCOME_V2_WIDTH = 58;
 
 export function WelcomeV2(): React.ReactNode {
   const [theme] = useTheme();
-  const welcomeMessage = 'Welcome to Claude Code';
+  const welcomeMessage = 'Welcome to Alice CLI';
 
   if (env.terminal === 'Apple_Terminal') {
     return <AppleTerminalWelcomeV2 theme={theme} welcomeMessage={welcomeMessage} />;
@@ -17,7 +17,7 @@ export function WelcomeV2(): React.ReactNode {
       <Box width={WELCOME_V2_WIDTH}>
         <Text>
           <Text>
-            <Text color="claude">{welcomeMessage} </Text>
+            <Text color="alice">{welcomeMessage} </Text>
             <Text dimColor>v{MACRO.VERSION} </Text>
           </Text>
           <Text>{'…………………………………………………………………………………………………………………………………………………………'}</Text>
@@ -39,24 +39,24 @@ export function WelcomeV2(): React.ReactNode {
           <Text>{'                                            ▒▒      ██   ▒'}</Text>
           <Text>
             {'      '}
-            <Text color="clawd_body"> █████████ </Text>
+            <Text color="mascot_body"> █████████ </Text>
             {'                         ▒▒░░▒▒      ▒ ▒▒'}
           </Text>
           <Text>
             {'      '}
-            <Text color="clawd_body" backgroundColor="clawd_background">
+            <Text color="mascot_body" backgroundColor="mascot_background">
               ██▄█████▄██
             </Text>
             {'                           ▒▒         ▒▒ '}
           </Text>
           <Text>
             {'      '}
-            <Text color="clawd_body"> █████████ </Text>
+            <Text color="mascot_body"> █████████ </Text>
             {'                          ░          ▒   '}
           </Text>
           <Text>
             {'…………………'}
-            <Text color="clawd_body">{'█ █   █ █'}</Text>
+            <Text color="mascot_body">{'█ █   █ █'}</Text>
             {'……………………………………………………………………░…………………………▒…………'}
           </Text>
         </Text>
@@ -68,7 +68,7 @@ export function WelcomeV2(): React.ReactNode {
     <Box width={WELCOME_V2_WIDTH}>
       <Text>
         <Text>
-          <Text color="claude">{welcomeMessage} </Text>
+          <Text color="alice">{welcomeMessage} </Text>
           <Text dimColor>v{MACRO.VERSION} </Text>
         </Text>
         <Text>{'…………………………………………………………………………………………………………………………………………………………'}</Text>
@@ -88,26 +88,26 @@ export function WelcomeV2(): React.ReactNode {
         <Text dimColor>{'                               ░░░░░░░░░░░░░░░░           '}</Text>
         <Text>
           {'      '}
-          <Text color="clawd_body"> █████████ </Text>
+          <Text color="mascot_body"> █████████ </Text>
           {'                                       '}
           <Text dimColor>*</Text>
           <Text> </Text>
         </Text>
         <Text>
           {'      '}
-          <Text color="clawd_body">██▄█████▄██</Text>
+          <Text color="mascot_body">██▄█████▄██</Text>
           <Text>{'                        '}</Text>
           <Text bold>*</Text>
           <Text>{'                '}</Text>
         </Text>
         <Text>
           {'      '}
-          <Text color="clawd_body"> █████████ </Text>
+          <Text color="mascot_body"> █████████ </Text>
           {'     *                                   '}
         </Text>
         <Text>
           {'…………………'}
-          <Text color="clawd_body">{'█ █   █ █'}</Text>
+          <Text color="mascot_body">{'█ █   █ █'}</Text>
           {'………………………………………………………………………………………………………………'}
         </Text>
       </Text>
@@ -128,7 +128,7 @@ function AppleTerminalWelcomeV2({ theme, welcomeMessage }: AppleTerminalWelcomeV
       <Box width={WELCOME_V2_WIDTH}>
         <Text>
           <Text>
-            <Text color="claude">{welcomeMessage} </Text>
+            <Text color="alice">{welcomeMessage} </Text>
             <Text dimColor>v{MACRO.VERSION} </Text>
           </Text>
           <Text>{'…………………………………………………………………………………………………………………………………………………………'}</Text>
@@ -151,28 +151,28 @@ function AppleTerminalWelcomeV2({ theme, welcomeMessage }: AppleTerminalWelcomeV
           <Text>{'                                          ▒▒░░▒▒      ▒ ▒▒'}</Text>
           <Text>
             {'      '}
-            <Text color="clawd_body">▗</Text>
-            <Text color="clawd_background" backgroundColor="clawd_body">
+            <Text color="mascot_body">▗</Text>
+            <Text color="mascot_background" backgroundColor="mascot_body">
               {' '}
               ▗{'     '}▖{' '}
             </Text>
-            <Text color="clawd_body">▖</Text>
+            <Text color="mascot_body">▖</Text>
             {'                           ▒▒         ▒▒ '}
           </Text>
           <Text>
             {'       '}
-            <Text backgroundColor="clawd_body">{' '.repeat(9)}</Text>
+            <Text backgroundColor="mascot_body">{' '.repeat(9)}</Text>
             {'                           ░          ▒   '}
           </Text>
           <Text>
             {'…………………'}
-            <Text backgroundColor="clawd_body"> </Text>
+            <Text backgroundColor="mascot_body"> </Text>
             <Text> </Text>
-            <Text backgroundColor="clawd_body"> </Text>
+            <Text backgroundColor="mascot_body"> </Text>
             <Text>{'   '}</Text>
-            <Text backgroundColor="clawd_body"> </Text>
+            <Text backgroundColor="mascot_body"> </Text>
             <Text> </Text>
-            <Text backgroundColor="clawd_body"> </Text>
+            <Text backgroundColor="mascot_body"> </Text>
             {'……………………………………………………………………░…………………………▒…………'}
           </Text>
         </Text>
@@ -184,7 +184,7 @@ function AppleTerminalWelcomeV2({ theme, welcomeMessage }: AppleTerminalWelcomeV
     <Box width={WELCOME_V2_WIDTH}>
       <Text>
         <Text>
-          <Text color="claude">{welcomeMessage} </Text>
+          <Text color="alice">{welcomeMessage} </Text>
           <Text dimColor>v{MACRO.VERSION} </Text>
         </Text>
         <Text>{'…………………………………………………………………………………………………………………………………………………………'}</Text>
@@ -209,30 +209,30 @@ function AppleTerminalWelcomeV2({ theme, welcomeMessage }: AppleTerminalWelcomeV
         </Text>
         <Text>
           {'        '}
-          <Text color="clawd_body">▗</Text>
-          <Text color="clawd_background" backgroundColor="clawd_body">
+          <Text color="mascot_body">▗</Text>
+          <Text color="mascot_background" backgroundColor="mascot_body">
             {' '}
             ▗{'     '}▖{' '}
           </Text>
-          <Text color="clawd_body">▖</Text>
+          <Text color="mascot_body">▖</Text>
           <Text>{'                       '}</Text>
           <Text bold>*</Text>
           <Text>{'                '}</Text>
         </Text>
         <Text>
           {'        '}
-          <Text backgroundColor="clawd_body">{' '.repeat(9)}</Text>
+          <Text backgroundColor="mascot_body">{' '.repeat(9)}</Text>
           {'      *                                   '}
         </Text>
         <Text>
           {'…………………'}
-          <Text backgroundColor="clawd_body"> </Text>
+          <Text backgroundColor="mascot_body"> </Text>
           <Text> </Text>
-          <Text backgroundColor="clawd_body"> </Text>
+          <Text backgroundColor="mascot_body"> </Text>
           <Text>{'   '}</Text>
-          <Text backgroundColor="clawd_body"> </Text>
+          <Text backgroundColor="mascot_body"> </Text>
           <Text> </Text>
-          <Text backgroundColor="clawd_body"> </Text>
+          <Text backgroundColor="mascot_body"> </Text>
           {'………………………………………………………………………………………………………………'}
         </Text>
       </Text>

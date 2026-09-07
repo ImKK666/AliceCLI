@@ -213,9 +213,9 @@ function PermissionRulesTab({
       <Text>
         {
           {
-            allow: "Claude Code won't ask before using allowed tools.",
-            ask: 'Claude Code will always ask for confirmation before using these tools.',
-            deny: 'Claude Code will always reject requests to use denied tools.',
+            allow: "Alice CLI won't ask before using allowed tools.",
+            ask: 'Alice CLI will always ask for confirmation before using these tools.',
+            deny: 'Alice CLI will always reject requests to use denied tools.',
           }[tab]
         }
       </Text>
@@ -670,7 +670,7 @@ export function PermissionRuleList({ onExit, initialTab, onRetryDenials }: Props
           </Tab>
           <Tab id="workspace" title="Workspace">
             <Box flexDirection="column">
-              <Text>Claude Code can read files in the workspace, and make edits when auto-accept edits is on.</Text>
+              <Text>Alice CLI can read files in the workspace, and make edits when auto-accept edits is on.</Text>
               <WorkspaceTab
                 onExit={onExit}
                 toolPermissionContext={toolPermissionContext}

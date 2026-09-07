@@ -344,10 +344,10 @@ function ThinkbackMenu({
 
   return (
     <Dialog
-      title="Think Back on 2025 with Claude Code"
-      subtitle="Generate your 2025 Claude Code Think Back (takes a few minutes to run)"
+      title="Think Back on 2025 with Alice CLI"
+      subtitle="Generate your 2025 Alice CLI Think Back (takes a few minutes to run)"
       onCancel={handleCancel}
-      color="claude"
+      color="alice"
     >
       <Box flexDirection="column" gap={1}>
         {/* Description for first-time users */}
@@ -366,13 +366,13 @@ function ThinkbackMenu({
 }
 
 const EDIT_PROMPT =
-  'Use the Skill tool to invoke the "thinkback" skill with mode=edit to modify my existing Claude Code year in review animation. Ask me what I want to change. When the animation is ready, tell the user to run /think-back again to play it.';
+  'Use the Skill tool to invoke the "thinkback" skill with mode=edit to modify my existing Alice CLI year in review animation. Ask me what I want to change. When the animation is ready, tell the user to run /think-back again to play it.';
 
 const FIX_PROMPT =
-  'Use the Skill tool to invoke the "thinkback" skill with mode=fix to fix validation or rendering errors in my existing Claude Code year in review animation. Run the validator, identify errors, and fix them. When the animation is ready, tell the user to run /think-back again to play it.';
+  'Use the Skill tool to invoke the "thinkback" skill with mode=fix to fix validation or rendering errors in my existing Alice CLI year in review animation. Run the validator, identify errors, and fix them. When the animation is ready, tell the user to run /think-back again to play it.';
 
 const REGENERATE_PROMPT =
-  'Use the Skill tool to invoke the "thinkback" skill with mode=regenerate to create a completely new Claude Code year in review animation from scratch. Delete the existing animation and start fresh. When the animation is ready, tell the user to run /think-back again to play it.';
+  'Use the Skill tool to invoke the "thinkback" skill with mode=regenerate to create a completely new Alice CLI year in review animation from scratch. Delete the existing animation and start fresh. When the animation is ready, tell the user to run /think-back again to play it.';
 
 function ThinkbackFlow({
   onDone,

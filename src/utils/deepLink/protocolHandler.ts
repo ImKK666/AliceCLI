@@ -2,7 +2,7 @@
  * Protocol Handler
  *
  * Entry point for `claude --handle-uri <url>`. When the OS invokes claude
- * with a `claude-cli://` URL, this module:
+ * with an `alice-cli://` URL, this module:
  *   1. Parses the URI into a structured action
  *   2. Detects the user's terminal emulator
  *   3. Opens a new terminal window running claude with the appropriate args
@@ -31,7 +31,7 @@ import { launchInTerminal } from './terminalLauncher.js'
  * This function parses the URI, resolves the claude binary, and
  * launches it in the user's terminal.
  *
- * @param uri - The raw URI string (e.g., "claude-cli://prompt?q=hello+world")
+ * @param uri - The raw URI string (e.g., "alice-cli://prompt?q=hello+world")
  * @returns exit code (0 = success)
  */
 export async function handleDeepLinkUri(uri: string): Promise<number> {

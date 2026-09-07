@@ -53,7 +53,7 @@ export const DEFAULT_MODES: CCBMode[] = [
     icon: '⚡',
     systemPrompt: '',
     ui: {
-      accentColor: '#D77757',
+      accentColor: '#8264DC',
       promptPrefix: '',
     },
     companionSpecies: 'duck',

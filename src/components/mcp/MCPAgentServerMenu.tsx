@@ -85,7 +85,7 @@ export function MCPAgentServerMenu({ agentServer, onCancel, onComplete }: Props)
   if (isAuthenticating) {
     return (
       <Box flexDirection="column" gap={1} padding={1}>
-        <Text color="claude">Authenticating with {agentServer.name}…</Text>
+        <Text color="alice">Authenticating with {agentServer.name}…</Text>
         <Box>
           <Spinner />
           <Text> A browser window will open for authentication</Text>

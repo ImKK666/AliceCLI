@@ -98,7 +98,7 @@ export function Onboarding({ onDone }: Props): React.ReactNode {
             </Text>
           </OrderedList.Item>
           <OrderedList.Item>
-            <Text>Only use Claude Code on projects you trust</Text>
+            <Text>Only use Alice CLI on projects you trust</Text>
             <Text dimColor wrap="wrap">
               Untrusted code could contain prompt injection attacks.
               <Newline />
@@ -116,7 +116,7 @@ export function Onboarding({ onDone }: Props): React.ReactNode {
   const apiKeyNeedingApproval = useMemo(() => {
     // Add API key step if needed
     // On homespace, ANTHROPIC_API_KEY is preserved in process.env for child
-    // processes but ignored by Claude Code itself (see auth.ts).
+    // processes but ignored by Alice CLI itself (see auth.ts).
     if (!process.env.ANTHROPIC_API_KEY || isRunningOnHomespace()) {
       return '';
     }
@@ -161,7 +161,7 @@ export function Onboarding({ onDone }: Props): React.ReactNode {
       id: 'terminal-setup',
       component: (
         <Box flexDirection="column" gap={1} paddingLeft={1}>
-          <Text bold>Use Claude Code&apos;s terminal setup?</Text>
+          <Text bold>Use Alice CLI&apos;s terminal setup?</Text>
           <Box flexDirection="column" width={70} gap={1}>
             <Text>
               For the optimal coding experience, enable the recommended settings

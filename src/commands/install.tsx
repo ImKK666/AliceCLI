@@ -185,12 +185,12 @@ function Install({ onDone, force, target }: InstallProps): React.ReactNode {
   useEffect(() => {
     if (state.type === 'success') {
       // Give success message time to render before exiting
-      setTimeout(onDone, 2000, 'Claude Code installation completed successfully', {
+      setTimeout(onDone, 2000, 'Alice CLI installation completed successfully', {
         display: 'system' as const,
       });
     } else if (state.type === 'error') {
       // Give error message time to render before exiting
-      setTimeout(onDone, 3000, 'Claude Code installation failed', {
+      setTimeout(onDone, 3000, 'Alice CLI installation failed', {
         display: 'system' as const,
       });
     }
@@ -198,15 +198,13 @@ function Install({ onDone, force, target }: InstallProps): React.ReactNode {
 
   return (
     <Box flexDirection="column" marginTop={1}>
-      {state.type === 'checking' && <Text color="claude">Checking installation status...</Text>}
+      {state.type === 'checking' && <Text color="alice">Checking installation status...</Text>}
 
       {state.type === 'cleaning-npm' && <Text color="warning">Cleaning up old npm installations...</Text>}
 
-      {state.type === 'installing' && (
-        <Text color="claude">Installing Claude Code native build {state.version}...</Text>
-      )}
+      {state.type === 'installing' && <Text color="alice">Installing Alice CLI native build {state.version}...</Text>}
 
-      {state.type === 'setting-up' && <Text color="claude">Setting up launcher and shell integration...</Text>}
+      {state.type === 'setting-up' && <Text color="alice">Setting up launcher and shell integration...</Text>}
 
       {state.type === 'set-up' && <SetupNotes messages={state.messages} />}
 
@@ -215,14 +213,14 @@ function Install({ onDone, force, target }: InstallProps): React.ReactNode {
           <Box>
             <StatusIcon status="success" withSpace />
             <Text color="success" bold>
-              Claude Code successfully installed!
+              Alice CLI successfully installed!
             </Text>
           </Box>
           <Box marginLeft={2} flexDirection="column" gap={1}>
             {state.version !== 'current' && (
               <Box>
                 <Text dimColor>Version: </Text>
-                <Text color="claude">{state.version}</Text>
+                <Text color="alice">{state.version}</Text>
               </Box>
             )}
             <Box>
@@ -233,7 +231,7 @@ function Install({ onDone, force, target }: InstallProps): React.ReactNode {
           <Box marginLeft={2} flexDirection="column" gap={1}>
             <Box marginTop={1}>
               <Text dimColor>Next: Run </Text>
-              <Text color="claude" bold>
+              <Text color="alice" bold>
                 claude --help
               </Text>
               <Text dimColor> to get started</Text>
@@ -263,7 +261,7 @@ function Install({ onDone, force, target }: InstallProps): React.ReactNode {
 export const install = {
   type: 'local-jsx' as const,
   name: 'install',
-  description: 'Install Claude Code native build',
+  description: 'Install Alice CLI native build',
   argumentHint: '[options]',
   async call(
     onDone: (result: string, options?: { display?: CommandResultDisplay }) => void,

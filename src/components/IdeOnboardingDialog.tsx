@@ -42,8 +42,8 @@ export function IdeOnboardingDialog({ onDone, installationStatus }: Props): Reac
       <Dialog
         title={
           <>
-            <Text color="claude">✻ </Text>
-            <Text>Welcome to Claude Code for {ideName}</Text>
+            <Text color="alice">✻ </Text>
+            <Text>Welcome to Alice CLI for {ideName}</Text>
           </>
         }
         subtitle={installedVersion ? `installed ${pluginOrExtension} v${installedVersion}` : undefined}
@@ -57,7 +57,7 @@ export function IdeOnboardingDialog({ onDone, installationStatus }: Props): Reac
             <Text color="suggestion">⧉ selected lines</Text>
           </Text>
           <Text>
-            • Review Claude Code&apos;s changes <Text color="diffAddedWord">+11</Text>{' '}
+            • Review Alice CLI&apos;s changes <Text color="diffAddedWord">+11</Text>{' '}
             <Text color="diffRemovedWord">-22</Text> in the comfort of your IDE
           </Text>
           <Text>

@@ -35,7 +35,7 @@ export function TeleportProgress({ currentStep, sessionId }: Props): React.React
   return (
     <Box ref={ref} flexDirection="column" paddingX={1} paddingY={1}>
       <Box marginBottom={1}>
-        <Text bold color="claude">
+        <Text bold color="alice">
           {SPINNER_FRAMES[frame]} Teleporting session…
         </Text>
       </Box>
@@ -60,7 +60,7 @@ export function TeleportProgress({ currentStep, sessionId }: Props): React.React
             color = 'green';
           } else if (isCurrent) {
             icon = SPINNER_FRAMES[frame]!;
-            color = 'claude';
+            color = 'alice';
           } else {
             icon = figures.circle;
             color = undefined;

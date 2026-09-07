@@ -325,7 +325,7 @@ export function FullscreenLayout({
     const ink = instances.get(process.stdout);
     if (!ink) return;
     ink.onHyperlinkClick = url => {
-      // Most OSC 8 links emitted by Claude Code are file:// URLs from
+      // Most OSC 8 links emitted by Alice CLI are file:// URLs from
       // FilePathLink (FileEdit/FileWrite/FileRead tool output). openBrowser
       // rejects non-http(s) protocols — route file: to openPath instead.
       if (url.startsWith('file:')) {

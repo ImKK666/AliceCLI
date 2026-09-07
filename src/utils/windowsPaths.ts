@@ -272,11 +272,11 @@ export function findGitBashPath(): string {
   const envOverride = process.env.CLAUDE_CODE_GIT_BASH_PATH
   if (envOverride) {
     console.error(
-      `Claude Code was unable to find CLAUDE_CODE_GIT_BASH_PATH path "${envOverride}"`,
+      `Alice CLI was unable to find CLAUDE_CODE_GIT_BASH_PATH path "${envOverride}"`,
     )
   } else {
     console.error(
-      'Claude Code on Windows requires git-bash (https://git-scm.com/downloads/win). If installed but not in PATH, set environment variable pointing to your bash.exe, similar to: CLAUDE_CODE_GIT_BASH_PATH=C:\\Program Files\\Git\\bin\\bash.exe',
+      'Alice CLI on Windows requires git-bash (https://git-scm.com/downloads/win). If installed but not in PATH, set environment variable pointing to your bash.exe, similar to: CLAUDE_CODE_GIT_BASH_PATH=C:\\Program Files\\Git\\bin\\bash.exe',
     )
   }
   // eslint-disable-next-line custom-rules/no-process-exit

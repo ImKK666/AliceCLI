@@ -781,7 +781,7 @@ function EmptyStateMessage({ reason }: { reason: EmptyMarketplaceReason | null }
       return (
         <>
           <Text dimColor>Git is required to install marketplaces.</Text>
-          <Text dimColor>Please install git and restart Claude Code.</Text>
+          <Text dimColor>Please install git and restart Alice CLI.</Text>
         </>
       );
     case 'all-blocked-by-policy':

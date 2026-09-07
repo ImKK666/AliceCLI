@@ -46,8 +46,7 @@ export function WarningsStep({ warnings, onContinue }: WarningsStepProps) {
         </Box>
         <Box marginTop={1}>
           <Text dimColor>
-            You can also try the manual setup steps if needed:{' '}
-            <Text color="claude">{GITHUB_ACTION_SETUP_DOCS_URL}</Text>
+            You can also try the manual setup steps if needed: <Text color="alice">{GITHUB_ACTION_SETUP_DOCS_URL}</Text>
           </Text>
         </Box>
       </Box>

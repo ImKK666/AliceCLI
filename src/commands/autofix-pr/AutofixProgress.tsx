@@ -53,7 +53,7 @@ export function AutofixProgress({ phase, target, sessionUrl, errorMessage }: Aut
     <Box flexDirection="column" marginTop={1} marginBottom={1}>
       <Box>
         <Text bold>Autofix PR </Text>
-        <Text color={'claude' as keyof Theme}>{target}</Text>
+        <Text color={'alice' as keyof Theme}>{target}</Text>
       </Box>
       {PHASE_ORDER.map((p, i) => {
         const isDone = currentIdx > i;
@@ -76,7 +76,7 @@ export function AutofixProgress({ phase, target, sessionUrl, errorMessage }: Aut
       {sessionUrl && (
         <Box marginTop={1} marginLeft={2}>
           <Text color={'subtle' as keyof Theme}>Track: </Text>
-          <Text color={'claude' as keyof Theme}>{sessionUrl}</Text>
+          <Text color={'alice' as keyof Theme}>{sessionUrl}</Text>
         </Box>
       )}
     </Box>

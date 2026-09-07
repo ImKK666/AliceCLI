@@ -7,7 +7,7 @@ type RegisterHelpers = {
 export function register(program: Command, _helpers: RegisterHelpers): void {
   program
     .command('server')
-    .description('Start a Claude Code session server')
+    .description('Start a Alice CLI session server')
     .option('--port <number>', 'HTTP port', '0')
     .option('--host <string>', 'Bind address', '0.0.0.0')
     .option('--auth-token <token>', 'Bearer token for auth')

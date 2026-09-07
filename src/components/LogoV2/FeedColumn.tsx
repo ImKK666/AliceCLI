@@ -19,7 +19,7 @@ export function FeedColumn({ feeds, maxWidth }: FeedColumnProps): React.ReactNod
       {feeds.map((feed, index) => (
         <React.Fragment key={index}>
           <Feed config={feed} actualWidth={actualWidth} />
-          {index < feeds.length - 1 && <Divider color="claude" width={actualWidth} />}
+          {index < feeds.length - 1 && <Divider color="alice" width={actualWidth} />}
         </React.Fragment>
       ))}
     </Box>

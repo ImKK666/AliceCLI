@@ -49,7 +49,7 @@ export function PhaseSidebar({
         return (
           <Box key={row.title} backgroundColor={highlighted ? 'selectionBg' : undefined} justifyContent="space-between">
             <Box>
-              <Text color={selected ? 'claude' : undefined}>{highlighted ? '>' : ' '}</Text>
+              <Text color={selected ? 'alice' : undefined}>{highlighted ? '>' : ' '}</Text>
               <Text> </Text>
               <Text color={color}>{mark}</Text>
               <Text> {row.title}</Text>

@@ -59,7 +59,7 @@ export function useDiffInIDE({
 
   const sha = useMemo(() => crypto.randomUUID().slice(0, 6), [])
   const tabName = useMemo(
-    () => `✻ [Claude Code] ${basename(filePath)} (${sha}) ⧉`,
+    () => `✻ [Alice CLI] ${basename(filePath)} (${sha}) ⧉`,
     [filePath, sha],
   )
 

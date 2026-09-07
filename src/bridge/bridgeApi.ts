@@ -474,7 +474,7 @@ function handleErrorStatus(
     case 403:
       throw new BridgeFatalError(
         isExpiredErrorType(errorType)
-          ? 'Remote Control session has expired. Please restart with `claude remote-control` or /remote-control.'
+          ? 'Remote Control session has expired. Please restart with `alice remote-control` or /remote-control.'
           : `${context}: Access denied (403)${detail ? `: ${detail}` : ''}. Check your organization permissions.`,
         403,
         errorType,
@@ -489,7 +489,7 @@ function handleErrorStatus(
     case 410:
       throw new BridgeFatalError(
         detail ??
-          'Remote Control session has expired. Please restart with `claude remote-control` or /remote-control.',
+          'Remote Control session has expired. Please restart with `alice remote-control` or /remote-control.',
         410,
         errorType ?? 'environment_expired',
       )

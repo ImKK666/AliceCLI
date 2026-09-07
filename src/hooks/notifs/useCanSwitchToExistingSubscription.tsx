@@ -28,7 +28,7 @@ export function useCanSwitchToExistingSubscription(): void {
       key: 'switch-to-subscription',
       jsx: (
         <Text color="suggestion">
-          Use your existing Claude {subscriptionType} plan with Claude Code
+          Use your existing Claude {subscriptionType} plan with Alice CLI
           <Text color="text" dimColor>
             {' '}
             · /login to activate

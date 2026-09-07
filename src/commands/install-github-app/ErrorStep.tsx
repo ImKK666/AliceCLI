@@ -33,7 +33,7 @@ export function ErrorStep({ error, errorReason, errorInstructions }: ErrorStepPr
         )}
         <Box marginTop={1}>
           <Text dimColor>
-            For manual setup instructions, see: <Text color="claude">{GITHUB_ACTION_SETUP_DOCS_URL}</Text>
+            For manual setup instructions, see: <Text color="alice">{GITHUB_ACTION_SETUP_DOCS_URL}</Text>
           </Text>
         </Box>
       </Box>

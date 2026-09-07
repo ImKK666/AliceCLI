@@ -286,7 +286,7 @@ export function ConsoleOAuthFlow({
         setOAuthStatus({ state: 'success' });
         void sendNotification(
           {
-            message: 'Claude Code login successful',
+            message: 'Alice CLI login successful',
             notificationType: 'auth_success',
           },
           terminal,
@@ -438,7 +438,7 @@ function OAuthStatusMessage({
           <Text bold>
             {startingMessage
               ? startingMessage
-              : `Claude Code can be used with your Claude subscription or billed based on API usage through your Console account.`}
+              : `Alice CLI can be used with your Claude subscription or billed based on API usage through your Console account.`}
           </Text>
 
           <Text>Select login method:</Text>
@@ -1582,8 +1582,8 @@ function OAuthStatusMessage({
 
           <Box flexDirection="column" gap={1}>
             <Text>
-              Claude Code supports Amazon Bedrock, Microsoft Foundry, and Vertex AI. Set the required environment
-              variables, then restart Claude Code.
+              Alice CLI supports Amazon Bedrock, Microsoft Foundry, and Vertex AI. Set the required environment
+              variables, then restart Alice CLI.
             </Text>
 
             <Text>
@@ -1659,7 +1659,7 @@ function OAuthStatusMessage({
         <Box flexDirection="column" gap={1}>
           <Box>
             <Spinner />
-            <Text>Creating API key for Claude Code…</Text>
+            <Text>Creating API key for Alice CLI…</Text>
           </Box>
         </Box>
       );
