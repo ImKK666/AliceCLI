@@ -1,6 +1,5 @@
 // biome-ignore-all assist/source/organizeImports: ANT-ONLY import markers must not be reordered
 import { feature } from 'bun:bundle';
-import { spawnSync } from 'child_process';
 import {
   snapshotOutputTokensForTurn,
   getCurrentTurnTokenBudget,
@@ -10,23 +9,15 @@ import {
 } from '../bootstrap/state.js';
 import { parseTokenBudget } from '../utils/tokenBudget.js';
 import { count } from '../utils/array.js';
-import { dirname, join } from 'path';
-import { tmpdir } from 'os';
+import { dirname } from 'path';
 import figures from 'figures';
-// eslint-disable-next-line custom-rules/prefer-use-keybindings -- / n N Esc [ v are bare letters in transcript modal context, same class as g/G/j/k in ScrollKeybindingHandler
-import { useInput } from '@anthropic/ink';
 import { useSearchInput } from '../hooks/useSearchInput.js';
 import { useTerminalSize } from '../hooks/useTerminalSize.js';
-import { useSearchHighlight } from '@anthropic/ink';
 import type { JumpHandle } from '../components/VirtualMessageList.js';
-import { renderMessagesToPlainText } from '../utils/exportRenderer.js';
-import { openFileInExternalEditor } from '../utils/editor.js';
-import { writeFile } from 'fs/promises';
 import {
   type TabStatusKind,
   Box,
   Text,
-  useStdin,
   useTheme,
   useTerminalFocus,
   useTerminalTitle,
@@ -125,6 +116,9 @@ import {
   selectableUserMessagesFilter,
   messagesAfterAreOnlySynthetic,
 } from '../components/MessageSelector.js';
+import { useEditorState } from '../hooks/useEditorState.js';
+import { useTranscriptModal } from '../hooks/useTranscriptModal.js';
+import { useSessionLifecycle } from '../hooks/useSessionLifecycle.js';
 import { useIdeLogging } from '../hooks/useIdeLogging.js';
 import { PermissionRequest, type ToolUseConfirm } from '../components/permissions/PermissionRequest.js';
 import { ElicitationDialog } from '../components/mcp/ElicitationDialog.js';
@@ -147,7 +141,7 @@ import { buildEffectiveSystemPrompt } from '../utils/systemPrompt.js';
 import { getSystemContext, getUserContext } from '../context.js';
 import { getMemoryFiles } from '../utils/claudemd.js';
 import { startBackgroundHousekeeping } from '../utils/backgroundHousekeeping.js';
-import { getTotalCost, saveCurrentSessionCosts, resetCostState, getStoredSessionCosts } from '../cost-tracker.js';
+import { saveCurrentSessionCosts, resetCostState, getStoredSessionCosts } from '../cost-tracker.js';
 import { useCostSummary } from '../costHook.js';
 import { useFpsMetrics } from '../context/fpsMetrics.js';
 import { useAfterFirstRender } from '../hooks/useAfterFirstRender.js';
@@ -220,7 +214,6 @@ import { SLEEP_TOOL_NAME } from '@claude-code-best/builtin-tools/tools/SleepTool
 import { clearSpeculativeChecks } from '@claude-code-best/builtin-tools/tools/BashTool/bashPermissions.js';
 import type { AutoUpdaterResult } from '../utils/autoUpdater.js';
 import { getGlobalConfig, saveGlobalConfig, getGlobalConfigWriteCount } from '../utils/config.js';
-import { hasConsoleBillingAccess } from '../utils/billing.js';
 import {
   logEvent,
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -340,7 +333,7 @@ import {
   restoreWorktreeForResume,
   exitRestoredWorktree,
 } from '../utils/sessionRestore.js';
-import { isBgSession, updateSessionName, updateSessionActivity } from '../utils/concurrentSessions.js';
+import { updateSessionName, updateSessionActivity } from '../utils/concurrentSessions.js';
 import { isInProcessTeammateTask, type InProcessTeammateTaskState } from '../tasks/InProcessTeammateTask/types.js';
 import { restoreRemoteAgentTasks } from '../tasks/RemoteAgentTask/RemoteAgentTask.js';
 import { BackgroundAgentSelector } from '../components/tasks/BackgroundAgentSelector.js';
@@ -387,8 +380,6 @@ import {
   type IdeType,
 } from '../utils/ide.js';
 import { useIDEIntegration } from '../hooks/useIDEIntegration.js';
-import exit from '../commands/exit/index.js';
-import { ExitFlow } from '../components/ExitFlow.js';
 import { getCurrentWorktreeSession } from '../utils/worktree.js';
 import {
   popAllEditable,
@@ -982,23 +973,21 @@ export function REPL({
     [setDynamicMcpConfig],
   );
 
-  const [screen, setScreen] = useState<Screen>('prompt');
-  const [showAllInTranscript, setShowAllInTranscript] = useState(false);
-  // [ forces the dump-to-scrollback path inside transcript mode. Separate
-  // from CLAUDE_CODE_NO_FLICKER=0 (which is process-lifetime) — this is
-  // ephemeral, reset on transcript exit. Diagnostic escape hatch so
-  // terminal/tmux native cmd-F can search the full flat render.
-  const [dumpMode, setDumpMode] = useState(false);
-  // v-for-editor render progress. Inline in the footer — notifications
-  // render inside PromptInput which isn't mounted in transcript.
-  const [editorStatus, setEditorStatus] = useState('');
-  // Incremented on transcript exit. Async v-render captures this at start;
-  // each status write no-ops if stale (user left transcript mid-render —
-  // the stable setState would otherwise stamp a ghost toast into the next
-  // session). Also clears any pending 4s auto-clear.
-  const editorGenRef = useRef(0);
-  const editorTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const editorRenderingRef = useRef(false);
+  const {
+    editorStatus,
+    setEditorStatus,
+    editorGenRef,
+    editorTimerRef,
+    editorRenderingRef,
+    vimMode,
+    setVimMode,
+    showBashesDialog,
+    setShowBashesDialog,
+    isSearchingHistory,
+    setIsSearchingHistory,
+    isHelpOpen,
+    setIsHelpOpen,
+  } = useEditorState();
   const { addNotification, removeNotification } = useNotifications();
 
   // eslint-disable-next-line prefer-const
@@ -1266,20 +1255,6 @@ export function REPL({
   // don't accidentally dismiss or answer a permission prompt the user hasn't read yet.
   const [isPromptInputActive, setIsPromptInputActive] = React.useState(false);
 
-  const [autoUpdaterResult, setAutoUpdaterResult] = useState<AutoUpdaterResult | null>(null);
-
-  useEffect(() => {
-    if (autoUpdaterResult?.notifications) {
-      autoUpdaterResult.notifications.forEach(notification => {
-        addNotification({
-          key: 'auto-updater-notification',
-          text: notification,
-          priority: 'low',
-        });
-      });
-    }
-  }, [autoUpdaterResult, addNotification]);
-
   // tmux + fullscreen + `mouse off`: one-time hint that wheel won't scroll.
   // We no longer mutate tmux's session-scoped mouse option (it poisoned
   // sibling panes); tmux users already know this tradeoff from vim/less.
@@ -1524,6 +1499,29 @@ export function REPL({
     }
     rawSetMessages(next);
   }, []);
+
+  const {
+    autoUpdaterResult,
+    setAutoUpdaterResult,
+    exitFlow,
+    setExitFlow,
+    isExiting,
+    setIsExiting,
+    showCostDialog,
+    setShowCostDialog,
+    haveShownCostDialog,
+    setHaveShownCostDialog,
+    idleReturnPending,
+    setIdleReturnPending,
+    skipIdleCheckRef,
+    lastQueryCompletionTimeRef,
+    handleExit,
+    remountKey,
+  } = useSessionLifecycle({
+    messages,
+    addNotification,
+  });
+
   // Capture the baseline message count alongside the placeholder text so
   // the render can hide it once displayedMessages grows past the baseline.
   const setUserInputOnProcessing = useCallback((input: string | undefined) => {
@@ -1630,11 +1628,50 @@ export function REPL({
     );
   }
 
-  // Frozen state for transcript mode - stores lengths instead of cloning arrays for memory efficiency
-  const [frozenTranscriptState, setFrozenTranscriptState] = useState<{
-    messagesLength: number;
-    streamingToolUsesLength: number;
-  } | null>(null);
+  // Props for GlobalKeybindingHandlers component (rendered inside KeybindingSetup)
+  const virtualScrollActive = isFullscreenEnvEnabled() && !disableVirtualScroll;
+
+  const transcript = useTranscriptModal({
+    messagesLength: messages.length,
+    streamingToolUsesLength: streamingToolUses.length,
+    deferredMessages,
+    streamingToolUses,
+    tools,
+    virtualScrollActive,
+    editorGenRef,
+    editorTimerRef,
+    editorRenderingRef,
+    setEditorStatus,
+  });
+  const {
+    screen,
+    setScreen,
+    showAllInTranscript,
+    setShowAllInTranscript,
+    dumpMode,
+    frozenTranscriptState,
+    searchOpen,
+    setSearchOpen,
+    searchQuery,
+    setSearchQuery,
+    searchCount,
+    setSearchCount,
+    searchCurrent,
+    setSearchCurrent,
+    onSearchMatchesChange,
+    transcriptCols,
+    handleEnterTranscript,
+    handleExitTranscript,
+    jumpRef,
+    setHighlight,
+    scanElement,
+    setPositions,
+    inTranscript,
+    transcriptMessages,
+    transcriptStreamingToolUses,
+    globalKeybindingProps,
+  } = transcript;
+
   // Initialize input with any early input that was captured before REPL was ready.
   // Using lazy initialization ensures cursor offset is set correctly in PromptInput.
   const [inputValue, setInputValueRaw] = useState(() => consumeEarlyInput());
@@ -1810,16 +1847,9 @@ export function REPL({
   const [spinnerShimmerColor, setSpinnerShimmerColor] = useState<keyof Theme | null>(null);
   const [isMessageSelectorVisible, setIsMessageSelectorVisible] = useState(false);
   const [messageSelectorPreselect, setMessageSelectorPreselect] = useState<UserMessage | undefined>(undefined);
-  const [showCostDialog, setShowCostDialog] = useState(false);
   const [conversationId, setConversationId] = useState(randomUUID());
 
-  // Idle-return dialog: shown when user submits after a long idle gap
-  const [idleReturnPending, setIdleReturnPending] = useState<{
-    input: string;
-    idleMinutes: number;
-  } | null>(null);
-  const skipIdleCheckRef = useRef(false);
-  const lastQueryCompletionTimeRef = useRef(lastQueryCompletionTime);
+  // Keep lastQueryCompletionTimeRef in sync with lastQueryCompletionTime
   lastQueryCompletionTimeRef.current = lastQueryCompletionTime;
 
   // Aggregate tool result budget: per-conversation decision tracking.
@@ -1839,12 +1869,6 @@ export function REPL({
   registerCompactCleanup(() => {
     contentReplacementStateRef.current = createContentReplacementState();
   });
-
-  const [haveShownCostDialog, setHaveShownCostDialog] = useState(getGlobalConfig().hasAcknowledgedCostThreshold);
-  const [vimMode, setVimMode] = useState<VimMode>('INSERT');
-  const [showBashesDialog, setShowBashesDialog] = useState<string | boolean>(false);
-  const [isSearchingHistory, setIsSearchingHistory] = useState(false);
-  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   // showBashesDialog is REPL-level so it survives PromptInput unmounting.
   // When ultraplan approval fires while the pill dialog is open, PromptInput
@@ -2401,10 +2425,6 @@ export function REPL({
   // autoRunIssueReason is cleared.
   const didAutoRunIssueRef = useRef(false);
 
-  // State for exit feedback flow
-  const [exitFlow, setExitFlow] = useState<React.ReactNode>(null);
-  const [isExiting, setIsExiting] = useState(false);
-
   // Calculate if cost dialog should be shown
   const showingCostDialog = !isLoading && showCostDialog;
 
@@ -2677,20 +2697,6 @@ export function REPL({
     inputValue,
     streamMode,
   };
-
-  useEffect(() => {
-    const totalCost = getTotalCost();
-    if (totalCost >= 5 /* $5 */ && !showCostDialog && !haveShownCostDialog) {
-      logEvent('tengu_cost_threshold_reached', {});
-      // Mark as shown even if the dialog won't render (no console billing
-      // access). Otherwise this effect re-fires on every message change for
-      // the rest of the session — 200k+ spurious events observed.
-      setHaveShownCostDialog(true);
-      if (hasConsoleBillingAccess()) {
-        setShowCostDialog(true);
-      }
-    }
-  }, [messages, showCostDialog, haveShownCostDialog]);
 
   const sandboxAskCallback: SandboxAskCallback = useCallback(
     async (hostPattern: NetworkHostPattern) => {
@@ -4523,41 +4529,6 @@ export function REPL({
     });
   }, []);
 
-  const handleExit = useCallback(async () => {
-    setIsExiting(true);
-    // In bg sessions, always detach instead of kill — even when a worktree is
-    // active. Without this guard, the worktree branch below short-circuits into
-    // ExitFlow (which calls gracefulShutdown) before exit.tsx is ever loaded.
-    if (feature('BG_SESSIONS') && isBgSession()) {
-      spawnSync('tmux', ['detach-client'], { stdio: 'ignore' });
-      setIsExiting(false);
-      return;
-    }
-    const showWorktree = getCurrentWorktreeSession() !== null;
-    if (showWorktree) {
-      setExitFlow(
-        <ExitFlow
-          showWorktree
-          onDone={() => {}}
-          onCancel={() => {
-            setExitFlow(null);
-            setIsExiting(false);
-          }}
-        />,
-      );
-      return;
-    }
-    const exitMod = await exit.load();
-    const exitFlowResult = await exitMod.call(() => {});
-    setExitFlow(exitFlowResult);
-    // If call() returned without killing the process (bg session detach),
-    // clear isExiting so the UI is usable on reattach. No-op on the normal
-    // path — gracefulShutdown's process.exit() means we never get here.
-    if (exitFlowResult === null) {
-      setIsExiting(false);
-    }
-  }, []);
-
   const handleShowMessageSelector = useCallback(() => {
     setIsMessageSelectorVisible(prev => !prev);
   }, []);
@@ -5222,31 +5193,6 @@ export function REPL({
     };
   }, []);
 
-  // Listen for suspend/resume events
-  const { internal_eventEmitter } = useStdin();
-  const [remountKey, setRemountKey] = useState(0);
-  useEffect(() => {
-    const handleSuspend = () => {
-      // Print suspension instructions
-      process.stdout.write(
-        `\nClaude Code has been suspended. Run \`fg\` to bring Claude Code back.\nNote: ctrl + z now suspends Claude Code, ctrl + _ undoes input.\n`,
-      );
-    };
-
-    const handleResume = () => {
-      // Force complete component tree replacement instead of terminal clear
-      // Ink now handles line count reset internally on SIGCONT
-      setRemountKey(prev => prev + 1);
-    };
-
-    internal_eventEmitter?.on('suspend', handleSuspend);
-    internal_eventEmitter?.on('resume', handleResume);
-    return () => {
-      internal_eventEmitter?.off('suspend', handleSuspend);
-      internal_eventEmitter?.off('resume', handleResume);
-    };
-  }, [internal_eventEmitter]);
-
   // Derive stop hook spinner suffix from messages state
   const stopHookSpinnerSuffix = useMemo(() => {
     if (!isLoading) return null;
@@ -5305,211 +5251,6 @@ export function REPL({
 
     return total === 1 ? `running ${hookType} hook` : `running stop hooks… ${completedCount}/${total}`;
   }, [messages, isLoading]);
-
-  // Callback to capture frozen state when entering transcript mode
-  const handleEnterTranscript = useCallback(() => {
-    setFrozenTranscriptState({
-      messagesLength: messages.length,
-      streamingToolUsesLength: streamingToolUses.length,
-    });
-  }, [messages.length, streamingToolUses.length]);
-
-  // Callback to clear frozen state when exiting transcript mode
-  const handleExitTranscript = useCallback(() => {
-    setFrozenTranscriptState(null);
-  }, []);
-
-  // Props for GlobalKeybindingHandlers component (rendered inside KeybindingSetup)
-  const virtualScrollActive = isFullscreenEnvEnabled() && !disableVirtualScroll;
-
-  // Transcript search state. Hooks must be unconditional so they live here
-  // (not inside the `if (screen === 'transcript')` branch below); isActive
-  // gates the useInput. Query persists across bar open/close so n/N keep
-  // working after Enter dismisses the bar (less semantics).
-  const jumpRef = useRef<JumpHandle | null>(null);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchCount, setSearchCount] = useState(0);
-  const [searchCurrent, setSearchCurrent] = useState(0);
-  const onSearchMatchesChange = useCallback((count: number, current: number) => {
-    setSearchCount(count);
-    setSearchCurrent(current);
-  }, []);
-
-  useInput(
-    (input, key, event) => {
-      if (key.ctrl || key.meta) return;
-      // No Esc handling here — less has no navigating mode. Search state
-      // (highlights, n/N) is just state. Esc/q/ctrl+c → transcript:exit
-      // (ungated). Highlights clear on exit via the screen-change effect.
-      if (input === '/') {
-        // Capture scrollTop NOW — typing is a preview, 0-matches snaps
-        // back here. Synchronous ref write, fires before the bar's
-        // mount-effect calls setSearchQuery.
-        jumpRef.current?.setAnchor();
-        setSearchOpen(true);
-        event.stopImmediatePropagation();
-        return;
-      }
-      // Held-key batching: tokenizer coalesces to 'nnn'. Same uniform-batch
-      // pattern as modalPagerAction in ScrollKeybindingHandler.tsx. Each
-      // repeat is a step (n isn't idempotent like g).
-      const c = input[0];
-      if ((c === 'n' || c === 'N') && input === c.repeat(input.length) && searchCount > 0) {
-        const fn = c === 'n' ? jumpRef.current?.nextMatch : jumpRef.current?.prevMatch;
-        if (fn) for (let i = 0; i < input.length; i++) fn();
-        event.stopImmediatePropagation();
-      }
-    },
-    // Search needs virtual scroll (jumpRef drives VirtualMessageList). [
-    // kills it, so !dumpMode — after [ there's nothing to jump in.
-    {
-      isActive: screen === 'transcript' && virtualScrollActive && !searchOpen && !dumpMode,
-    },
-  );
-  const { setQuery: setHighlight, scanElement, setPositions } = useSearchHighlight();
-
-  // Resize → abort search. Positions are (msg, query, WIDTH)-keyed —
-  // cached positions are stale after a width change (new layout, new
-  // wrapping). Clearing searchQuery triggers VML's setSearchQuery('')
-  // which clears positionsCache + setPositions(null). Bar closes.
-  // User hits / again → fresh everything.
-  const transcriptCols = useTerminalSize().columns;
-  const prevColsRef = React.useRef(transcriptCols);
-  React.useEffect(() => {
-    if (prevColsRef.current !== transcriptCols) {
-      prevColsRef.current = transcriptCols;
-      if (searchQuery || searchOpen) {
-        setSearchOpen(false);
-        setSearchQuery('');
-        setSearchCount(0);
-        setSearchCurrent(0);
-        jumpRef.current?.disarmSearch();
-        setHighlight('');
-      }
-    }
-  }, [transcriptCols, searchQuery, searchOpen, setHighlight]);
-
-  // Transcript escape hatches. Bare letters in modal context (no prompt
-  // competing for input) — same class as g/G/j/k in ScrollKeybindingHandler.
-  useInput(
-    (input, key, event) => {
-      if (key.ctrl || key.meta) return;
-      if (input === 'q') {
-        // less: q quits the pager. ctrl+o toggles; q is the lineage exit.
-        handleExitTranscript();
-        event.stopImmediatePropagation();
-        return;
-      }
-      if (input === '[' && !dumpMode) {
-        // Force dump-to-scrollback. Also expand + uncap — no point dumping
-        // a subset. Terminal/tmux cmd-F can now find anything. Guard here
-        // (not in isActive) so v still works post-[ — dump-mode footer at
-        // ~4898 wires editorStatus, confirming v is meant to stay live.
-        setDumpMode(true);
-        setShowAllInTranscript(true);
-        event.stopImmediatePropagation();
-      } else if (input === 'v') {
-        // less-style: v opens the file in $VISUAL/$EDITOR. Render the full
-        // transcript (same path /export uses), write to tmp, hand off.
-        // openFileInExternalEditor handles alt-screen suspend/resume for
-        // terminal editors; GUI editors spawn detached.
-        event.stopImmediatePropagation();
-        // Drop double-taps: the render is async and a second press before it
-        // completes would run a second parallel render (double memory, two
-        // tempfiles, two editor spawns). editorGenRef only guards
-        // transcript-exit staleness, not same-session concurrency.
-        if (editorRenderingRef.current) return;
-        editorRenderingRef.current = true;
-        // Capture generation + make a staleness-aware setter. Each write
-        // checks gen (transcript exit bumps it → late writes from the
-        // async render go silent).
-        const gen = editorGenRef.current;
-        const setStatus = (s: string): void => {
-          if (gen !== editorGenRef.current) return;
-          clearTimeout(editorTimerRef.current);
-          setEditorStatus(s);
-        };
-        setStatus(`rendering ${deferredMessages.length} messages…`);
-        void (async () => {
-          try {
-            // Width = terminal minus vim's line-number gutter (4 digits +
-            // space + slack). Floor at 80. PassThrough has no .columns so
-            // without this Ink defaults to 80. Trailing-space strip: right-
-            // aligned timestamps still leave a flexbox spacer run at EOL.
-            // eslint-disable-next-line custom-rules/prefer-use-terminal-size -- one-shot at keypress time, not a reactive render dep
-            const w = Math.max(80, (process.stdout.columns ?? 80) - 6);
-            const raw = await renderMessagesToPlainText(deferredMessages, tools, w);
-            const text = raw.replace(/[ \t]+$/gm, '');
-            const path = join(tmpdir(), `cc-transcript-${Date.now()}.txt`);
-            await writeFile(path, text);
-            const opened = openFileInExternalEditor(path);
-            setStatus(opened ? `opening ${path}` : `wrote ${path} · no $VISUAL/$EDITOR set`);
-          } catch (e) {
-            setStatus(`render failed: ${e instanceof Error ? e.message : String(e)}`);
-          }
-          editorRenderingRef.current = false;
-          if (gen !== editorGenRef.current) return;
-          editorTimerRef.current = setTimeout(s => s(''), 4000, setEditorStatus);
-        })();
-      }
-    },
-    // !searchOpen: typing 'v' or '[' in the search bar is search input, not
-    // a command. No !dumpMode here — v should work after [ (the [ handler
-    // guards itself inline).
-    { isActive: screen === 'transcript' && virtualScrollActive && !searchOpen },
-  );
-
-  // Fresh `less` per transcript entry. Prevents stale highlights matching
-  // unrelated normal-mode text (overlay is alt-screen-global) and avoids
-  // surprise n/N on re-entry. Same exit resets [ dump mode — each ctrl+o
-  // entry is a fresh instance.
-  const inTranscript = screen === 'transcript' && virtualScrollActive;
-  useEffect(() => {
-    if (!inTranscript) {
-      setSearchQuery('');
-      setSearchCount(0);
-      setSearchCurrent(0);
-      setSearchOpen(false);
-      editorGenRef.current++;
-      clearTimeout(editorTimerRef.current);
-      setDumpMode(false);
-      setEditorStatus('');
-    }
-  }, [inTranscript]);
-  useEffect(() => {
-    setHighlight(inTranscript ? searchQuery : '');
-    // Clear the position-based CURRENT (yellow) overlay too. setHighlight
-    // only clears the scan-based inverse. Without this, the yellow box
-    // persists at its last screen coords after ctrl-c exits transcript.
-    if (!inTranscript) setPositions(null);
-  }, [inTranscript, searchQuery, setHighlight, setPositions]);
-
-  const globalKeybindingProps = {
-    screen,
-    setScreen,
-    showAllInTranscript,
-    setShowAllInTranscript,
-    messageCount: messages.length,
-    onEnterTranscript: handleEnterTranscript,
-    onExitTranscript: handleExitTranscript,
-    virtualScrollActive,
-    // Bar-open is a mode (owns keystrokes — j/k type, Esc cancels).
-    // Navigating (query set, bar closed) is NOT — Esc exits transcript,
-    // same as less q with highlights still visible. useSearchInput
-    // doesn't stopPropagation, so without this gate transcript:exit
-    // would fire on the same Esc that cancels the bar (child registers
-    // first, fires first, bubbles).
-    searchBarOpen: searchOpen,
-  };
-
-  // Use frozen lengths to slice arrays, avoiding memory overhead of cloning
-  const transcriptMessages = frozenTranscriptState
-    ? deferredMessages.slice(0, frozenTranscriptState.messagesLength)
-    : deferredMessages;
-  const transcriptStreamingToolUses = frozenTranscriptState
-    ? streamingToolUses.slice(0, frozenTranscriptState.streamingToolUsesLength)
-    : streamingToolUses;
 
   // Handle shift+down for teammate navigation and background task management.
   // Guard onOpenBackgroundTasks when a local-jsx dialog (e.g. /mcp) is open —
