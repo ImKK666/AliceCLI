@@ -18,7 +18,7 @@ import { initializeTelemetryAfterTrust } from './entrypoints/init.js';
 import { isSynchronizedOutputSupported } from '@anthropic/ink';
 import type { RenderOptions, Root, TextProps } from '@anthropic/ink';
 import { KeybindingSetup } from './keybindings/KeybindingProviderSetup.js';
-import { startDeferredPrefetches } from './main.js';
+import { startDeferredPrefetches } from './cli/prefetch.js';
 import { initializeGrowthBook, resetGrowthBook } from './services/analytics/growthbook.js';
 import { isQualifiedForGrove } from './services/api/grove.js';
 import { handleMcpjsonServerApprovals } from './services/mcpServerApproval.js';
