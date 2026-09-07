@@ -1,6 +1,6 @@
-import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises'
+import { mkdir, rename, stat, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
-import { createHash, randomUUID } from 'node:crypto'
+import { randomUUID } from 'node:crypto'
 import type {
   SkillLearningProjectContext as BaseSkillLearningProjectContext,
   SkillObservation as BaseSkillObservation,
@@ -180,7 +180,7 @@ export async function readObservations(
   const filePath = getObservationFilePath(options)
   let content = ''
   try {
-    content = await readFile(filePath, 'utf8')
+    content = await Bun.file(filePath).text()
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
     throw error
@@ -203,7 +203,7 @@ export async function ingestTranscript(
   transcriptPath: string,
   options?: ObservationStoreOptions,
 ): Promise<StoredSkillObservation[]> {
-  const transcript = await readFile(transcriptPath, 'utf8')
+  const transcript = await Bun.file(transcriptPath).text()
   const observations: StoredSkillObservation[] = []
 
   for (const line of transcript.split(/\r?\n/)) {
@@ -227,7 +227,7 @@ export async function purgeOldObservations(
 
   let content = ''
   try {
-    content = await readFile(filePath, 'utf8')
+    content = await Bun.file(filePath).text()
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return 0
     throw error
@@ -254,7 +254,7 @@ export async function purgeOldObservations(
   // Atomic write: temp + rename. Direct writeFile leaves a truncated/empty
   // file if the process crashes mid-write, losing retained observations.
   const tmpPath = `${filePath}.tmp-${process.pid}-${Date.now()}`
-  await writeFile(tmpPath, kept.length ? `${kept.join('\n')}\n` : '')
+  await Bun.write(tmpPath, kept.length ? `${kept.join('\n')}\n` : '')
   await rename(tmpPath, filePath)
   return purged
 }
@@ -446,5 +446,5 @@ function createObservationId(): string {
 }
 
 function hashText(value: string): string {
-  return createHash('sha256').update(value).digest('hex')
+  return new Bun.CryptoHasher('sha256').update(value).digest('hex')
 }

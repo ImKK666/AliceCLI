@@ -1,4 +1,3 @@
-import { createHash } from 'crypto'
 import { join } from 'path'
 import { getIsNonInteractiveSession } from '../../bootstrap/state.js'
 import type { Command } from '../../commands.js'
@@ -165,7 +164,10 @@ export function hashMcpConfig(config: ScopedMcpServerConfig): string {
     }
     return v
   })
-  return createHash('sha256').update(stable).digest('hex').slice(0, 16)
+  return new Bun.CryptoHasher('sha256')
+    .update(stable)
+    .digest('hex')
+    .slice(0, 16)
 }
 
 /**

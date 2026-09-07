@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import type {
   SkillLearningProjectContext,
   SkillLearningScope,
@@ -69,7 +68,7 @@ export function buildInstinctId(
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
     .slice(0, 48)
-  const hash = createHash('sha1')
+  const hash = new Bun.CryptoHasher('sha1')
     .update(`${scope}\n${trigger}\n${action}`)
     .digest('hex')
     .slice(0, 10)

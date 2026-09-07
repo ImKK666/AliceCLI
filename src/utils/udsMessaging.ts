@@ -8,17 +8,9 @@
  * but can be overridden via --messaging-socket-path.
  */
 
-import { createHash, randomBytes, timingSafeEqual } from 'crypto'
+import { randomBytes, timingSafeEqual } from 'crypto'
 import { createServer, type Server, type Socket } from 'net'
-import {
-  chmod,
-  lstat,
-  mkdir,
-  open,
-  readFile,
-  rename,
-  unlink,
-} from 'fs/promises'
+import { chmod, lstat, mkdir, open, rename, unlink } from 'fs/promises'
 import { dirname, join } from 'path'
 import { tmpdir } from 'os'
 import { registerCleanup } from './cleanupRegistry.js'
@@ -156,7 +148,7 @@ function getCapabilityDir(): string {
 }
 
 function getCapabilityPath(socket: string): string {
-  const digest = createHash('sha256').update(socket).digest('hex')
+  const digest = new Bun.CryptoHasher('sha256').update(socket).digest('hex')
   return join(getCapabilityDir(), `${digest}.json`)
 }
 
@@ -270,7 +262,7 @@ export async function readUdsCapabilityToken(
 ): Promise<string | undefined> {
   try {
     const parsed = jsonParse(
-      await readFile(getCapabilityPath(socket), 'utf-8'),
+      await Bun.file(getCapabilityPath(socket)).text(),
     ) as Record<string, unknown>
     if (parsed.socketPath === socket && typeof parsed.authToken === 'string') {
       return parsed.authToken

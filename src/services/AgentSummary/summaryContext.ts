@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import { filterIncompleteToolCalls } from '@claude-code-best/builtin-tools/tools/AgentTool/filterIncompleteToolCalls.js'
 import type { Message } from '../../types/message.js'
 
@@ -48,7 +47,7 @@ function estimateJsonChars(
 }
 
 function updateFingerprintHash(
-  hash: ReturnType<typeof createHash>,
+  hash: Bun.CryptoHasher,
   value: unknown,
   limit: { remaining: number },
   seen = new Set<object>(),
@@ -125,7 +124,7 @@ export function getSummaryContextFingerprint(
 ): string | null {
   const lastMessage = messages.at(-1)
   if (!lastMessage) return null
-  const hash = createHash('sha256')
+  const hash = new Bun.CryptoHasher('sha256')
   updateFingerprintHash(hash, messages, {
     remaining: MAX_SUMMARY_CONTEXT_CHARS,
   })

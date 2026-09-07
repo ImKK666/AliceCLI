@@ -10,7 +10,6 @@
  * 3. Fallback timestamp for local sources
  */
 
-import { createHash } from 'crypto'
 import { logForDebugging } from '../debug.js'
 import { getHeadForDir } from '../git/gitFilesystem.js'
 import type { PluginManifest, PluginSource } from './schemas.js'
@@ -76,7 +75,7 @@ export async function calculatePluginVersion(
         .replace(/\\/g, '/')
         .replace(/^\.\//, '')
         .replace(/\/+$/, '')
-      const pathHash = createHash('sha256')
+      const pathHash = new Bun.CryptoHasher('sha256')
         .update(normPath)
         .digest('hex')
         .substring(0, 8)

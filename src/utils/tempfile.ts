@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'crypto'
+import { randomUUID } from 'crypto'
 import { tmpdir } from 'os'
 import { join } from 'path'
 
@@ -22,7 +22,7 @@ export function generateTempFilePath(
   options?: { contentHash?: string },
 ): string {
   const id = options?.contentHash
-    ? createHash('sha256')
+    ? new Bun.CryptoHasher('sha256')
         .update(options.contentHash)
         .digest('hex')
         .slice(0, 16)

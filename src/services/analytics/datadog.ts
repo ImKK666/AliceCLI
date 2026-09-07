@@ -1,4 +1,3 @@
-import { createHash } from 'crypto'
 import memoize from 'lodash-es/memoize.js'
 import { getOrCreateUserID } from '../../utils/config.js'
 import { http } from '../../utils/http.js'
@@ -306,7 +305,7 @@ const NUM_USER_BUCKETS = 30
  */
 const getUserBucket = memoize((): number => {
   const userId = getOrCreateUserID()
-  const hash = createHash('sha256').update(userId).digest('hex')
+  const hash = new Bun.CryptoHasher('sha256').update(userId).digest('hex')
   return parseInt(hash.slice(0, 8), 16) % NUM_USER_BUCKETS
 })
 

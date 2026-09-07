@@ -11,7 +11,6 @@
  * redacted column can't, without exposing user-defined names.
  */
 
-import { createHash } from 'crypto'
 import { sep } from 'path'
 import {
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -47,7 +46,7 @@ const PLUGIN_ID_HASH_SALT = 'claude-plugin-telemetry-v1'
  */
 export function hashPluginId(name: string, marketplace?: string): string {
   const key = marketplace ? `${name}@${marketplace.toLowerCase()}` : name
-  return createHash('sha256')
+  return new Bun.CryptoHasher('sha256')
     .update(key + PLUGIN_ID_HASH_SALT)
     .digest('hex')
     .slice(0, 16)

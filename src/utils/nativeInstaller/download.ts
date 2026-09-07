@@ -7,8 +7,7 @@
  */
 
 import { feature } from 'bun:bundle'
-import { createHash } from 'crypto'
-import { chmod, writeFile } from 'fs/promises'
+import { chmod } from 'fs/promises'
 import { join } from 'path'
 import { logEvent } from 'src/services/analytics/index.js'
 import type { ReleaseChannel } from '../config.js'
@@ -328,7 +327,7 @@ async function downloadAndVerifyBinary(
       clearStallTimer()
 
       // Verify checksum
-      const hash = createHash('sha256')
+      const hash = new Bun.CryptoHasher('sha256')
       hash.update(Buffer.from(response.data as ArrayBuffer))
       const actualChecksum = hash.digest('hex')
 
@@ -339,7 +338,7 @@ async function downloadAndVerifyBinary(
       }
 
       // Write binary to disk
-      await writeFile(binaryPath, Buffer.from(response.data))
+      await Bun.write(binaryPath, Buffer.from(response.data))
       await chmod(binaryPath, 0o755)
 
       // Success - return early

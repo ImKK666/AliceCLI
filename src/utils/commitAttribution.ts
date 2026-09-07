@@ -1,4 +1,4 @@
-import { createHash, randomUUID, type UUID } from 'crypto'
+import { randomUUID, type UUID } from 'crypto'
 import { stat } from 'fs/promises'
 import { isAbsolute, join, relative, sep } from 'path'
 import { getOriginalCwd, getSessionId } from '../bootstrap/state.js'
@@ -243,7 +243,7 @@ export function buildSurfaceKey(surface: string, model: ModelName): string {
  * Compute SHA-256 hash of content.
  */
 export function computeContentHash(content: string): string {
-  return createHash('sha256').update(content).digest('hex')
+  return new Bun.CryptoHasher('sha256').update(content).digest('hex')
 }
 
 /**

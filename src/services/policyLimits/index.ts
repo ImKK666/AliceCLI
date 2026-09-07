@@ -12,7 +12,6 @@
  * - API returns empty restrictions for users without policy limits
  */
 
-import { createHash } from 'crypto'
 import { readFileSync as fsReadFileSync } from 'fs'
 import { unlink, writeFile } from 'fs/promises'
 import { join } from 'path'
@@ -154,7 +153,7 @@ function computeChecksum(
 ): string {
   const sorted = sortKeysDeep(restrictions)
   const normalized = jsonStringify(sorted)
-  const hash = createHash('sha256').update(normalized).digest('hex')
+  const hash = new Bun.CryptoHasher('sha256').update(normalized).digest('hex')
   return `sha256:${hash}`
 }
 

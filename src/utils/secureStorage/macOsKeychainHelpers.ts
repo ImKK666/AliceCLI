@@ -14,7 +14,6 @@
  * cost when keychainPrefetch.ts pulls this file in.
  */
 
-import { createHash } from 'crypto'
 import { userInfo } from 'os'
 import { getOauthConfig } from 'src/constants/oauth.js'
 import { getClaudeConfigHomeDir } from '../envUtils.js'
@@ -36,7 +35,7 @@ export function getMacOsKeychainStorageServiceName(
   // Only add suffix for non-default directories to maintain backwards compatibility
   const dirHash = isDefaultDir
     ? ''
-    : `-${createHash('sha256').update(configDir).digest('hex').substring(0, 8)}`
+    : `-${new Bun.CryptoHasher('sha256').update(configDir).digest('hex').substring(0, 8)}`
   return `Claude Code${getOauthConfig().OAUTH_FILE_SUFFIX}${serviceSuffix}${dirHash}`
 }
 

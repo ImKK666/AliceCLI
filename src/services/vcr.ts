@@ -2,8 +2,8 @@ import type {
   BetaContentBlock,
   BetaUsage,
 } from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
-import { createHash, randomUUID, type UUID } from 'crypto'
-import { mkdir, readFile, writeFile } from 'fs/promises'
+import { randomUUID, type UUID } from 'crypto'
+import { mkdir } from 'fs/promises'
 import isPlainObject from 'lodash-es/isPlainObject.js'
 import mapValues from 'lodash-es/mapValues.js'
 import { dirname, join } from 'path'
@@ -49,7 +49,7 @@ async function withFixture<T>(
   }
 
   // Create hash of input for fixture filename
-  const hash = createHash('sha1')
+  const hash = new Bun.CryptoHasher('sha1')
     .update(jsonStringify(input))
     .digest('hex')
     .slice(0, 12)
@@ -60,9 +60,7 @@ async function withFixture<T>(
 
   // Fetch cached fixture
   try {
-    const cached = jsonParse(
-      await readFile(filename, { encoding: 'utf8' }),
-    ) as T
+    const cached = jsonParse(await Bun.file(filename).text()) as T
     return cached
   } catch (e: unknown) {
     const code = getErrnoCode(e)
@@ -81,9 +79,7 @@ async function withFixture<T>(
   const result = await f()
 
   await mkdir(dirname(filename), { recursive: true })
-  await writeFile(filename, jsonStringify(result, null, 2), {
-    encoding: 'utf8',
-  })
+  await Bun.write(filename, jsonStringify(result, null, 2))
 
   return result
 }
@@ -114,14 +110,14 @@ export async function withVCR(
   )
   const filename = join(
     process.env.CLAUDE_CODE_TEST_FIXTURES_ROOT ?? getCwd(),
-    `fixtures/${dehydratedInput.map(_ => createHash('sha1').update(jsonStringify(_)).digest('hex').slice(0, 6)).join('-')}.json`,
+    `fixtures/${dehydratedInput.map(_ => new Bun.CryptoHasher('sha1').update(jsonStringify(_)).digest('hex').slice(0, 6)).join('-')}.json`,
   )
 
   // Fetch cached fixture
   try {
-    const cached = jsonParse(
-      await readFile(filename, { encoding: 'utf8' }),
-    ) as { output: (AssistantMessage | StreamEvent)[] }
+    const cached = jsonParse(await Bun.file(filename).text()) as {
+      output: (AssistantMessage | StreamEvent)[]
+    }
     cached.output.forEach(addCachedCostToTotalSessionCost)
     return cached.output.map((message, index) =>
       mapMessage(message, hydrateValue, index, randomUUID()),
@@ -146,7 +142,7 @@ export async function withVCR(
   }
 
   await mkdir(dirname(filename), { recursive: true })
-  await writeFile(
+  await Bun.write(
     filename,
     jsonStringify(
       {
@@ -158,7 +154,6 @@ export async function withVCR(
       null,
       2,
     ),
-    { encoding: 'utf8' },
   )
   return results
 }

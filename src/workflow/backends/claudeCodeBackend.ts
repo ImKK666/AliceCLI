@@ -17,7 +17,6 @@ import {
 } from '@claude-code-best/builtin-tools/tools/AgentTool/loadAgentsDir.js'
 import { createUserMessage, extractTextContent } from '../../utils/messages.js'
 import { getTokenCountFromUsage } from '../../utils/tokens.js'
-import { createHash } from 'node:crypto'
 import { createAgentId } from '../../utils/uuid.js'
 import { logForDebugging } from '../../utils/debug.js'
 import { runWithCwdOverride } from '../../utils/cwd.js'
@@ -157,7 +156,9 @@ type WorkflowWorktreeInfo = Awaited<ReturnType<typeof createAgentWorktree>>
  * and agentId ensures slug uniqueness for multiple agents under the same runId (no shared counter, no thread safety issues).
  */
 function makeWorkflowWorktreeSlug(runId: string, agentId: string): string {
-  const h = createHash('sha256').update(`${runId}:${agentId}`).digest('hex')
+  const h = new Bun.CryptoHasher('sha256')
+    .update(`${runId}:${agentId}`)
+    .digest('hex')
   return `wf_${h.slice(0, 8)}-${h.slice(8, 11)}-${parseInt(h.slice(11, 17), 16) % 100000}`
 }
 

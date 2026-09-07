@@ -1,4 +1,3 @@
-import { createHash } from 'crypto'
 import type { AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS } from 'src/services/analytics/index.js'
 import { logEvent } from 'src/services/analytics/index.js'
 
@@ -9,7 +8,7 @@ import { logEvent } from 'src/services/analytics/index.js'
 function hashFilePath(
   filePath: string,
 ): AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS {
-  return createHash('sha256')
+  return new Bun.CryptoHasher('sha256')
     .update(filePath)
     .digest('hex')
     .slice(0, 16) as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
@@ -22,7 +21,7 @@ function hashFilePath(
 function hashFileContent(
   content: string,
 ): AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS {
-  return createHash('sha256')
+  return new Bun.CryptoHasher('sha256')
     .update(content)
     .digest('hex') as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
 }

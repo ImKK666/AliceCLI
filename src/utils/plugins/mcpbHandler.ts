@@ -1,6 +1,5 @@
 import type { McpbManifestAny as McpbManifest } from '@anthropic-ai/mcpb'
-import { createHash } from 'crypto'
-import { chmod, writeFile } from 'fs/promises'
+import { chmod } from 'fs/promises'
 import { dirname, join } from 'path'
 import type { McpServerConfig } from '../../services/mcp/types.js'
 import { logForDebugging } from '../debug.js'
@@ -101,7 +100,10 @@ function isUrl(source: string): boolean {
  * Generate content hash for an MCPB file
  */
 function generateContentHash(data: Uint8Array): string {
-  return createHash('sha256').update(data).digest('hex').substring(0, 16)
+  return new Bun.CryptoHasher('sha256')
+    .update(data)
+    .digest('hex')
+    .substring(0, 16)
 }
 
 /**
@@ -115,7 +117,7 @@ function getMcpbCacheDir(pluginPath: string): string {
  * Get metadata file path for cached MCPB
  */
 function getMetadataPath(cacheDir: string, source: string): string {
-  const sourceHash = createHash('md5')
+  const sourceHash = new Bun.CryptoHasher('md5')
     .update(source)
     .digest('hex')
     .substring(0, 8)
@@ -483,7 +485,7 @@ async function saveCacheMetadata(
   const metadataPath = getMetadataPath(cacheDir, source)
 
   await getFsImplementation().mkdir(cacheDir)
-  await writeFile(metadataPath, jsonStringify(metadata, null, 2), 'utf-8')
+  await Bun.write(metadataPath, jsonStringify(metadata, null, 2))
 }
 
 /**
@@ -515,7 +517,7 @@ async function downloadMcpb(
     fetchTelemetryFired = true
 
     // Save to disk (binary data)
-    await writeFile(destPath, Buffer.from(data))
+    await Bun.write(destPath, Buffer.from(data))
 
     logForDebugging(`Downloaded ${data.length} bytes to ${destPath}`)
     if (onProgress) {
@@ -593,9 +595,9 @@ async function extractMcpbContents(
 
     if (isTextFile) {
       const content = new TextDecoder().decode(fileData)
-      await writeFile(fullPath, content, 'utf-8')
+      await Bun.write(fullPath, content)
     } else {
-      await writeFile(fullPath, Buffer.from(fileData))
+      await Bun.write(fullPath, Buffer.from(fileData))
     }
 
     const mode = modes[filePath]
@@ -801,7 +803,7 @@ export async function loadMcpbFile(
 
   if (isUrl(source)) {
     // Download from URL
-    const sourceHash = createHash('md5')
+    const sourceHash = new Bun.CryptoHasher('md5')
       .update(source)
       .digest('hex')
       .substring(0, 8)

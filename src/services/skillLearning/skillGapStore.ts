@@ -1,6 +1,5 @@
 import { existsSync } from 'node:fs'
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
-import { createHash } from 'node:crypto'
+import { mkdir, rename } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import type { SearchResult } from '../skillSearch/localSearch.js'
 import { createInstinct, type StoredInstinct } from './instinctParser.js'
@@ -345,7 +344,7 @@ async function readSkillGapState(
   const path = getSkillGapStatePath(project, rootDir)
   let raw: string
   try {
-    raw = await readFile(path, 'utf8')
+    raw = await Bun.file(path).text()
   } catch (error) {
     // Only treat "file doesn't exist yet" as empty state. Every other error
     // (EACCES, EIO, disk full, etc.) must throw — swallowing them here would
@@ -362,7 +361,7 @@ async function readSkillGapState(
     // so the crash isn't masked and the data can be recovered manually.
     const backup = `${path}.corrupt-${Date.now()}`
     try {
-      await writeFile(backup, raw, 'utf8')
+      await Bun.write(backup, raw)
     } catch {
       /* best effort */
     }
@@ -433,7 +432,7 @@ async function writeSkillGapState(
   // on crash mid-write; combined with the (now strict) readSkillGapState,
   // that would lose gap records.
   const tmpPath = `${path}.tmp-${process.pid}-${Date.now()}`
-  await writeFile(tmpPath, `${JSON.stringify(state, null, 2)}\n`, 'utf8')
+  await Bun.write(tmpPath, `${JSON.stringify(state, null, 2)}\n`)
   await rename(tmpPath, path)
 }
 
@@ -486,7 +485,7 @@ function summarize(value: string, max: number): string {
 }
 
 function hash(value: string): string {
-  return createHash('sha1').update(value).digest('hex')
+  return new Bun.CryptoHasher('sha1').update(value).digest('hex')
 }
 
 async function clearRuntimeSkillCaches(): Promise<void> {

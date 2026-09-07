@@ -1,4 +1,3 @@
-import { createHash } from 'crypto'
 import {
   existsSync,
   mkdirSync,
@@ -284,6 +283,9 @@ function projectNameFromRemote(remote: string): string {
 }
 
 function stableProjectId(identity: string): string {
-  const hash = createHash('sha256').update(identity).digest('hex').slice(0, 16)
+  const hash = new Bun.CryptoHasher('sha256')
+    .update(identity)
+    .digest('hex')
+    .slice(0, 16)
   return `project-${hash}`
 }

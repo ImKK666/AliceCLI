@@ -25,7 +25,7 @@ import {
 } from '@modelcontextprotocol/sdk/shared/auth.js'
 import type { FetchLike } from '@modelcontextprotocol/sdk/shared/transport.js'
 import { http, isHttpError } from 'src/utils/http.js'
-import { createHash, randomBytes, randomUUID } from 'crypto'
+import { randomBytes, randomUUID } from 'crypto'
 import { mkdir } from 'fs/promises'
 import { createServer, type Server } from 'http'
 import { join } from 'path'
@@ -332,7 +332,7 @@ export function getServerKey(
     headers: serverConfig.headers || {},
   })
 
-  const hash = createHash('sha256')
+  const hash = new Bun.CryptoHasher('sha256')
     .update(configJson)
     .digest('hex')
     .substring(0, 16)

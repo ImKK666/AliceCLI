@@ -1,5 +1,4 @@
-import { createHash } from 'node:crypto'
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
+import { mkdir, rename } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { getClaudeConfigHomeDir } from './envUtils.js'
 
@@ -53,7 +52,10 @@ export function tokenSignature(u: CacheUsage): string {
  *   - The raw session id is never written to disk.
  */
 export function getStateFilePath(sessionId: string): string {
-  const hash = createHash('sha256').update(sessionId).digest('hex').slice(0, 16)
+  const hash = new Bun.CryptoHasher('sha256')
+    .update(sessionId)
+    .digest('hex')
+    .slice(0, 16)
   return join(getClaudeConfigHomeDir(), 'cache-stats', `${hash}.json`)
 }
 
@@ -80,7 +82,7 @@ function isValidState(obj: unknown): obj is CacheStatsState {
  */
 export async function readState(filePath: string): Promise<CacheStatsState> {
   try {
-    const raw = await readFile(filePath, 'utf8')
+    const raw = await Bun.file(filePath).text()
     const parsed: unknown = JSON.parse(raw)
     if (isValidState(parsed)) return parsed
     return { ...INIT_STATE }
@@ -101,7 +103,7 @@ export async function writeStateAtomic(
   await mkdir(dir, { recursive: true })
   const tmp = `${filePath}.${process.pid}.tmp`
   try {
-    await writeFile(tmp, JSON.stringify(state), 'utf8')
+    await Bun.write(tmp, JSON.stringify(state))
     await rename(tmp, filePath)
   } catch {
     // Best-effort; silently ignore errors so the UI never crashes

@@ -1,15 +1,7 @@
-import { createHash, type UUID } from 'crypto'
+import { type UUID } from 'crypto'
 import { diffLines } from 'diff'
 import type { Stats } from 'fs'
-import {
-  chmod,
-  copyFile,
-  link,
-  mkdir,
-  readFile,
-  stat,
-  unlink,
-} from 'fs/promises'
+import { chmod, copyFile, link, mkdir, stat, unlink } from 'fs/promises'
 import { dirname, isAbsolute, join, relative } from 'path'
 import {
   getIsNonInteractiveSession,
@@ -624,8 +616,8 @@ export async function checkOriginFileChanged(
   return compareStatsAndContent(originalStats, backupStats, async () => {
     try {
       const [originalContent, backupContent] = await Promise.all([
-        readFile(originalFile, 'utf-8'),
-        readFile(backupPath, 'utf-8'),
+        Bun.file(originalFile).text(),
+        Bun.file(backupPath).text(),
       ])
       return originalContent !== backupContent
     } catch {
@@ -725,7 +717,7 @@ async function computeDiffStatsForFile(
 }
 
 function getBackupFileName(filePath: string, version: number): string {
-  const fileNameHash = createHash('sha256')
+  const fileNameHash = new Bun.CryptoHasher('sha256')
     .update(filePath)
     .digest('hex')
     .slice(0, 16)
@@ -1102,7 +1094,7 @@ async function notifyVscodeSnapshotFilesUpdated(
 /** Async read that swallows all errors and returns null (best-effort). */
 async function readFileAsyncOrNull(path: string): Promise<string | null> {
   try {
-    return await readFile(path, 'utf-8')
+    return await Bun.file(path).text()
   } catch {
     return null
   }

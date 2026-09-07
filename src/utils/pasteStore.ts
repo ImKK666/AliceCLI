@@ -1,5 +1,4 @@
-import { createHash } from 'crypto'
-import { mkdir, readdir, readFile, stat, unlink, writeFile } from 'fs/promises'
+import { mkdir, readdir, stat, unlink, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { logForDebugging } from './debug.js'
 import { getClaudeConfigHomeDir } from './envUtils.js'
@@ -19,7 +18,10 @@ function getPasteStoreDir(): string {
  * Exported so callers can get the hash synchronously before async storage.
  */
 export function hashPastedText(content: string): string {
-  return createHash('sha256').update(content).digest('hex').slice(0, 16)
+  return new Bun.CryptoHasher('sha256')
+    .update(content)
+    .digest('hex')
+    .slice(0, 16)
 }
 
 /**
@@ -59,7 +61,7 @@ export async function storePastedText(
 export async function retrievePastedText(hash: string): Promise<string | null> {
   try {
     const pastePath = getPastePath(hash)
-    return await readFile(pastePath, { encoding: 'utf8' })
+    return await Bun.file(pastePath).text()
   } catch (error) {
     // ENOENT is expected when paste doesn't exist
     if (!isENOENT(error)) {

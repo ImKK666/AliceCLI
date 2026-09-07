@@ -1,6 +1,5 @@
-import { createHash } from 'crypto'
 import { readFileSync, realpathSync, statSync } from 'fs'
-import { open, readFile, realpath, stat } from 'fs/promises'
+import { open, realpath, stat } from 'fs/promises'
 import memoize from 'lodash-es/memoize.js'
 import { basename, dirname, join, resolve, sep } from 'path'
 import { hasBinaryExtension, isBinaryContent } from '../constants/files.js'
@@ -333,7 +332,7 @@ export async function getRepoRemoteHash(): Promise<string | null> {
   const normalized = normalizeGitRemoteUrl(remoteUrl)
   if (!normalized) return null
 
-  const hash = createHash('sha256').update(normalized).digest('hex')
+  const hash = new Bun.CryptoHasher('sha256').update(normalized).digest('hex')
   return hash.substring(0, 16)
 }
 
@@ -695,7 +694,7 @@ async function captureUntrackedFiles(): Promise<
           // readFile with encoding decodes to string directly, avoiding a
           // full-size Buffer living alongside the decoded string. The extra
           // open/close is cheaper than doubling peak memory for large files.
-          content = await readFile(filePath, 'utf-8')
+          content = await Bun.file(filePath).text()
         }
 
         result.push({ path: filePath, content })

@@ -8,9 +8,8 @@
  * File locking prevents race conditions when multiple instances start
  * simultaneously.
  */
-import { readFile, writeFile, unlink, mkdir } from 'fs/promises'
+import { writeFile, unlink, mkdir } from 'fs/promises'
 import { join } from 'path'
-import { createHash } from 'crypto'
 import { isPipeAlive, getPipesDir } from './pipeTransport.js'
 import type { TcpEndpoint } from './pipeTransport.js'
 import type { LanAnnounce } from './lanBeacon.js'
@@ -102,7 +101,7 @@ export async function getMachineId(): Promise<string> {
   } else if (process.platform === 'linux') {
     // Linux: /etc/machine-id (already async)
     try {
-      raw = await readFile('/etc/machine-id', 'utf8')
+      raw = await Bun.file('/etc/machine-id').text()
       raw = raw.trim()
       if (raw) {
         _cachedMachineId = raw
@@ -154,7 +153,7 @@ function generateFallbackId(): string {
   }
   macs.sort()
   const raw = `${os.hostname()}:${macs.join(',')}`
-  return createHash('sha256').update(raw).digest('hex').slice(0, 32)
+  return new Bun.CryptoHasher('sha256').update(raw).digest('hex').slice(0, 32)
 }
 
 export function getMacAddress(): string {
@@ -196,7 +195,7 @@ async function acquireLock(): Promise<void> {
       if (err.code === 'EEXIST') {
         // Check if lock is stale (older than LOCK_TIMEOUT_MS)
         try {
-          const content = await readFile(lockPath, 'utf8')
+          const content = await Bun.file(lockPath).text()
           const lockPid = parseInt(content, 10)
           if (lockPid && lockPid !== process.pid) {
             try {
@@ -241,7 +240,7 @@ const EMPTY_REGISTRY: PipeRegistry = {
 
 export async function readRegistry(): Promise<PipeRegistry> {
   try {
-    const content = await readFile(getRegistryPath(), 'utf8')
+    const content = await Bun.file(getRegistryPath()).text()
     const parsed = JSON.parse(content) as PipeRegistry
     if (parsed.version !== 1) return { ...EMPTY_REGISTRY }
     return parsed
@@ -252,7 +251,7 @@ export async function readRegistry(): Promise<PipeRegistry> {
 
 export async function writeRegistry(registry: PipeRegistry): Promise<void> {
   await mkdir(getPipesDir(), { recursive: true })
-  await writeFile(getRegistryPath(), JSON.stringify(registry, null, 2))
+  await Bun.write(getRegistryPath(), JSON.stringify(registry, null, 2))
 }
 
 // ---------------------------------------------------------------------------

@@ -12,7 +12,6 @@
  * - API returns empty settings for users without managed settings
  */
 
-import { createHash } from 'crypto'
 import { open, unlink } from 'fs/promises'
 import { getOauthConfig, OAUTH_BETA_HEADER } from '../../constants/oauth.js'
 import {
@@ -132,7 +131,7 @@ export function computeChecksumFromSettings(settings: SettingsJson): string {
   const sorted = sortKeysDeep(settings)
   // No spaces after separators to match Python's separators=(",", ":")
   const normalized = jsonStringify(sorted)
-  const hash = createHash('sha256').update(normalized).digest('hex')
+  const hash = new Bun.CryptoHasher('sha256').update(normalized).digest('hex')
   return `sha256:${hash}`
 }
 

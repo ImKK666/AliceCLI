@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from 'crypto'
+import { randomBytes } from 'crypto'
 
 function base64URLEncode(buffer: Buffer): string {
   return buffer
@@ -13,7 +13,7 @@ export function generateCodeVerifier(): string {
 }
 
 export function generateCodeChallenge(verifier: string): string {
-  const hash = createHash('sha256')
+  const hash = new Bun.CryptoHasher('sha256')
   hash.update(verifier)
   return base64URLEncode(hash.digest())
 }

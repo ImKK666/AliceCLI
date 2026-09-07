@@ -3,7 +3,6 @@ import type {
   BetaTool,
   BetaToolUnion,
 } from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
-import { createHash } from 'crypto'
 import { SYSTEM_PROMPT_DYNAMIC_BOUNDARY } from 'src/constants/prompts.js'
 import { getSystemContext, getUserContext } from 'src/context.js'
 import { isAnalyticsDisabled } from 'src/services/analytics/config.js'
@@ -284,7 +283,7 @@ export function logAPIPrefix(systemPrompt: SystemPrompt): void {
     ) as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     length: firstSystemPrompt?.length ?? 0,
     hash: (firstSystemPrompt
-      ? createHash('sha256').update(firstSystemPrompt).digest('hex')
+      ? new Bun.CryptoHasher('sha256').update(firstSystemPrompt).digest('hex')
       : '') as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
   })
 }

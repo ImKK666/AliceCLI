@@ -25,8 +25,7 @@
  */
 
 import { http, isHttpError } from 'src/utils/http.js'
-import { createHash } from 'crypto'
-import { mkdir, readdir, readFile, stat, writeFile } from 'fs/promises'
+import { mkdir, readdir, stat } from 'fs/promises'
 import { join, relative, sep } from 'path'
 import {
   CLAUDE_AI_INFERENCE_SCOPE,
@@ -132,7 +131,9 @@ export function createSyncState(): SyncState {
  * so local-vs-server comparison works by direct string equality.
  */
 export function hashContent(content: string): string {
-  return 'sha256:' + createHash('sha256').update(content, 'utf8').digest('hex')
+  return (
+    'sha256:' + new Bun.CryptoHasher('sha256').update(content).digest('hex')
+  )
 }
 
 /**
@@ -588,7 +589,7 @@ async function readLocalTeamMemory(maxEntries: number | null): Promise<{
                 )
                 return
               }
-              const content = await readFile(fullPath, 'utf8')
+              const content = await Bun.file(fullPath).text()
               const relPath = relative(teamDir, fullPath).replaceAll('\\', '/')
 
               // PSR M22174: scan for secrets BEFORE adding to the upload
@@ -713,7 +714,7 @@ async function writeRemoteEntriesToLocal(
       // where pull returns unchanged entries (skipEtagCache path, first
       // pull of a session with warm disk state from prior session).
       try {
-        const existing = await readFile(validatedPath, 'utf8')
+        const existing = await Bun.file(validatedPath).text()
         if (existing === content) {
           return false
         }
@@ -737,7 +738,7 @@ async function writeRemoteEntriesToLocal(
           validatedPath.lastIndexOf(sep),
         )
         await mkdir(parentDir, { recursive: true })
-        await writeFile(validatedPath, content, 'utf8')
+        await Bun.write(validatedPath, content)
         return true
       } catch (e) {
         logForDebugging(
