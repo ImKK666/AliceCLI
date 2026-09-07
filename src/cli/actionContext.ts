@@ -18,6 +18,7 @@ import type { AppState } from '../state/AppStateStore.js'
 import type {
   ToolInputJSONSchema,
   Tool,
+  Tools,
   ToolPermissionContext,
 } from '../Tool.js'
 import type { Command } from '../types/command.js'
@@ -120,7 +121,7 @@ export type ActionContext = {
   overlyBroadBashPermissions: DangerousPermissionInfo[]
 
   // ── Tools ────────────────────────────────────────────────────────────
-  tools: Tool[]
+  tools: Tools
 
   // ── Commands and agents ──────────────────────────────────────────────
   commands: Command[]
