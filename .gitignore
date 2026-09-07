@@ -56,3 +56,8 @@ credentials.json
 .test-progress.md
 .squash-tmp/
 .git.*-backup
+
+# Compile output
+claude-code-bin
+compile-out/
+vendor/ripgrep/
