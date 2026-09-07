@@ -1,7 +1,4 @@
-// TODO: Migrate to Bun.spawn once vscode-jsonrpc supports Web ReadableStream/WritableStream.
-// vscode-jsonrpc's StreamMessageReader/StreamMessageWriter require Node.js Readable/Writable
-// streams, which are incompatible with Bun.spawn's ReadableStream stdout and FileSink stdin.
-import { type ChildProcess, spawn } from 'child_process'
+import { Readable, Writable } from 'stream'
 import {
   createMessageConnection,
   type MessageConnection,
@@ -56,7 +53,8 @@ export function createLSPClient(
   onCrash?: (error: Error) => void,
 ): LSPClient {
   // State variables in closure
-  let process: ChildProcess | undefined
+  let process: ReturnType<typeof Bun.spawn> | undefined
+  let stdinAdapter: Writable | undefined
   let connection: MessageConnection | undefined
   let capabilities: ServerCapabilities | undefined
   let isInitialized = false
@@ -97,92 +95,88 @@ export function createLSPClient(
       },
     ): Promise<void> {
       try {
-        // 1. Spawn LSP server process
-        process = spawn(command, args, {
-          stdio: ['pipe', 'pipe', 'pipe'],
+        // 1. Spawn LSP server process (Bun.spawn throws synchronously on ENOENT)
+        process = Bun.spawn([command, ...args], {
+          stdin: 'pipe',
+          stdout: 'pipe',
+          stderr: 'pipe',
           env: { ...subprocessEnv(), ...options?.env },
           cwd: options?.cwd,
-          // Prevent visible console window on Windows (no-op on other platforms)
-          windowsHide: true,
         })
 
-        if (!process.stdout || !process.stdin) {
-          throw new Error('LSP server process stdio not available')
+        // Adapt Bun streams to Node.js streams for vscode-jsonrpc
+        const nodeStdout = Readable.fromWeb(process.stdout as never)
+        const procStdin = process.stdin as {
+          write(data: unknown): void
+          end(): void
         }
-
-        // 1.5. Wait for process to successfully spawn before using streams
-        // This is CRITICAL: spawn() returns immediately, but the 'error' event
-        // (e.g., ENOENT for command not found) fires asynchronously.
-        // If we use the streams before confirming spawn succeeded, we get
-        // unhandled promise rejections when writes fail on invalid streams.
-        const spawnedProcess = process // Capture for closure
-        await new Promise<void>((resolve, reject) => {
-          const onSpawn = (): void => {
-            cleanup()
-            resolve()
-          }
-          const onError = (error: Error): void => {
-            cleanup()
-            reject(error)
-          }
-          const cleanup = (): void => {
-            spawnedProcess.removeListener('spawn', onSpawn)
-            spawnedProcess.removeListener('error', onError)
-          }
-          spawnedProcess.once('spawn', onSpawn)
-          spawnedProcess.once('error', onError)
+        stdinAdapter = new Writable({
+          write(chunk, _enc, cb) {
+            try {
+              procStdin.write(chunk)
+              cb()
+            } catch (e) {
+              cb(e as Error)
+            }
+          },
+          final(cb) {
+            try {
+              procStdin.end()
+              cb()
+            } catch (e) {
+              cb(e as Error)
+            }
+          },
         })
 
-        // Capture stderr for server diagnostics and errors
-        if (process.stderr) {
-          process.stderr.on('data', (data: Buffer) => {
-            const output = data.toString().trim()
-            if (output) {
-              logForDebugging(`[LSP SERVER ${serverName}] ${output}`)
+        // Capture stderr for server diagnostics
+        ;(async () => {
+          try {
+            const reader = (
+              process!.stderr as ReadableStream<Uint8Array>
+            ).getReader()
+            const decoder = new TextDecoder()
+            for (;;) {
+              const { done, value } = await reader.read()
+              if (done) break
+              const output = decoder.decode(value, { stream: true }).trim()
+              if (output)
+                logForDebugging(`[LSP SERVER ${serverName}] ${output}`)
+            }
+          } catch {
+            /* stream closed */
+          }
+        })()
+
+        // Handle process exit (crash detection)
+        process.exited
+          .then(code => {
+            if (code !== 0 && code !== null && !isStopping) {
+              isInitialized = false
+              startFailed = false
+              startError = undefined
+              const crashError = new Error(
+                `LSP server ${serverName} crashed with exit code ${code}`,
+              )
+              logError(crashError)
+              onCrash?.(crashError)
             }
           })
-        }
-
-        // Handle process errors (after successful spawn, e.g., crash during operation)
-        process.on('error', error => {
-          if (!isStopping) {
-            startFailed = true
-            startError = error
-            logError(
-              new Error(
-                `LSP server ${serverName} failed to start: ${error.message}`,
-              ),
-            )
-          }
-        })
-
-        process.on('exit', (code, _signal) => {
-          if (code !== 0 && code !== null && !isStopping) {
-            isInitialized = false
-            startFailed = false
-            startError = undefined
-            const crashError = new Error(
-              `LSP server ${serverName} crashed with exit code ${code}`,
-            )
-            logError(crashError)
-            onCrash?.(crashError)
-          }
-        })
-
-        // Handle stdin stream errors to prevent unhandled promise rejections
-        // when the LSP server process exits before we finish writing
-        process.stdin.on('error', (error: Error) => {
-          if (!isStopping) {
-            logForDebugging(
-              `LSP server ${serverName} stdin error: ${error.message}`,
-            )
-          }
-          // Error is logged but not thrown - the connection error handler will catch this
-        })
+          .catch(error => {
+            if (!isStopping) {
+              startFailed = true
+              startError = error as Error
+              logError(
+                new Error(
+                  `LSP server ${serverName} failed: ${(error as Error).message}`,
+                ),
+              )
+            }
+          })
 
         // 2. Create JSON-RPC connection
-        const reader = new StreamMessageReader(process.stdout)
-        const writer = new StreamMessageWriter(process.stdin)
+        const reader = new StreamMessageReader(nodeStdout)
+        const writer = new StreamMessageWriter(stdinAdapter)
         connection = createMessageConnection(reader, writer)
 
         // 2.5. Register error/close handlers BEFORE listen() to catch all errors
@@ -406,21 +400,15 @@ export function createLSPClient(
           connection = undefined
         }
 
-        if (process) {
-          // Remove event listeners to prevent memory leaks
-          process.removeAllListeners('error')
-          process.removeAllListeners('exit')
-          if (process.stdin) {
-            process.stdin.removeAllListeners('error')
-          }
-          if (process.stderr) {
-            process.stderr.removeAllListeners('data')
-          }
+        if (stdinAdapter) {
+          stdinAdapter.destroy()
+          stdinAdapter = undefined
+        }
 
+        if (process) {
           try {
             process.kill()
           } catch (error) {
-            // Process might already be dead, which is fine
             logForDebugging(
               `Process kill failed for ${serverName} (may already be dead): ${errorMessage(error)}`,
             )
