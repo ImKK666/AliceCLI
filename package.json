@@ -1,6 +1,6 @@
 {
   "name": "alice-cli",
-  "version": "2.8.4",
+  "version": "1.0.0",
   "description": "Alice CLI — interactive AI coding assistant in the terminal",
   "type": "module",
   "author": "alice-cli",
