@@ -9,7 +9,7 @@ LAN Pipes 让多台机器上的 Claude Code 实例通过局域网自动发现并
 ## 前置条件
 
 - 两台或以上机器在同一局域网
-- 每台机器安装了 CCB 并能 `bun run dev`
+- 每台机器安装了 Alice CLI 并能 `bun run dev`
 - Feature flag `LAN_PIPES`（dev/build 默认开启）
 - 防火墙允许 UDP 7101 + TCP 动态端口（见下方配置）
 
@@ -21,9 +21,9 @@ LAN Pipes 让多台机器上的 Claude Code 实例通过局域网自动发现并
 
 **Windows**（管理员 PowerShell）：
 ```powershell
-New-NetFirewallRule -DisplayName "CCB LAN Beacon (UDP)" -Direction Inbound -Protocol UDP -LocalPort 7101 -Action Allow -Profile Private
-New-NetFirewallRule -DisplayName "CCB LAN Pipes (TCP)" -Direction Inbound -Protocol TCP -LocalPort 1024-65535 -Program (Get-Command bun).Source -Action Allow -Profile Private
-New-NetFirewallRule -DisplayName "CCB LAN Beacon Out (UDP)" -Direction Outbound -Protocol UDP -RemotePort 7101 -Action Allow -Profile Private
+New-NetFirewallRule -DisplayName "Alice CLI LAN Beacon (UDP)" -Direction Inbound -Protocol UDP -LocalPort 7101 -Action Allow -Profile Private
+New-NetFirewallRule -DisplayName "Alice CLI LAN Pipes (TCP)" -Direction Inbound -Protocol TCP -LocalPort 1024-65535 -Program (Get-Command bun).Source -Action Allow -Profile Private
+New-NetFirewallRule -DisplayName "Alice CLI LAN Beacon Out (UDP)" -Direction Outbound -Protocol UDP -RemotePort 7101 -Action Allow -Profile Private
 ```
 
 验证网络为"专用"（非公共）：`Get-NetConnectionProfile`

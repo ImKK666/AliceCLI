@@ -381,7 +381,7 @@ async function detectConfigurationIssues(
           warnings.push({
             issue:
               'Windows PATH has WSL bash (C:\\Windows\\System32\\bash.exe) but no Git for Windows bash',
-            fix: 'Install Git for Windows (https://git-scm.com/download/windows). Without it, CCB cannot run hooks or BashTool correctly on Windows. If you cannot install it, set CLAUDE_CODE_GIT_BASH_PATH to a working bash.exe.',
+            fix: 'Install Git for Windows (https://git-scm.com/download/windows). Without it, Alice CLI cannot run hooks or BashTool correctly on Windows. If you cannot install it, set CLAUDE_CODE_GIT_BASH_PATH to a working bash.exe.',
           })
         }
       }

@@ -1,6 +1,6 @@
 /**
  * Tavily-based search adapter — calls the Tavily Search API
- * (https://tavily.claude-code-best.win) and maps results to
+ * (https://tavily.alice-cli.dev) and maps results to
  * the unified SearchResult format.
  */
 
@@ -9,7 +9,7 @@ import { http, isHttpAbortError } from 'src/utils/http.js'
 import { getSettings_DEPRECATED } from 'src/utils/settings/settings.js'
 import type { SearchResult, SearchOptions, WebSearchAdapter } from './types.js'
 
-const DEFAULT_TAVILY_SEARCH_URL = 'https://tavily.claude-code-best.win/search'
+const DEFAULT_TAVILY_SEARCH_URL = 'https://tavily.alice-cli.dev/search'
 const FETCH_TIMEOUT_MS = 30_000
 
 interface TavilySearchHit {

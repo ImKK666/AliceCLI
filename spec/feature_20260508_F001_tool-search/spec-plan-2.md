@@ -63,16 +63,16 @@ Plan 1 的环境验证已完成，此处仅需确认 Plan 1 的产出文件可�
     ```
   - 在文件顶部 import 区域新增:
     ```typescript
-    import { EXECUTE_TOOL_NAME } from '@claude-code-best/builtin-tools/tools/ExecuteTool/constants.js'
+    import { EXECUTE_TOOL_NAME } from '@alice-cli/builtin-tools/tools/ExecuteTool/constants.js'
     ```
-  - 注意: `TOOL_SEARCH_TOOL_NAME` 已通过 `src/constants/tools.ts` 的 import 链路导入（L25 `import { TOOL_SEARCH_TOOL_NAME } from '@claude-code-best/builtin-tools/tools/ToolSearchTool/prompt.js'`），无需重复导入。但需在 `prompts.ts` 中新增 `EXECUTE_TOOL_NAME` 的 import（当前文件中无此 import，经 grep 确认）。
+  - 注意: `TOOL_SEARCH_TOOL_NAME` 已通过 `src/constants/tools.ts` 的 import 链路导入（L25 `import { TOOL_SEARCH_TOOL_NAME } from '@alice-cli/builtin-tools/tools/ToolSearchTool/prompt.js'`），无需重复导入。但需在 `prompts.ts` 中新增 `EXECUTE_TOOL_NAME` 的 import（当前文件中无此 import，经 grep 确认）。
   - 原因: 模型需要明确知道 ExecuteTool 的存在和用法，否则发现延迟工具后不知道如何调用
 
 - [x] 在 `src/tools.ts` 的 `getAllBaseTools()` 中注册 ExecuteTool
   - 位置: `src/tools.ts` 的 `getAllBaseTools()` 函数内，在 L272 `...(isToolSearchEnabledOptimistic() ? [ToolSearchTool] : [])` 之后
   - 在文件顶部 import 区域（L84 附近，ToolSearchTool import 之后）新增:
     ```typescript
-    import { ExecuteTool } from '@claude-code-best/builtin-tools/tools/ExecuteTool/ExecuteTool.js'
+    import { ExecuteTool } from '@alice-cli/builtin-tools/tools/ExecuteTool/ExecuteTool.js'
     ```
   - 将 L272:
     ```typescript
@@ -133,7 +133,7 @@ Plan 1 的环境验证已完成，此处仅需确认 Plan 1 的产出文件可�
     ```typescript
   return 'tst' // default: always defer non-core tools
     ```
-  - 注意: `shouldDefer` 在此文件中仅出现在注释中（L4, L155, L170, L197），无任何运行时引用。`isDeferredTool` 函数从 `@claude-code-best/builtin-tools/tools/ToolSearchTool/prompt.js` 导入（L24），Task 1 已将其重构为白名单制，此处无需修改函数调用。
+  - 注意: `shouldDefer` 在此文件中仅出现在注释中（L4, L155, L170, L197），无任何运行时引用。`isDeferredTool` 函数从 `@alice-cli/builtin-tools/tools/ToolSearchTool/prompt.js` 导入（L24），Task 1 已将其重构为白名单制，此处无需修改函数调用。
   - 原因: Task 1 将 `isDeferredTool` 重构为白名单制后，`shouldDefer` 概念已过时。更新注释保持文档与实现一致。
 
 - [x] 为 Task 5 的三个修改点编写单元测试

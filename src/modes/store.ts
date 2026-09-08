@@ -8,10 +8,10 @@ import {
 } from '../utils/settings/settings.js'
 import { getClaudeConfigHomeDir } from '../utils/envUtils.js'
 import { DEFAULT_MODES } from './defaults.js'
-import type { CCBMode } from './types.js'
+import type { AliceMode } from './types.js'
 
 let currentModeSlug: string | null = null
-let customModes: CCBMode[] | null = null
+let customModes: AliceMode[] | null = null
 const modeListeners = new Set<() => void>()
 
 /**
@@ -47,7 +47,7 @@ function parseMarkdownFrontmatter(raw: string): {
   }
 }
 
-function loadCustomModes(): CCBMode[] {
+function loadCustomModes(): AliceMode[] {
   if (customModes !== null) return customModes
   customModes = []
   try {
@@ -91,7 +91,7 @@ function loadCustomModes(): CCBMode[] {
           permissions: {
             defaultMode:
               ((data.permissions as Record<string, unknown>)
-                ?.default_mode as CCBMode['permissions']['defaultMode']) ||
+                ?.default_mode as AliceMode['permissions']['defaultMode']) ||
               'default',
             memoryExtract: Boolean(
               (data.permissions as Record<string, unknown>)?.memory_extract ??
@@ -101,7 +101,7 @@ function loadCustomModes(): CCBMode[] {
           responseStyle: {
             verbosity:
               ((data.response_style as Record<string, unknown>)
-                ?.verbosity as CCBMode['responseStyle']['verbosity']) ||
+                ?.verbosity as AliceMode['responseStyle']['verbosity']) ||
               'normal',
           },
         })
@@ -115,7 +115,7 @@ function loadCustomModes(): CCBMode[] {
   return customModes
 }
 
-function getAllModes(): CCBMode[] {
+function getAllModes(): AliceMode[] {
   const custom = loadCustomModes()
   if (custom.length === 0) return DEFAULT_MODES
   // Custom modes override defaults with same slug
@@ -126,12 +126,12 @@ function getAllModes(): CCBMode[] {
 export function getCurrentModeSlug(): string {
   if (currentModeSlug === null) {
     const settings = getInitialSettings() as Record<string, unknown>
-    currentModeSlug = (settings.ccbMode as string) || 'default'
+    currentModeSlug = (settings.aliceMode as string) || 'default'
   }
   return currentModeSlug
 }
 
-export function getCurrentMode(): CCBMode {
+export function getCurrentMode(): AliceMode {
   const slug = getCurrentModeSlug()
   const modes = getAllModes()
   return modes.find(m => m.slug === slug) ?? DEFAULT_MODES[0]
@@ -146,7 +146,7 @@ export function setCurrentMode(slug: string): void {
     )
   }
   currentModeSlug = slug
-  updateSettingsForSource('userSettings', { ccbMode: slug } as Record<
+  updateSettingsForSource('userSettings', { aliceMode: slug } as Record<
     string,
     unknown
   >)
@@ -159,15 +159,15 @@ function subscribeMode(listener: () => void): () => void {
 }
 
 /** Reactive hook — re-renders the component when the mode changes. */
-export function useCurrentMode(): CCBMode {
+export function useCurrentMode(): AliceMode {
   return useSyncExternalStore(subscribeMode, getCurrentMode)
 }
 
-export function listModes(): CCBMode[] {
+export function listModes(): AliceMode[] {
   return getAllModes()
 }
 
-export function cycleMode(): CCBMode {
+export function cycleMode(): AliceMode {
   const modes = listModes()
   const current = getCurrentModeSlug()
   const idx = modes.findIndex(m => m.slug === current)

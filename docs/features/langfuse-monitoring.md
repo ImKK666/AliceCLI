@@ -5,7 +5,7 @@
 
 ## 一、功能概述
 
-Langfuse 是一个开源的 LLM 可观测性平台，用于追踪、监控和调试 AI 应用的请求链路。CCB 通过 OpenTelemetry (OTel) 桥接层将 Langfuse 集成到查询流程中，实现：
+Langfuse 是一个开源的 LLM 可观测性平台，用于追踪、监控和调试 AI 应用的请求链路。Alice CLI 通过 OpenTelemetry (OTel) 桥接层将 Langfuse 集成到查询流程中，实现：
 
 - **LLM 调用追踪** — 记录每次 API 请求的模型、Provider、输入/输出、Token 用量
 - **工具执行追踪** — 记录每个工具调用的名称、输入、输出、耗时和错误
@@ -158,7 +158,7 @@ Provider 名称映射：
 
 ## 七、消息格式转换
 
-`convert.ts` 将 CCB 内部的 Message 类型转换为 Langfuse 期望的 OpenAI 兼容格式：
+`convert.ts` 将 Alice CLI 内部的 Message 类型转换为 Langfuse 期望的 OpenAI 兼容格式：
 
 - **输入**: `UserMessage | AssistantMessage[]` + 可选 system prompt → `{ role, content }[]`
 - **输出**: `AssistantMessage[]` → `{ role: 'assistant', content }`

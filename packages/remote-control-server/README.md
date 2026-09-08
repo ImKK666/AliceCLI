@@ -20,7 +20,7 @@ docker run -d \
   -p 3000:3000 \
   -e RCS_API_KEYS=your-api-key-here \
   -v rcs-data:/app/data \
-  ghcr.io/claude-code-best/remote-control-server:latest
+  ghcr.io/ImKK666/remote-control-server:latest
 ```
 
 ## 环境变量
@@ -61,7 +61,7 @@ export CLAUDE_BRIDGE_OAUTH_TOKEN="your-api-key-here"
 然后启动远程控制模式：
 
 ```bash
-ccb --remote-control
+alice --remote-control
 ```
 
 > **注意**：远程控制功能需要启用 `BRIDGE_MODE` feature flag。开发模式下默认启用。
@@ -103,7 +103,7 @@ volumes:
 
 
 ```sh
-ACP_RCS_URL=http://localhost:3000 ACP_RCS_TOKEN=test-my-key acp-link ccb-bun -- --acp
+ACP_RCS_URL=http://localhost:3000 ACP_RCS_TOKEN=test-my-key acp-link alice-bun -- --acp
 ```
 
 ## 反向代理配置

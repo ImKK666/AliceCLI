@@ -25,7 +25,7 @@ describe('ArtifactTool UI.renderToolResultMessage', () => {
   test('renders the uploaded URL and expiry on success', () => {
     const content: ArtifactOutput = {
       id: 'abc123',
-      url: 'https://cloud-artifacts.claude-code-best.win/7d/abc123.html',
+      url: 'https://cloud-artifacts.alice-cli.dev/7d/abc123.html',
       expiresAt: '2026-06-27T10:00:00.000Z',
     };
     const node = renderToolResultMessage(content, NO_PROGRESS, OPTIONS);
@@ -59,7 +59,7 @@ describe('ArtifactTool UI.renderToolResultMessage', () => {
   test('omits the expiry line when expiresAt is empty', () => {
     const content: ArtifactOutput = {
       id: 'abc',
-      url: 'https://cloud-artifacts.claude-code-best.win/7d/abc.html',
+      url: 'https://cloud-artifacts.alice-cli.dev/7d/abc.html',
       expiresAt: '',
     };
     const node = renderToolResultMessage(content, NO_PROGRESS, OPTIONS);

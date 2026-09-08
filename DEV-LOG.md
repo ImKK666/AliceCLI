@@ -508,7 +508,7 @@ env overrides → config overrides → [GrowthBook 启用?]
 
 ## Enable SHOT_STATS, TOKEN_BUDGET, PROMPT_CACHE_BREAK_DETECTION (2026-04-05)
 
-**PR**: [claude-code-best/claude-code#140](https://github.com/claude-code-best/claude-code/pull/140)
+**PR**: [ImKK666/AliceCLI#140](https://github.com/ImKK666/AliceCLI/pull/140)
 **分支**: `feat/enable-safe-feature-flags`
 
 对 22 个被标记为 "COMPLETE" 的编译时 feature flag 进行实际源码验证（6 个并行子代理 + Codex CLI 独立复核），发现审计报告存在大量误判。最终确认仅 3 个 flag 为真正 compile-only，安全启用。
@@ -757,7 +757,7 @@ packages/@ant/computer-use-{input,swift}/src/
 
 ## Enable Remote Control / BRIDGE_MODE (2026-04-03)
 
-**PR**: [claude-code-best/claude-code#60](https://github.com/claude-code-best/claude-code/pull/60)
+**PR**: [ImKK666/AliceCLI#60](https://github.com/ImKK666/AliceCLI/pull/60)
 
 Remote Control 功能将本地 CLI 注册为 bridge 环境，生成可分享的 URL（`https://claude.ai/code/session_xxx`），允许从浏览器、手机或其他设备远程查看输出、发送消息、审批工具调用。
 

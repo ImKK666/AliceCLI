@@ -61,7 +61,7 @@ This PR adds a GitHub Actions workflow that enables Alice CLI integration in our
 
 ### What is Alice CLI?
 
-[Alice CLI](https://github.com/claude-code-best/claude-code) is an AI coding agent that can help with:
+[Alice CLI](https://github.com/ImKK666/AliceCLI) is an AI coding agent that can help with:
 - Bug fixes and improvements  
 - Documentation updates
 - Implementing new features

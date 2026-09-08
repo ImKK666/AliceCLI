@@ -245,7 +245,7 @@ feat(effort): 新增 EffortPanel 纯函数状态模块（PanelPosition + 移动/
 - moveLeft/moveRight：边界钳制（low 不再左移、ultracode 不再右移）
 - getInitialCursor：env override > displayed level
 
-Co-Authored-By: glm-5.2 <zai-org@claude-code-best.win>
+Co-Authored-By: glm-5.2 <zai-org@alice-cli.dev>
 EOF
 )"
 ```
@@ -326,7 +326,7 @@ feat(keybindings): 注册 EffortPanel context 与 6 个 action
 绑定 ←/→/h/l/home/end/enter/escape 到 effortPanel:* action。
 与 ModelPicker context 范式一致，避免左右键被全局 keybinding 拦截。
 
-Co-Authored-By: glm-5.2 <zai-org@claude-code-best.win>
+Co-Authored-By: glm-5.2 <zai-org@alice-cli.dev>
 EOF
 )"
 ```
@@ -562,7 +562,7 @@ feat(effort): 实现 EffortPanel 组件主体（渲染 + 键盘交互 + 确认/�
 - Esc → "Effort unchanged."
 - env override 时顶部黄色警告
 
-Co-Authored-By: glm-5.2 <zai-org@claude-code-best.win>
+Co-Authored-By: glm-5.2 <zai-org@alice-cli.dev>
 EOF
 )"
 ```
@@ -672,7 +672,7 @@ feat(effort): /effort 无参时挂载 EffortPanel 交互面板
 - 有参 → 直跳 executeEffort（不变）
 - help/-h/--help → 不变
 
-Co-Authored-By: glm-5.2 <zai-org@claude-code-best.win>
+Co-Authored-By: glm-5.2 <zai-org@alice-cli.dev>
 EOF
 )"
 ```
@@ -828,7 +828,7 @@ test(effort): 补 EffortPanel 分支测试（ultracode 引导 / 取消文案 / a
 
 抽 computeConfirmOutcome 为纯函数便于测试，避开 Ink 键盘事件模拟。
 
-Co-Authored-By: glm-5.2 <zai-org@claude-code-best.win>
+Co-Authored-By: glm-5.2 <zai-org@alice-cli.dev>
 EOF
 )"
 ```

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 把被掏空的「清单推进」版 WorkflowTool 重建为完整忠实的确定性 JS 脚本编排引擎，独立成包 `@claude-code-best/workflow-engine`，通过端口适配与核心层解耦。
+**Goal:** 把被掏空的「清单推进」版 WorkflowTool 重建为完整忠实的确定性 JS 脚本编排引擎，独立成包 `@alice-cli/workflow-engine`，通过端口适配与核心层解耦。
 
 **Architecture:** 依赖倒置——新包零 `src/*` 运行时导入，声明端口接口（`AgentRunner`/`ProgressEmitter`/`TaskRegistrar`/`JournalStore`/`PermissionGate`/`Logger`/`HostFactory`）+ 不透明 `HostHandle`；核心侧 `src/workflow/adapter.ts` 实现端口（委托 `runAgent`/`assembleToolPool`/`LocalWorkflowTask`），`wiring.ts` 把包的工具描述符适配为 `buildTool` 注册到 `tools.ts`。引擎用 async 函数包装执行脚本，信号量限并发，journal 顺序重放实现 resume。
 
@@ -83,7 +83,7 @@
 
 ```json
 {
-  "name": "@claude-code-best/workflow-engine",
+  "name": "@alice-cli/workflow-engine",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -132,7 +132,7 @@
 - [ ] **Step 3：写 `packages/workflow-engine/src/index.ts`（占位，后续任务填充导出）**
 
 ```ts
-// @claude-code-best/workflow-engine
+// @alice-cli/workflow-engine
 // 确定性 JS 脚本编排引擎。零核心层运行时依赖，通过端口适配与世界对话。
 // 公共导出在后续任务中逐步填充。
 export {}
@@ -143,14 +143,14 @@ export {}
 Run: `bun install`
 Expected: 成功，`packages/workflow-engine` 被加入 workspaces。
 
-Run: `bun run --filter @claude-code-best/workflow-engine test 2>&1 | head -5` 或 `cd packages/workflow-engine && bun test 2>&1 | head -5`
+Run: `bun run --filter @alice-cli/workflow-engine test 2>&1 | head -5` 或 `cd packages/workflow-engine && bun test 2>&1 | head -5`
 Expected: 「0 tests found」无报错（尚无测试）。
 
 - [ ] **Step 5：提交**
 
 ```bash
 git add packages/workflow-engine
-git commit -m "feat(workflow): scaffold @claude-code-best/workflow-engine package"
+git commit -m "feat(workflow): scaffold @alice-cli/workflow-engine package"
 ```
 
 ---
@@ -2192,7 +2192,7 @@ git add packages/workflow-engine/src/engine/runWorkflow.ts packages/workflow-eng
 git commit -m "feat(workflow): add runWorkflow orchestrator with resume & nesting"
 ```
 
-> **里程碑：Phase 1–2 完成。** 包 `@claude-code-best/workflow-engine` 现已独立可运行——全 mock 端口，无 LLM、无核心层依赖。可在此检查点整体 review。
+> **里程碑：Phase 1–2 完成。** 包 `@alice-cli/workflow-engine` 现已独立可运行——全 mock 端口，无 LLM、无核心层依赖。可在此检查点整体 review。
 
 ---
 
@@ -2604,7 +2604,7 @@ import {
   createHostHandle,
   unwrapHostHandle,
   type HostHandle,
-} from '@claude-code-best/workflow-engine'
+} from '@alice-cli/workflow-engine'
 import type { CanUseToolFn } from '../hooks/useCanUseTool.js'
 import type { AssistantMessage } from '../types/message.js'
 import type { AgentId } from '../types/ids.js'
@@ -2630,7 +2630,7 @@ export function readHostBundle(handle: HostHandle): WorkflowHostBundle {
 - [ ] **Step 2：写 `src/workflow/progressStore.ts`**
 
 ```ts
-import type { ProgressEvent } from '@claude-code-best/workflow-engine'
+import type { ProgressEvent } from '@alice-cli/workflow-engine'
 
 export type AgentProgress = {
   label?: string
@@ -2763,7 +2763,7 @@ import {
   type ProgressEvent,
   type WorkflowHostContext,
   type WorkflowPorts,
-} from '@claude-code-best/workflow-engine'
+} from '@alice-cli/workflow-engine'
 import { getCwd } from '../utils/cwd.js'
 import { logForDebugging } from '../utils/debug.js'
 import { getProjectRoot } from '../bootstrap/state.js'
@@ -2833,7 +2833,7 @@ function resolveAgentDefinition(
 
 async function runWorkflowSubAgent(
   params: AgentRunParams,
-  host: import('@claude-code-best/workflow-engine').HostHandle,
+  host: import('@alice-cli/workflow-engine').HostHandle,
 ): Promise<AgentRunResult> {
   const bundle = readHostBundle(host)
   const { toolUseContext, canUseTool, agentId } = bundle
@@ -3045,7 +3045,7 @@ import {
 import {
   createWorkflowTool,
   type WorkflowToolDescriptor,
-} from '@claude-code-best/workflow-engine'
+} from '@alice-cli/workflow-engine'
 import { buildTool, type Tool, type ToolDef } from '../Tool.js'
 import { z } from 'zod/v4'
 
@@ -3092,8 +3092,8 @@ export function createWorkflowToolCore(): Tool {
 ```ts
 const WorkflowTool = feature('WORKFLOW_SCRIPTS')
   ? (() => {
-      require('@claude-code-best/builtin-tools/tools/WorkflowTool/bundled/index.js').initBundledWorkflows()
-      return require('@claude-code-best/builtin-tools/tools/WorkflowTool/WorkflowTool.js')
+      require('@alice-cli/builtin-tools/tools/WorkflowTool/bundled/index.js').initBundledWorkflows()
+      return require('@alice-cli/builtin-tools/tools/WorkflowTool/WorkflowTool.js')
         .WorkflowTool
     })()
   : null
@@ -3138,7 +3138,7 @@ import { join } from 'node:path'
 import {
   listNamedWorkflows,
   WORKFLOW_DIR_NAME,
-} from '@claude-code-best/workflow-engine'
+} from '@alice-cli/workflow-engine'
 import type { Command } from '../types/command.js'
 import { getCwd } from '../utils/cwd.js'
 
@@ -3247,13 +3247,13 @@ git mv packages/builtin-tools/src/tools/WorkflowTool/WorkflowPermissionRequest.t
 把：
 
 ```ts
-import { WORKFLOW_TOOL_NAME } from '@claude-code-best/builtin-tools/tools/WorkflowTool/constants.js'
+import { WORKFLOW_TOOL_NAME } from '@alice-cli/builtin-tools/tools/WorkflowTool/constants.js'
 ```
 
 改为：
 
 ```ts
-import { WORKFLOW_TOOL_NAME } from '@claude-code-best/workflow-engine'
+import { WORKFLOW_TOOL_NAME } from '@alice-cli/workflow-engine'
 ```
 
 - [ ] **Step 3：`packages/builtin-tools/src/index.ts` re-export 指向新包**
@@ -3272,7 +3272,7 @@ export { getWorkflowCommands } from './tools/WorkflowTool/createWorkflowCommand.
 export {
   WORKFLOW_TOOL_NAME,
   createWorkflowTool,
-} from '@claude-code-best/workflow-engine'
+} from '@alice-cli/workflow-engine'
 ```
 
 并删除 `getWorkflowCommands` 旧导出（核心侧改用 `src/workflow/namedWorkflowCommands.ts`）。若其他文件仍 import 旧路径，全局搜索修正。

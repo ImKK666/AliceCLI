@@ -1,6 +1,6 @@
-# Claude Code Best (CCB) — 全功能使用指南
+# Alice CLI — 全功能使用指南
 
-本文档覆盖我们通过 13 个 PR 为 CCB 恢复/新增的**全部功能**，按类别组织，每个功能包含说明、使用方法和示例。
+本文档覆盖我们通过 13 个 PR 为 Alice CLI 恢复/新增的**全部功能**，按类别组织，每个功能包含说明、使用方法和示例。
 
 ---
 
@@ -320,9 +320,9 @@ bun run dev
 
 Windows（管理员 PowerShell）：
 ```powershell
-New-NetFirewallRule -DisplayName "CCB LAN Beacon (UDP)" -Direction Inbound -Protocol UDP -LocalPort 7101 -Action Allow -Profile Private
-New-NetFirewallRule -DisplayName "CCB LAN Pipes (TCP)" -Direction Inbound -Protocol TCP -LocalPort 1024-65535 -Program (Get-Command bun).Source -Action Allow -Profile Private
-New-NetFirewallRule -DisplayName "CCB LAN Beacon Out (UDP)" -Direction Outbound -Protocol UDP -RemotePort 7101 -Action Allow -Profile Private
+New-NetFirewallRule -DisplayName "Alice CLI LAN Beacon (UDP)" -Direction Inbound -Protocol UDP -LocalPort 7101 -Action Allow -Profile Private
+New-NetFirewallRule -DisplayName "Alice CLI LAN Pipes (TCP)" -Direction Inbound -Protocol TCP -LocalPort 1024-65535 -Program (Get-Command bun).Source -Action Allow -Profile Private
+New-NetFirewallRule -DisplayName "Alice CLI LAN Beacon Out (UDP)" -Direction Outbound -Protocol UDP -RemotePort 7101 -Action Allow -Profile Private
 ```
 
 macOS：

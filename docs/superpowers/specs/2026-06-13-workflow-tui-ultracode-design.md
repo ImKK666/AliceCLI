@@ -8,7 +8,7 @@
 
 ## 1. 背景与现状
 
-引擎包 `packages/workflow-engine/`（`@claude-code-best/workflow-engine`）已重建完成：`runWorkflow`、hooks（`agent`/`parallel`/`pipeline`/`phase`/`log`/`workflow`）、journal 确定性 resume、budget、concurrency、structuredOutput、`AgentAdapter` + `AgentAdapterRegistry`（commit `c2253dcb`）、端口契约（`WorkflowPorts`）与自包含工具描述符（`createWorkflowTool`），单测覆盖 99.65%。
+引擎包 `packages/workflow-engine/`（`@alice-cli/workflow-engine`）已重建完成：`runWorkflow`、hooks（`agent`/`parallel`/`pipeline`/`phase`/`log`/`workflow`）、journal 确定性 resume、budget、concurrency、structuredOutput、`AgentAdapter` + `AgentAdapterRegistry`（commit `c2253dcb`）、端口契约（`WorkflowPorts`）与自包含工具描述符（`createWorkflowTool`），单测覆盖 99.65%。
 
 `src/` 侧的集成层（`src/workflow/`）虽已接上引擎，但**没有用上引擎的全部能力**，且 TUI/命令层是占位质量：
 

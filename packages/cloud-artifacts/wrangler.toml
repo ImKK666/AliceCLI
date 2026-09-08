@@ -7,7 +7,7 @@ binding = "BUCKET"
 bucket_name = "cloud-artifacts"
 
 [vars]
-PUBLIC_URL = "https://cloud-artifacts.claude-code-best.win"
+PUBLIC_URL = "https://cloud-artifacts.alice-cli.dev"
 DEFAULT_TTL_DAYS = "7"
 MAX_TTL_DAYS = "30"
 MAX_BYTES = "10485760"

@@ -209,7 +209,7 @@ describe('filterToolProgressMessages', () => {
     // Regression: a progress message whose data is null used to pass through
     // (null?.type === undefined !== 'hook_progress') and reach tool progress
     // renderers / lookup builders, which then crashed on data.type / data.taskId
-    // field access or on 'message' in data (claude-code-best/claude-code#1330).
+    // field access or on 'message' in data (ImKK666/AliceCLI#1330).
     const messages = [
       { data: null },
       { data: undefined },

@@ -102,7 +102,7 @@ export async function findSuitableShell(): Promise<string> {
       if (hasWslBash && !hasGitBash) {
         process.env.CLAUDE_CODE_GIT_BASH_PATH_WARNED = '1'
         console.warn(
-          '[CCB] Detected WSL bash on PATH without Git for Windows. ' +
+          '[Alice CLI] Detected WSL bash on PATH without Git for Windows. ' +
             'Hooks and BashTool will not work correctly. ' +
             'Install Git for Windows (https://git-scm.com/download/windows) ' +
             'or set CLAUDE_CODE_GIT_BASH_PATH to your bash.exe.',

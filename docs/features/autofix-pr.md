@@ -27,7 +27,7 @@ export default { isEnabled: () => false, isHidden: true, name: 'stub' };
 
 ### 1.2 用户场景
 
-用户在 fork 仓库（`feat/autonomy-lifecycle-upstream` 分支）尝试对上游 `claude-code-best/claude-code#386` 跑 `/autofix-pr 386`，多次报 `git_repository source setup error`。根因：官方派发的远程 session 落在被 MCP 拒绝访问的仓库（`amdosion/claude-code-bast`），权限/可见性问题。
+用户在 fork 仓库（`feat/autonomy-lifecycle-upstream` 分支）尝试对上游 `ImKK666/AliceCLI#386` 跑 `/autofix-pr 386`，多次报 `git_repository source setup error`。根因：官方派发的远程 session 落在被 MCP 拒绝访问的仓库（`amdosion/claude-code-bast`），权限/可见性问题。
 
 ### 1.3 目标
 

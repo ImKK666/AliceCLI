@@ -406,7 +406,7 @@ Expected: FAIL（模块不存在）。
 Create `src/workflow/progress/bus.ts`:
 
 ```ts
-import type { ProgressEvent } from '@claude-code-best/workflow-engine'
+import type { ProgressEvent } from '@alice-cli/workflow-engine'
 
 /** 类型化进度事件总线。引擎 progressEmitter.emit → 广播给所有订阅者（store / 遥测）。 */
 export type ProgressBus = {
@@ -454,7 +454,7 @@ Create `src/workflow/__tests__/progressStore.test.ts`:
 import { expect, test } from 'bun:test'
 import { createProgressBus, type ProgressBus } from '../progress/bus.js'
 import { createProgressStoreFromBus } from '../progress/store.js'
-import type { ProgressEvent, AgentRunResult } from '@claude-code-best/workflow-engine'
+import type { ProgressEvent, AgentRunResult } from '@alice-cli/workflow-engine'
 
 const ok = (o: string): AgentRunResult => ({ kind: 'ok', output: o, usage: { outputTokens: 1 } })
 
@@ -526,7 +526,7 @@ Expected: FAIL（`../progress/store.js` 无导出）。
 Create `src/workflow/progress/store.ts`:
 
 ```ts
-import type { ProgressEvent } from '@claude-code-best/workflow-engine'
+import type { ProgressEvent } from '@alice-cli/workflow-engine'
 import type { ProgressBus } from './bus.js'
 
 export type AgentProgress = {
@@ -682,12 +682,12 @@ Create `src/workflow/__tests__/claudeCodeBackend.test.ts`:
 import { expect, test, mock } from 'bun:test'
 
 // mock 底层依赖（不 mock 被测业务模块）
-mock.module('@claude-code-best/builtin-tools/tools/AgentTool/runAgent.js', () => ({
+mock.module('@alice-cli/builtin-tools/tools/AgentTool/runAgent.js', () => ({
   runAgent: async function* () {
     yield { type: 'assistant', message: { content: [{ type: 'text', text: 'agent-text' }] } }
   },
 }))
-mock.module('@claude-code-best/builtin-tools/tools/AgentTool/agentToolUtils.js', () => ({
+mock.module('@alice-cli/builtin-tools/tools/AgentTool/agentToolUtils.js', () => ({
   finalizeAgentTool: () => ({
     content: [{ type: 'text', text: 'agent-text' }],
     usage: { output_tokens: 42 },
@@ -695,7 +695,7 @@ mock.module('@claude-code-best/builtin-tools/tools/AgentTool/agentToolUtils.js',
   }),
   isBuiltInAgent: () => true,
 }))
-mock.module('@claude-code-best/builtin-tools/tools/AgentTool/loadAgentsDir.js', () => ({
+mock.module('@alice-cli/builtin-tools/tools/AgentTool/loadAgentsDir.js', () => ({
   isBuiltInAgent: () => true,
 }))
 mock.module('../tools.js', () => ({
@@ -733,7 +733,7 @@ test('文本 agent → ok + token 计量', async () => {
 })
 
 test('runAgent 抛错 → dead', async () => {
-  mock.module('@claude-code-best/builtin-tools/tools/AgentTool/runAgent.js', () => ({
+  mock.module('@alice-cli/builtin-tools/tools/AgentTool/runAgent.js', () => ({
     runAgent: async function* () { throw new Error('boom') },
   }))
   const res = await claudeCodeBackend.run({ prompt: 'fail' }, ctx())
@@ -761,15 +761,15 @@ import {
   type AgentAdapterContext,
   type AgentRunParams,
   type AgentRunResult,
-} from '@claude-code-best/workflow-engine'
+} from '@alice-cli/workflow-engine'
 import { assembleToolPool } from '../../tools.js'
-import { finalizeAgentTool } from '@claude-code-best/builtin-tools/tools/AgentTool/agentToolUtils.js'
-import { runAgent } from '@claude-code-best/builtin-tools/tools/AgentTool/runAgent.js'
+import { finalizeAgentTool } from '@alice-cli/builtin-tools/tools/AgentTool/agentToolUtils.js'
+import { runAgent } from '@alice-cli/builtin-tools/tools/AgentTool/runAgent.js'
 import {
   isBuiltInAgent,
   type AgentDefinition,
   type BuiltInAgentDefinition,
-} from '@claude-code-best/builtin-tools/tools/AgentTool/loadAgentsDir.js'
+} from '@alice-cli/builtin-tools/tools/AgentTool/loadAgentsDir.js'
 import { createUserMessage, extractTextContent } from '../../utils/messages.js'
 import { createAgentId } from '../../utils/uuid.js'
 import { logForDebugging } from '../../utils/debug.js'
@@ -953,7 +953,7 @@ Expected: FAIL（模块不存在）。
 Create `src/workflow/registry.ts`:
 
 ```ts
-import { type AgentAdapterRegistry } from '@claude-code-best/workflow-engine'
+import { type AgentAdapterRegistry } from '@alice-cli/workflow-engine'
 import { claudeCodeBackend } from './backends/claudeCodeBackend.js'
 
 /**
@@ -978,7 +978,7 @@ import {
   createFileJournalStore,
   type ProgressEvent,
   type WorkflowPorts,
-} from '@claude-code-best/workflow-engine'
+} from '@alice-cli/workflow-engine'
 import { getCwd } from '../utils/cwd.js'
 import { logForDebugging } from '../utils/debug.js'
 import { getProjectRoot } from '../bootstrap/state.js'
@@ -1226,7 +1226,7 @@ import {
   WORKFLOW_DIR_NAME,
   resolveNamedWorkflow,
   listNamedWorkflows,
-} from '@claude-code-best/workflow-engine'
+} from '@alice-cli/workflow-engine'
 import { getCwd } from '../utils/cwd.js'
 import { logForDebugging } from '../utils/debug.js'
 import { getProjectRoot } from '../bootstrap/state.js'
@@ -1397,7 +1397,7 @@ Replace entire `src/workflow/wiring.ts` with:
 import {
   createWorkflowTool,
   type WorkflowToolDescriptor,
-} from '@claude-code-best/workflow-engine'
+} from '@alice-cli/workflow-engine'
 import { buildTool, type Tool } from '../Tool.js'
 import { getWorkflowService } from './service.js'
 

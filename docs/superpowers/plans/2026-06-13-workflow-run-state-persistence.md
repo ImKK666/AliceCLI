@@ -6,7 +6,7 @@
 
 **Architecture:** host 侧新增 `persistence.ts` 模块（原子写 + 容错读 + 扫盘列表），引擎层零改动。`service.ts` 订阅 bus 的 `run_done` 事件写盘；`store.ts` 加 `hydrate()` 注入磁盘 run；面板 mount 时扫盘 hydrate；`getRun` 内存 miss 走 async fallback。三种终态（completed/failed/killed）共用 `run_done` 写盘入口，shutdown 时 kill 也走同路径，无需额外钩子。
 
-**Tech Stack:** TypeScript strict、Bun runtime、`node:fs/promises`（mkdir/writeFile/readdir/rename）、`bun:test`、现有 `@claude-code-best/workflow-engine` 进度事件总线。
+**Tech Stack:** TypeScript strict、Bun runtime、`node:fs/promises`（mkdir/writeFile/readdir/rename）、`bun:test`、现有 `@alice-cli/workflow-engine` 进度事件总线。
 
 **Spec:** `docs/superpowers/specs/2026-06-13-workflow-run-state-persistence-design.md`
 
@@ -434,7 +434,7 @@ git commit -m "feat(workflow): store 添加 hydrate 用于注入磁盘历史 run
 
 Modify `src/workflow/ports.ts`:
 
-import 添加（在现有 `@claude-code-best/workflow-engine` import 之前或之后）：
+import 添加（在现有 `@alice-cli/workflow-engine` import 之前或之后）：
 
 ```ts
 import { getRunsDir } from './persistence.js'

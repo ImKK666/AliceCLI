@@ -114,7 +114,7 @@ export function UserToolSuccessMessage({
           (message.toolUseResult). Resumed transcripts deserialize it via raw
           JSON.parse (parseJSONL), so a partial/corrupt/old-format result can
           crash renderToolResultMessage on first field access
-          (anthropics/claude-code#39817, claude-code-best/claude-code#1330).
+          (anthropics/claude-code#39817, ImKK666/AliceCLI#1330).
           Keep the result slot behind its own boundary so a bad result only
           degrades that row instead of tearing down the whole Messages tree.
         */}

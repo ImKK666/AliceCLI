@@ -16,20 +16,20 @@ Channel 是一个 MCP 服务器，它将外部事件推送到你运行中的 Cla
 
 ```bash
 # 启用频道监听（plugin 格式）
-ccb --channels plugin:feishu@claude-code-feishu-channel
+alice --channels plugin:feishu@claude-code-feishu-channel
 
 # 启用内置微信 channel
-ccb weixin login
-ccb --channels plugin:weixin@builtin
+alice weixin login
+alice --channels plugin:weixin@builtin
 
 # 启用频道监听（server 格式）
-ccb --channels server:my-slack-bridge
+alice --channels server:my-slack-bridge
 
 # 同时启用多个频道
-ccb --channels plugin:feishu@claude-code-feishu-channel --channels server:discord-bot
+alice --channels plugin:feishu@claude-code-feishu-channel --channels server:discord-bot
 
 # 开发模式（跳过 allowlist 检查，用于测试自定义 channel）
-ccb --dangerously-load-development-channels server:my-custom-channel
+alice --dangerously-load-development-channels server:my-custom-channel
 ```
 
 ## 支持的 Channel
@@ -40,26 +40,26 @@ ccb --dangerously-load-development-channels server:my-custom-channel
 | **Discord** | 官方 Discord Bot 集成 | `/plugin install discord@claude-plugins-official` |
 | **iMessage** | macOS 原生消息 | `/plugin install imessage@claude-plugins-official` |
 | **飞书 (Feishu/Lark)** | 双向消息、群组聊天、文件附件 | `/plugin install feishu@claude-code-feishu-channel` |
-| **微信 (WeChat)** | 内置 channel，支持扫码登录、双向消息、附件透传 | `ccb weixin login` + `ccb --channels plugin:weixin@builtin` |
+| **微信 (WeChat)** | 内置 channel，支持扫码登录、双向消息、附件透传 | `alice weixin login` + `alice --channels plugin:weixin@builtin` |
 
 ## 微信内置 Channel
 
 ### 登录
 
 ```bash
-ccb weixin login
+alice weixin login
 ```
 
 已登录状态可清除：
 
 ```bash
-ccb weixin login clear
+alice weixin login clear
 ```
 
 ### 会话启用
 
 ```bash
-ccb --channels plugin:weixin@builtin
+alice --channels plugin:weixin@builtin
 ```
 
 ### 配对授权
@@ -67,7 +67,7 @@ ccb --channels plugin:weixin@builtin
 首次收到未授权微信用户消息时，weixin channel 会回一条 6 位 pairing code。运营侧可在终端执行：
 
 ```bash
-ccb weixin access pair <code>
+alice weixin access pair <code>
 ```
 
 确认后，该微信用户后续消息才会进入 Claude Code 会话。

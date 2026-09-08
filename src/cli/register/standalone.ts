@@ -241,7 +241,7 @@ export function register(program: Command, _helpers: RegisterHelpers): void {
     .command('update')
     .description('Update alice-cli to the latest version')
     .action(async () => {
-      const { updateCCB } = await import('./../../cli/updateCCB.js')
-      await updateCCB()
+      const { updateAlice } = await import('./../../cli/updateAlice.js')
+      await updateAlice()
     })
 }

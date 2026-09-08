@@ -4,7 +4,7 @@
 
 **Goal:** Add an `ArtifactTool` (deferred) that uploads local HTML to `cloud-artifacts` service and returns a public URL + hash, a `/artifacts` panel command to browse uploaded files in the current session, and a `/use-artifacts` bundled skill that teaches the agent when/how to use artifacts.
 
-**Architecture:** Tool is a deferred `@claude-code-best/builtin-tools` entry that wraps a `fetch`-based HTTP client; the client reads token/URL from hardcoded defaults with env var override, parses the `{error}` field in body for failure detection (Deno Deploy proxy flattens HTTP status to 200). The panel command is a `local-jsx` slash command that scans `context.messages` for `artifact` tool_use + tool_result pairs. The skill is a bundled skill that injects guidance on artifact types, cadence, and the two-step `SearchExtraTools` + `ExecuteExtraTool` invocation flow.
+**Architecture:** Tool is a deferred `@alice-cli/builtin-tools` entry that wraps a `fetch`-based HTTP client; the client reads token/URL from hardcoded defaults with env var override, parses the `{error}` field in body for failure detection (Deno Deploy proxy flattens HTTP status to 200). The panel command is a `local-jsx` slash command that scans `context.messages` for `artifact` tool_use + tool_result pairs. The skill is a bundled skill that injects guidance on artifact types, cadence, and the two-step `SearchExtraTools` + `ExecuteExtraTool` invocation flow.
 
 **Tech Stack:** Bun, TypeScript strict, Zod v4 (`zod/v4`), React (Ink via `packages/@ant/ink`), `bun:test`.
 
@@ -46,8 +46,8 @@
  * Cloud Artifacts service configuration.
  * Token/URL have hardcoded production defaults; env vars override for self-hosted deployments.
  */
-export const ARTIFACTS_DEFAULT_TOKEN = 'claude-code-best'
-export const ARTIFACTS_DEFAULT_URL = 'https://cloud-artifacts.claude-code-best.win'
+export const ARTIFACTS_DEFAULT_TOKEN = 'alice-cli'
+export const ARTIFACTS_DEFAULT_URL = 'https://cloud-artifacts.alice-cli.dev'
 
 export function getArtifactsToken(): string {
   return process.env.CLAUDE_ARTIFACTS_TOKEN ?? ARTIFACTS_DEFAULT_TOKEN
@@ -107,7 +107,7 @@ describe('uploadArtifact', () => {
   test('returns id/url/expiresAt on successful upload', async () => {
     globalThis.fetch = mockFetch({
       id: 'V1StGXR8_Z5jdHi6B',
-      url: 'https://cloud-artifacts.claude-code-best.win/7d/V1StGXR8_Z5jdHi6B.html',
+      url: 'https://cloud-artifacts.alice-cli.dev/7d/V1StGXR8_Z5jdHi6B.html',
       expiresAt: '2026-06-27T10:00:00.000Z',
     })
 
@@ -119,7 +119,7 @@ describe('uploadArtifact', () => {
 
     expect(result).toEqual({
       id: 'V1StGXR8_Z5jdHi6B',
-      url: 'https://cloud-artifacts.claude-code-best.win/7d/V1StGXR8_Z5jdHi6B.html',
+      url: 'https://cloud-artifacts.alice-cli.dev/7d/V1StGXR8_Z5jdHi6B.html',
       expiresAt: '2026-06-27T10:00:00.000Z',
     })
   })
@@ -605,7 +605,7 @@ export { ArtifactTool } from './tools/ArtifactTool/ArtifactTool.js'
 - [ ] **Step 3: Verify export works**
 
 ```bash
-bun -e "import('@claude-code-best/builtin-tools').then(m => console.log(typeof m.ArtifactTool))"
+bun -e "import('@alice-cli/builtin-tools').then(m => console.log(typeof m.ArtifactTool))"
 ```
 
 Expected output: `object` (the built tool).
@@ -629,7 +629,7 @@ git commit -m "feat(artifact): export ArtifactTool from builtin-tools barrel"
 Find a clean spot in the top section (near other `const X = require(...)` declarations) and add:
 
 ```typescript
-const ArtifactTool = require('@claude-code-best/builtin-tools/tools/ArtifactTool/ArtifactTool.js').ArtifactTool
+const ArtifactTool = require('@alice-cli/builtin-tools/tools/ArtifactTool/ArtifactTool.js').ArtifactTool
 ```
 
 - [ ] **Step 2: Spread into the tools array (find the main returned array and add ArtifactTool unconditionally)**

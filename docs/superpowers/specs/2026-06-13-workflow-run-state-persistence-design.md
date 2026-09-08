@@ -22,7 +22,7 @@ Workflow 脚本的 `return` 值和终态 `RunProgress`（status / agents / phase
 
 ## 架构
 
-新增一个 host 侧持久化模块 + 三处接入点。**引擎层 `@claude-code-best/workflow-engine` 零改动**——持久化是 host 侧关注，不污染引擎接口。
+新增一个 host 侧持久化模块 + 三处接入点。**引擎层 `@alice-cli/workflow-engine` 零改动**——持久化是 host 侧关注，不污染引擎接口。
 
 ### 组件
 
@@ -136,7 +136,7 @@ service.getRun(id)
 2. **磁盘是纯终态快照** — 本次会话 running 中的 run 不写盘；进程在 run 终态前被 SIGKILL/断电/crash，该 run 在磁盘上缺失（连 `run_done` 都来不及发）。这是 A+ 接受的边缘情况。
 3. **磁盘 run 不注入 `getRun` 路径的内存** — 只有 `loadPersistedRuns`（面板 mount）会 hydrate；`getRun` fallback 仅返回，不 hydrate。
 4. **持久化失败不阻断 workflow** — 写盘是 best-effort，IO 异常只 log 不抛。
-5. **引擎层零改动** — 所有持久化逻辑在 host 侧（`src/workflow/`），引擎 `@claude-code-best/workflow-engine` 接口不变。
+5. **引擎层零改动** — 所有持久化逻辑在 host 侧（`src/workflow/`），引擎 `@alice-cli/workflow-engine` 接口不变。
 
 ## 测试策略
 

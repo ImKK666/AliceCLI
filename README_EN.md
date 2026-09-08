@@ -1,15 +1,15 @@
-# Claude Code Best V5 (CCB)
+# Alice CLI V5
 
-[![GitHub Stars](https://img.shields.io/github/stars/claude-code-best/claude-code?style=flat-square&logo=github&color=yellow)](https://github.com/claude-code-best/claude-code/stargazers)
-[![GitHub Contributors](https://img.shields.io/github/contributors/claude-code-best/claude-code?style=flat-square&color=green)](https://github.com/claude-code-best/claude-code/graphs/contributors)
-[![GitHub Issues](https://img.shields.io/github/issues/claude-code-best/claude-code?style=flat-square&color=orange)](https://github.com/claude-code-best/claude-code/issues)
-[![GitHub License](https://img.shields.io/github/license/claude-code-best/claude-code?style=flat-square)](https://github.com/claude-code-best/claude-code/blob/main/LICENSE)
-[![Last Commit](https://img.shields.io/github/last-commit/claude-code-best/claude-code?style=flat-square&color=blue)](https://github.com/claude-code-best/claude-code/commits/main)
+[![GitHub Stars](https://img.shields.io/github/stars/ImKK666/AliceCLI?style=flat-square&logo=github&color=yellow)](https://github.com/ImKK666/AliceCLI/stargazers)
+[![GitHub Contributors](https://img.shields.io/github/contributors/ImKK666/AliceCLI?style=flat-square&color=green)](https://github.com/ImKK666/AliceCLI/graphs/contributors)
+[![GitHub Issues](https://img.shields.io/github/issues/ImKK666/AliceCLI?style=flat-square&color=orange)](https://github.com/ImKK666/AliceCLI/issues)
+[![GitHub License](https://img.shields.io/github/license/ImKK666/AliceCLI?style=flat-square)](https://github.com/ImKK666/AliceCLI/blob/main/LICENSE)
+[![Last Commit](https://img.shields.io/github/last-commit/ImKK666/AliceCLI?style=flat-square&color=blue)](https://github.com/ImKK666/AliceCLI/commits/main)
 [![Bun](https://img.shields.io/badge/runtime-Bun-black?style=flat-square&logo=bun)](https://bun.sh/)
 
 > Which Claude do you like? The open source one is the best.
 
-A reverse-engineered / decompiled source restoration of Anthropic's official [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI tool. The goal is to reproduce most of Claude Code's functionality and engineering capabilities. It's abbreviated as CCB.
+A reverse-engineered / decompiled source restoration of Anthropic's official [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI tool. The goal is to reproduce most of Claude Code's functionality and engineering capabilities. It's also known as Alice CLI.
 
 [Documentation (Chinese)](https://ccb.agent-aura.top/) — PR contributions welcome.
 
@@ -188,21 +188,21 @@ The TUI (REPL) mode requires a real terminal and cannot be launched directly via
 ## Documentation & Links
 
 - **Online docs (Mintlify)**: [ccb.agent-aura.top](https://ccb.agent-aura.top/) — source in [`docs/`](docs/), PR contributions welcome
-- **DeepWiki**: https://deepwiki.com/claude-code-best/claude-code
+- **DeepWiki**: https://deepwiki.com/ImKK666/AliceCLI
 
 ## Contributors
 
-<a href="https://github.com/claude-code-best/claude-code/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=claude-code-best/claude-code" />
+<a href="https://github.com/ImKK666/AliceCLI/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=ImKK666/AliceCLI" />
 </a>
 
 ## Star History
 
-<a href="https://www.star-history.com/?repos=claude-code-best%2Fclaude-code&type=date&legend=top-left">
+<a href="https://www.star-history.com/?repos=ImKK666%2FAliceCLI&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=claude-code-best%2Fclaude-code&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=claude-code-best%2Fclaude-code&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=claude-code-best%2Fclaude-code&type=date&legend=top-left" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=ImKK666%2FAliceCLI&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=ImKK666%2FAliceCLI&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=ImKK666%2FAliceCLI&type=date&legend=top-left" />
  </picture>
 </a>
 

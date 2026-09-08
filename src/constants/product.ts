@@ -1,4 +1,4 @@
-export const PRODUCT_URL = 'https://github.com/claude-code-best/claude-code'
+export const PRODUCT_URL = 'https://github.com/ImKK666/AliceCLI'
 
 // Alice CLI Remote session URLs
 export const CLAUDE_AI_BASE_URL = 'https://claude.ai'

@@ -1,6 +1,6 @@
 # cloud-artifacts
 
-> **生产出口**：`https://cloud-artifacts.claude-code-best.win`
+> **生产出口**：`https://cloud-artifacts.alice-cli.dev`
 >
 > 服务端（CLI / RCS 后台）通过单一 bearer token 上传 HTML，得到一个公开可访问的 URL。
 > 文件到期由 R2 lifecycle rule 自动删除（默认 7 天，最长 30 天）。
@@ -10,16 +10,16 @@
 ```bash
 # 上传一份 html（默认随机 ID + 7 天 TTL）
 echo '<h1>hello</h1>' > /tmp/t.html
-curl -X POST "https://cloud-artifacts.claude-code-best.win/upload" \
+curl -X POST "https://cloud-artifacts.alice-cli.dev/upload" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: text/html" \
   --data-binary @/tmp/t.html
 # {"id":"V1StGXR8_Z5jdHi6B-myT",
-#  "url":"https://cloud-artifacts.claude-code-best.win/7d/V1StGXR8_Z5jdHi6B-myT.html",
+#  "url":"https://cloud-artifacts.alice-cli.dev/7d/V1StGXR8_Z5jdHi6B-myT.html",
 #  "expiresAt":"2026-06-27T10:00:00.000Z"}
 
 # 任何人拿到 url 都能访问
-curl "https://cloud-artifacts.claude-code-best.win/7d/V1StGXR8_Z5jdHi6B-myT.html"
+curl "https://cloud-artifacts.alice-cli.dev/7d/V1StGXR8_Z5jdHi6B-myT.html"
 ```
 
 ## 架构
@@ -27,7 +27,7 @@ curl "https://cloud-artifacts.claude-code-best.win/7d/V1StGXR8_Z5jdHi6B-myT.html
 ```
                            ┌──────────────────────────┐
 客户端  --POST /upload----▶│  Deno Deploy 边缘代理     │
-                          │  cloud-artifacts.ccb.win  │
+                          │  cloud-artifacts.alice-cli.dev  │
                           └────────────┬─────────────┘
                                        │ 透传
                                        ▼
@@ -56,7 +56,7 @@ curl "https://cloud-artifacts.claude-code-best.win/7d/V1StGXR8_Z5jdHi6B-myT.html
 
 ## 为什么套一层 Deno Deploy
 
-国内直连 Cloudflare Workers 边缘节点延迟高、丢包严重（DNS 污染 + 路由问题）。在 `cloud-artifacts.claude-code-best.win` 上套 Deno Deploy 边缘代理后：
+国内直连 Cloudflare Workers 边缘节点延迟高、丢包严重（DNS 污染 + 路由问题）。在 `cloud-artifacts.alice-cli.dev` 上套 Deno Deploy 边缘代理后：
 
 - 国内访问延迟显著降低（Deno Deploy 在国内可达性好）
 - POST/GET body 完整透传
@@ -79,7 +79,7 @@ curl "https://cloud-artifacts.claude-code-best.win/7d/V1StGXR8_Z5jdHi6B-myT.html
 ```json
 {
   "id": "V1StGXR8_Z5jdHi6B-myT",
-  "url": "https://cloud-artifacts.claude-code-best.win/7d/V1StGXR8_Z5jdHi6B-myT.html",
+  "url": "https://cloud-artifacts.alice-cli.dev/7d/V1StGXR8_Z5jdHi6B-myT.html",
   "expiresAt": "2026-06-27T10:00:00.000Z"
 }
 ```
@@ -105,19 +105,19 @@ curl "https://cloud-artifacts.claude-code-best.win/7d/V1StGXR8_Z5jdHi6B-myT.html
 
 ```bash
 # 默认随机 ID + 7 天
-curl -X POST "https://cloud-artifacts.claude-code-best.win/upload" \
+curl -X POST "https://cloud-artifacts.alice-cli.dev/upload" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: text/html" \
   --data-binary @/tmp/t.html
 
 # 自定义 hash + 30 天（再次上传同 hash 覆盖）
-curl -X POST "https://cloud-artifacts.claude-code-best.win/upload?ttl=30&hash=my-report" \
+curl -X POST "https://cloud-artifacts.alice-cli.dev/upload?ttl=30&hash=my-report" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: text/html" \
   --data-binary @/tmp/report.html
 
 # 访问
-curl "https://cloud-artifacts.claude-code-best.win/7d/V1StGXR8_Z5jdHi6B-myT.html"
+curl "https://cloud-artifacts.alice-cli.dev/7d/V1StGXR8_Z5jdHi6B-myT.html"
 ```
 
 ## 覆盖语义
@@ -145,7 +145,7 @@ bun run setup                        # 创建 bucket + 加 lifecycle rule + 设�
 # 绑 Worker custom domain（如要在 Cloudflare 直连域名上访问）：
 #   Dashboard: Workers & Pages > cloud-artifacts > Settings > Domains & Routes > Add > Custom Domain
 
-# 改 wrangler.toml 中 [vars] PUBLIC_URL 为对外出口域名（生产用 https://cloud-artifacts.claude-code-best.win）
+# 改 wrangler.toml 中 [vars] PUBLIC_URL 为对外出口域名（生产用 https://cloud-artifacts.alice-cli.dev）
 
 bun run deploy
 ```
@@ -155,7 +155,7 @@ bun run deploy
 `scripts/test.sh` 覆盖 7 个错误用例 + 3 个成功用例 + R2 写入验证。**支持双模式**：直连 Worker 时按 HTTP status code 断言；经 Deno Deploy 代理（status 抹平为 200）时自动按 body 的 `error` 字段断言（标记 `[via body]`）。
 
 ```bash
-WORKER_URL=https://cloud-artifacts.claude-code-best.win \
+WORKER_URL=https://cloud-artifacts.alice-cli.dev \
 TOKEN=<your-token> \
 bash scripts/test.sh
 ```
@@ -186,7 +186,7 @@ curl -X POST "http://localhost:8787/upload" \
 | 现象 | 原因 / 处理 |
 |------|-------------|
 | 所有请求返 HTTP 200 但业务出错 | 经 Deno Deploy 代理时正常现象，看 body 的 `error` 字段判断真实状态 |
-| `curl` 到 `*.workers.dev` 超时 | 国内 DNS 污染 + 路由问题，走 `cloud-artifacts.claude-code-best.win` 出口或挂代理 |
+| `curl` 到 `*.workers.dev` 超时 | 国内 DNS 污染 + 路由问题，走 `cloud-artifacts.alice-cli.dev` 出口或挂代理 |
 | 响应 html 多一段 `<a href="/cdn-cgi/content...">` 和 `<script>` | Cloudflare 默认注入的 Browser Insights（RUM），不影响内容渲染。要纯净响应：dashboard → Workers & Pages → cloud-artifacts → 关 Web Analytics |
 | 上传 413 但文件不到 10MB | 检查 `Content-Length` header 是否被中间层改写；Worker 同时按 `Content-Length` 和 `arrayBuffer().byteLength` 双重校验 |
 | `?ttl=14` 返 400 | 设计如此，只允许 7 或 30（对应 R2 lifecycle prefix） |

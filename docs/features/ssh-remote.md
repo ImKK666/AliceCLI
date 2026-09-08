@@ -4,19 +4,19 @@
 
 SSH Remote 提供两种方式在远程 Linux 主机上运行 Claude Code：
 
-1. **SSH Remote 模块**（`ccb ssh <host>`）— 本地 REPL + 远程工具执行，自动部署二进制 + 认证隧道
-2. **直接 SSH 运行**（`ssh <host> -t ccb`）— 远程已安装 ccb，直接启动交互式会话
+1. **SSH Remote 模块**（`alice ssh <host>`）— 本地 REPL + 远程工具执行，自动部署二进制 + 认证隧道
+2. **直接 SSH 运行**（`ssh <host> -t alice`）— 远程已安装 alice，直接启动交互式会话
 
 ## 架构
 
 ### 方式一：SSH Remote 模块（完整模式）
 
-适用场景：远端没有 API 凭据或没有安装 ccb。
+适用场景：远端没有 API 凭据或没有安装 alice。
 
 ```
 ┌──────────────── 本地 Windows/Mac/Linux ───────────┐
 │                                                    │
-│  ccb ssh <host> [dir]                              │
+│  alice ssh <host> [dir]                              │
 │     │                                              │
 │     ├── 1. SSHProbe: 探测远端平台/架构/已有二进制    │
 │     ├── 2. SSHDeploy: 部署 dist/ 到远端             │
@@ -28,7 +28,7 @@ SSH Remote 提供两种方式在远程 Linux 主机上运行 Claude Code：
 │            ssh -R <remote>:<local> <host> \         │
 │                ANTHROPIC_BASE_URL=... \             │
 │                ANTHROPIC_AUTH_NONCE=... \            │
-│                ccb --output-format stream-json      │
+│                alice --output-format stream-json      │
 │                                                    │
 │  ┌─────── 本地 REPL (Ink TUI) ───────┐             │
 │  │ 用户输入 → NDJSON → SSH stdin     │             │
@@ -41,7 +41,7 @@ SSH Remote 提供两种方式在远程 Linux 主机上运行 Claude Code：
                         │
 ┌───────────────── 远端 Linux ──────────────────────┐
 │                                                    │
-│  ccb (自动部署或已存在)                              │
+│  alice (自动部署或已存在)                              │
 │     ├── --output-format stream-json                │
 │     ├── --input-format stream-json                 │
 │     ├── --verbose -p                               │
@@ -57,12 +57,12 @@ SSH Remote 提供两种方式在远程 Linux 主机上运行 Claude Code：
 
 ### 方式二：直接 SSH 运行（简单模式）
 
-适用场景：远端已安装 ccb 且已有 API 凭据（订阅或 API Key）。
+适用场景：远端已安装 alice 且已有 API 凭据（订阅或 API Key）。
 
 ```
 ┌─────── 本地终端 ───────┐          ┌──────── 远端 Linux ────────┐
 │                         │   SSH    │                             │
-│  ssh <host> -t ccb      │ ──────→  │  ccb (全局安装)              │
+│  ssh <host> -t alice      │ ──────→  │  alice (全局安装)              │
 │                         │          │    ├── 使用远端自身凭据       │
 │  终端直接显示远端 TUI    │  ←────── │    ├── 远端文件系统操作       │
 │                         │   TTY    │    └── API 直连 Anthropic    │
@@ -73,9 +73,9 @@ SSH Remote 提供两种方式在远程 Linux 主机上运行 Claude Code：
 
 | | SSH Remote 模块 | 直接 SSH 运行 |
 |---|---|---|
-| 远端需要安装 ccb | 不需要（自动部署） | 需要 |
+| 远端需要安装 alice | 不需要（自动部署） | 需要 |
 | 远端需要 API 凭据 | 不需要（本地隧道） | 需要 |
-| 本地需要安装 ccb | 需要 | 不需要（任何终端） |
+| 本地需要安装 alice | 需要 | 不需要（任何终端） |
 | 斜杠命令 | 本地处理 | 远端处理 |
 | 网络延迟敏感 | 高（NDJSON 双向） | 低（仅 TTY） |
 | 推荐场景 | 远端无凭据/无安装 | 远端已配置完整 |
@@ -170,43 +170,43 @@ ssh my-server "echo 'SSH connection OK'"
 
 ```bash
 # 基本用法 — 自动探测、部署、启动
-ccb ssh user@remote-host
+alice ssh user@remote-host
 
 # 使用 SSH Config 别名
-ccb ssh my-server
+alice ssh my-server
 
 # 指定远端工作目录
-ccb ssh my-server /home/user/project
+alice ssh my-server /home/user/project
 
 # 使用自定义远端二进制（跳过探测/部署）
-ccb ssh my-server --remote-bin "bun /opt/ccb/dist/cli.js"
+alice ssh my-server --remote-bin "bun /opt/alice/dist/cli.js"
 
 # 权限控制
-ccb ssh my-server --permission-mode auto
-ccb ssh my-server --dangerously-skip-permissions
+alice ssh my-server --permission-mode auto
+alice ssh my-server --dangerously-skip-permissions
 
 # 恢复远端会话
-ccb ssh my-server --continue
-ccb ssh my-server --resume <session-uuid>
+alice ssh my-server --continue
+alice ssh my-server --resume <session-uuid>
 
 # 选择模型
-ccb ssh my-server --model claude-sonnet-4-6-20250514
+alice ssh my-server --model claude-sonnet-4-6-20250514
 
 # 本地测试模式（不连接远端，测试 auth proxy 管道）
-ccb ssh localhost --local
+alice ssh localhost --local
 ```
 
 ### 方式二：直接 SSH 运行
 
 ```bash
 # 启动交互式会话
-ssh my-server -t ccb
+ssh my-server -t alice
 
 # 指定工作目录
-ssh my-server -t "ccb --cwd /home/user/project"
+ssh my-server -t "alice --cwd /home/user/project"
 
 # 使用特定模型
-ssh my-server -t "ccb --model claude-sonnet-4-6-20250514"
+ssh my-server -t "alice --model claude-sonnet-4-6-20250514"
 ```
 
 ---
@@ -245,7 +245,7 @@ bun dist/cli.js
 node dist/cli-node.js
 
 # 方式 D：全局安装后使用命令名
-ccb
+alice
 ```
 
 ### 全局安装
@@ -257,11 +257,11 @@ ccb
 bun install -g .
 
 # 创建的命令：
-#   ccb            → dist/cli-node.js
-#   ccb-bun        → dist/cli-bun.js
-#   claude-code-best → dist/cli-node.js
+#   alice          → dist/cli-node.js
+#   alice-bun      → dist/cli-bun.js
+#   alice-cli      → dist/cli-node.js
 
-# 安装位置：~/.bun/bin/ccb
+# 安装位置：~/.bun/bin/alice
 ```
 
 或使用 npm：
@@ -273,7 +273,7 @@ npm install -g .
 验证：
 
 ```bash
-ccb --version
+alice --version
 # → x.x.x (Claude Code)
 ```
 
@@ -284,8 +284,8 @@ ccb --version
 ssh my-server
 
 # 2. 克隆或同步项目代码
-git clone <repo-url> ~/ccb-project
-cd ~/ccb-project
+git clone <repo-url> ~/alice-project
+cd ~/alice-project
 
 # 3. 安装运行时（如果没有 bun）
 curl -fsSL https://bun.sh/install | bash
@@ -298,13 +298,13 @@ bun run build
 # 5. 全局安装
 bun install -g .
 
-# 6. 确保非交互式 SSH 可访问 ccb 命令
+# 6. 确保非交互式 SSH 可访问 alice 命令
 #    bun install -g 安装到 ~/.bun/bin/，但非交互式 SSH 不加载 .bashrc，
 #    所以 PATH 中不包含 ~/.bun/bin/
 #    解决方式（任选其一）：
 
 # 方式 A：符号链接到系统 PATH（推荐）
-ln -sf ~/.bun/bin/ccb /usr/local/bin/ccb
+ln -sf ~/.bun/bin/alice /usr/local/bin/alice
 
 # 方式 B：添加到 /etc/profile.d/（所有用户生效）
 echo 'export PATH="$HOME/.bun/bin:$PATH"' > /etc/profile.d/bun-path.sh
@@ -313,16 +313,16 @@ echo 'export PATH="$HOME/.bun/bin:$PATH"' > /etc/profile.d/bun-path.sh
 echo 'export PATH="$HOME/.bun/bin:$PATH"' >> ~/.bash_profile
 
 # 7. 验证
-ccb --version
+alice --version
 
 # 8. 从本地测试
 # （在本地终端）
-ssh my-server -t ccb
+ssh my-server -t alice
 ```
 
 ### SSH Remote 自动部署
 
-使用 `ccb ssh <host>` 时，模块自动处理：
+使用 `alice ssh <host>` 时，模块自动处理：
 
 1. **SSHProbe** 探测远端 `~/.local/bin/claude` 或 `command -v claude`
 2. 若二进制不存在或版本不匹配，**SSHDeploy** 通过 `scp` 传输 `dist/` 目录
@@ -376,13 +376,13 @@ SSH Remote 功能受 `SSH_REMOTE` feature flag 控制：
 
 ## 常见问题
 
-### `ccb: command not found`（SSH 远程执行时）
+### `alice: command not found`（SSH 远程执行时）
 
 非交互式 SSH 不加载 `.bashrc`，`~/.bun/bin` 不在 PATH 中。
 
 ```bash
 # 解决：创建符号链接
-ln -sf ~/.bun/bin/ccb /usr/local/bin/ccb
+ln -sf ~/.bun/bin/alice /usr/local/bin/alice
 ```
 
 ### SSH 密钥被拒绝
@@ -421,6 +421,6 @@ Remote process exited immediately (code 1)
 ```
 
 1. 确认远端 `bun` / `node` 运行时可用
-2. 手动在远端执行 `ccb --version` 验证安装
+2. 手动在远端执行 `alice --version` 验证安装
 3. 检查 `--remote-bin` 路径是否正确
 4. 查看 stderr 输出获取详细错误信息

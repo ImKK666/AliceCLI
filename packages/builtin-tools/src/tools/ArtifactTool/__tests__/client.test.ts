@@ -22,7 +22,7 @@ describe('uploadArtifact', () => {
   test('returns id/url/expiresAt on successful upload', async () => {
     globalThis.fetch = mockFetch({
       id: 'V1StGXR8_Z5jdHi6B',
-      url: 'https://cloud-artifacts.claude-code-best.win/7d/V1StGXR8_Z5jdHi6B.html',
+      url: 'https://cloud-artifacts.alice-cli.dev/7d/V1StGXR8_Z5jdHi6B.html',
       expiresAt: '2026-06-27T10:00:00.000Z',
     })
 
@@ -34,7 +34,7 @@ describe('uploadArtifact', () => {
 
     expect(result).toEqual({
       id: 'V1StGXR8_Z5jdHi6B',
-      url: 'https://cloud-artifacts.claude-code-best.win/7d/V1StGXR8_Z5jdHi6B.html',
+      url: 'https://cloud-artifacts.alice-cli.dev/7d/V1StGXR8_Z5jdHi6B.html',
       expiresAt: '2026-06-27T10:00:00.000Z',
     })
   })

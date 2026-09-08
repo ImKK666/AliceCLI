@@ -63,7 +63,7 @@
 
 ```
 packages/workflow-engine/
-  package.json            @claude-code-best/workflow-engine (workspace:*)
+  package.json            @alice-cli/workflow-engine (workspace:*)
   tsconfig.json
   src/
     index.ts              公共导出

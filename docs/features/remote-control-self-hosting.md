@@ -236,10 +236,10 @@ API key。浏览器 `EventSource` 不能发送 `Authorization` header，外部�
 
 ```bash
 # 在 RCS 环境中启动 acp-link
-# 注意：claude 本身不支持 ACP，需要用 ccb-bun --acp
+# 注意：claude 本身不支持 ACP，需要用 alice-bun --acp
 ACP_RCS_URL=http://localhost:3000 \
 ACP_RCS_TOKEN=sk-rcs-your-key \
-acp-link ccb-bun -- --acp
+acp-link alice-bun -- --acp
 ```
 
 ACP session 在 Web UI 中显示品牌色标签，与普通 Claude Code session 区分。

@@ -5,7 +5,7 @@ import {
 } from '../chatgptModels.js'
 
 describe('resolveChatGPTCodexModelForTier', () => {
-  test('maps CCB capability tiers to the matching GPT-5.6 models', () => {
+  test('maps Alice CLI capability tiers to the matching GPT-5.6 models', () => {
     expect(
       resolveChatGPTCodexModelForTier({
         tier: 'opus',

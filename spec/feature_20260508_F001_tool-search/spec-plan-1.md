@@ -56,11 +56,11 @@
   - 位置: `src/constants/tools.ts` 文件末尾（`COORDINATOR_MODE_ALLOWED_TOOLS` 之后，~L113）
   - 新增以下 import（文件顶部 import 区域，与现有 import 风格一致）:
     ```typescript
-    import { SLEEP_TOOL_NAME } from '@claude-code-best/builtin-tools/tools/SleepTool/prompt.js'
-    import { LSP_TOOL_NAME } from '@claude-code-best/builtin-tools/tools/LSPTool/prompt.js'
-    import { VERIFY_PLAN_EXECUTION_TOOL_NAME } from '@claude-code-best/builtin-tools/tools/VerifyPlanExecutionTool/constants.js'
-    import { TEAM_CREATE_TOOL_NAME } from '@claude-code-best/builtin-tools/tools/TeamCreateTool/constants.js'
-    import { TEAM_DELETE_TOOL_NAME } from '@claude-code-best/builtin-tools/tools/TeamDeleteTool/constants.js'
+    import { SLEEP_TOOL_NAME } from '@alice-cli/builtin-tools/tools/SleepTool/prompt.js'
+    import { LSP_TOOL_NAME } from '@alice-cli/builtin-tools/tools/LSPTool/prompt.js'
+    import { VERIFY_PLAN_EXECUTION_TOOL_NAME } from '@alice-cli/builtin-tools/tools/VerifyPlanExecutionTool/constants.js'
+    import { TEAM_CREATE_TOOL_NAME } from '@alice-cli/builtin-tools/tools/TeamCreateTool/constants.js'
+    import { TEAM_DELETE_TOOL_NAME } from '@alice-cli/builtin-tools/tools/TeamDeleteTool/constants.js'
     ```
   - 在文件末尾新增 `CORE_TOOLS` 导出常量:
     ```typescript
@@ -243,7 +243,7 @@
   - 函数签名：`export async function buildToolIndex(tools: Tool[]): Promise<ToolIndexEntry[]>`
   - 导入依赖：从 `localSearch.ts` 导入 `tokenizeAndStem`、`computeWeightedTf`、`computeIdf`、`cosineSimilarity`
   - 核心逻辑：
-    1. 过滤出延迟工具（调用 `isDeferredTool`，从 `@claude-code-best/builtin-tools/tools/ToolSearchTool/prompt.js` 导入）
+    1. 过滤出延迟工具（调用 `isDeferredTool`，从 `@alice-cli/builtin-tools/tools/ToolSearchTool/prompt.js` 导入）
     2. 对每个延迟工具，调用 `tool.prompt()` 获取描述文本（构造一个 mock 的 `getToolPermissionContext` 返回空权限上下文，`tools` 传原始工具列表，`agents` 传空数组）
     3. 调用 `parseToolName(tool.name)` 获取工具名 token
     4. 调用 `tokenizeAndStem` 对 `name parts`、`searchHint`、`description` 分别分词

@@ -85,7 +85,7 @@ function gte(a: string, b: string): boolean {
   return true
 }
 
-export async function updateCCB(): Promise<void> {
+export async function updateAlice(): Promise<void> {
   const currentVersion = getCurrentVersion()
   writeToStdout(`Current version: ${currentVersion}\n`)
 

@@ -1,7 +1,7 @@
 # WORKFLOW_SCRIPTS — 确定性多 agent 工作流编排
 
 > Feature Flag：`FEATURE_WORKFLOW_SCRIPTS=1`
-> 引擎包：[`@claude-code-best/workflow-engine`](../../packages/workflow-engine/)（确定性 JS 脚本编排，零核心层运行时依赖）
+> 引擎包：[`@alice-cli/workflow-engine`](../../packages/workflow-engine/)（确定性 JS 脚本编排，零核心层运行时依赖）
 > 集成层：[`src/workflow/`](../../src/workflow/)
 
 ## 一、功能概述
@@ -37,7 +37,7 @@ WORKFLOW_SCRIPTS 让 Claude Code 用**确定性 JavaScript 脚本**编排多个�
                      （不透明 host）       （深度读会话体系，跑真实 agent）
                                   │
                                   ▼
-                  @claude-code-best/workflow-engine
+                  @alice-cli/workflow-engine
                   （runWorkflow / hooks / journal / budget / 并发信号量）
 ```
 

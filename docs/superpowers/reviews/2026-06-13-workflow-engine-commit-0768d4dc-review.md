@@ -2,7 +2,7 @@
 
 - **Commit**: `0768d4dc8f69023b55adf2f5c176c766640600cb`
 - **Title**: `feat(workflow): add workflow engine, /workflows panel, /ultracode skill`
-- **Author**: claude-code-best <claude-code-best@proton.me>
+- **Author**: alice-cli <alice-cli@proton.me>
 - **Date**: 2026-06-13
 - **规模**: 90 文件，+12925 / -833
 - **审查日期**: 2026-06-13
