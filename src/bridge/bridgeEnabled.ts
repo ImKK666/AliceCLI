@@ -175,6 +175,7 @@ export function checkBridgeMinVersion(): string | null {
   // Negative pattern (if (!feature(...)) return) does not eliminate
   // inline string literals from external builds.
   if (feature('BRIDGE_MODE')) {
+    if (isSelfHostedBridge()) return null
     const config = getDynamicConfig_CACHED_MAY_BE_STALE<{
       minVersion: string
     }>('tengu_bridge_min_version', { minVersion: '0.0.0' })

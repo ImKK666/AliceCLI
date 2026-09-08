@@ -3,6 +3,7 @@ import { getFeatureValue_DEPRECATED } from '../services/analytics/growthbook.js'
 import { lazySchema } from '../utils/lazySchema.js'
 import { lt } from '../utils/semver.js'
 import { isEnvLessBridgeEnabled } from './bridgeEnabled.js'
+import { isSelfHostedBridge } from './bridgeConfig.js'
 
 export type EnvLessBridgeConfig = {
   // withRetry — init-phase backoff (createSession, POST /bridge, recovery /bridge)
@@ -145,6 +146,7 @@ export async function getEnvLessBridgeConfig(): Promise<EnvLessBridgeConfig> {
  * independent floors.
  */
 export async function checkEnvLessBridgeMinVersion(): Promise<string | null> {
+  if (isSelfHostedBridge()) return null
   const cfg = await getEnvLessBridgeConfig()
   if (cfg.min_version && lt(MACRO.VERSION, cfg.min_version)) {
     return `Your version of Alice CLI (${MACRO.VERSION}) is too old for Remote Control.\nVersion ${cfg.min_version} or higher is required. Run \`alice update\` to update.`

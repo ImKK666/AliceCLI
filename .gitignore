@@ -61,3 +61,4 @@ credentials.json
 alice
 compile-out/
 vendor/ripgrep/
+bin/
