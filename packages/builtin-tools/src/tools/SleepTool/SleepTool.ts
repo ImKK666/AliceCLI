@@ -32,14 +32,14 @@ function isProactiveAutomationEnabled(): boolean {
   return mod.isProactiveActive()
 }
 
-function isProactiveSleepAllowed(): boolean {
+function wasProactiveDeactivated(): boolean {
   if (!(feature('PROACTIVE') || feature('KAIROS'))) {
-    return true
+    return false
   }
 
   const mod =
     require('src/proactive/index.js') as typeof import('src/proactive/index.js')
-  return mod.isProactiveActive()
+  return !mod.isProactiveActive()
 }
 
 function hasQueuedWakeSignal(): boolean {
@@ -48,8 +48,15 @@ function hasQueuedWakeSignal(): boolean {
   return queue.hasCommandsInQueue()
 }
 
-function shouldInterruptSleep(): boolean {
-  return !isProactiveSleepAllowed() || hasQueuedWakeSignal()
+function shouldInterruptSleepAtEntry(): boolean {
+  return hasQueuedWakeSignal()
+}
+
+function shouldInterruptSleepDuringPoll(proactiveWasActive: boolean): boolean {
+  if (proactiveWasActive && wasProactiveDeactivated()) {
+    return true
+  }
+  return hasQueuedWakeSignal()
 }
 
 export const SleepTool = buildTool({
@@ -103,9 +110,10 @@ export const SleepTool = buildTool({
   },
 
   async call(input: SleepInput, context) {
-    // Don't enter sleep if proactive was disabled or new work arrived while
-    // the model was deciding to wait.
-    if (shouldInterruptSleep()) {
+    // Don't enter sleep if new work arrived while the model was deciding
+    // to wait. Only checks the command queue — proactive state is tracked
+    // during the polling interval below.
+    if (shouldInterruptSleepAtEntry()) {
       return {
         data: {
           slept_seconds: 0,
@@ -117,8 +125,9 @@ export const SleepTool = buildTool({
     const { duration_seconds } = input
     const startTime = Date.now()
     const sleepUntil = startTime + duration_seconds * 1000
+    const proactiveWasActive = isProactiveAutomationEnabled()
 
-    if (isProactiveAutomationEnabled()) {
+    if (proactiveWasActive) {
       notifyAutomationStateChanged({
         enabled: true,
         phase: 'sleeping',
@@ -177,7 +186,7 @@ export const SleepTool = buildTool({
         // Poll proactive state and the shared command queue so new work can
         // wake Sleep without waiting for the full duration.
         wakeCheck = setInterval(() => {
-          if (shouldInterruptSleep()) {
+          if (shouldInterruptSleepDuringPoll(proactiveWasActive)) {
             interrupt()
           }
         }, SLEEP_WAKE_CHECK_INTERVAL_MS)
